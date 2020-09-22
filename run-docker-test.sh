@@ -35,4 +35,4 @@ DOCKER_TAG=finn-base
 docker build -f docker/Dockerfile --tag=$DOCKER_TAG .
 
 # Mount source folder and run test suite
-docker run -it -v $FINN_BASE_ROOT:/workspace/finn-base --rm $DOCKER_TAG
+docker run -it -v $FINN_BASE_ROOT:/workspace/finn-base --rm $DOCKER_TAG $@
