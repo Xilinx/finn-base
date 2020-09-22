@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of finn-base nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -26,9 +26,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from toposort import toposort_flatten
+
 import finn.util.basic as util
 from finn.transformation import Transformation
-from toposort import toposort_flatten
 
 
 class RemoveUnusedTensors(Transformation):
@@ -176,7 +177,7 @@ class GiveUniqueParameterTensors(Transformation):
 
 
 class SortGraph(Transformation):
-    """ Returns the model with its node list sorted topologically.
+    """Returns the model with its node list sorted topologically.
     Any ONNX graph to be executed must have a topologically sorted node list,
     as dictated by the ONNX standard.
     """

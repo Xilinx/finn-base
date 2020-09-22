@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of finn-base nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -27,11 +27,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-
 # create a mapping of all known CustomOp names and classes
 # make sure new CustomOp subclasses are imported here so that they get
 # registered and plug in correctly into the infrastructure
 custom_op = {}
+
 
 def getCustomOp(node):
     "Return a FINN CustomOp instance for the given ONNX node, if it exists."

@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of finn-base nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -27,9 +27,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from enum import Enum, auto
-
 import numpy as np
+from enum import Enum, auto
 
 
 class DataType(Enum):
@@ -43,7 +42,7 @@ class DataType(Enum):
 
     * fewer to more bits
 
-    Currently supported DataTypes: """
+    Currently supported DataTypes:"""
 
     # important: the get_smallest_possible() member function is dependent on ordering.
     BINARY = auto()
@@ -201,7 +200,7 @@ class DataType(Enum):
 
     def get_smallest_possible(value):
         """Returns smallest (fewest bits) possible DataType that can represent
-      value. Prefers unsigned integers where possible."""
+        value. Prefers unsigned integers where possible."""
         if not int(value) == value:
             return DataType["FLOAT32"]
         for k in DataType.__members__:

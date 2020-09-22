@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of finn-base nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -47,9 +47,10 @@ Guide to writing FINN transformations
   manually re-apply the transform.
 """
 
-from abc import ABC, abstractmethod
-from finn.util.basic import get_num_default_workers
 import multiprocessing as mp
+from abc import ABC, abstractmethod
+
+from finn.util.basic import get_num_default_workers
 
 
 class Transformation(ABC):

@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of finn-base nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -32,7 +32,7 @@ from finn.custom_op.registry import getCustomOp
 from finn.util.data_packing import npy_to_rtlsim_input, rtlsim_output_to_npy
 from finn.util.fpgadataflow import (
     pyverilate_get_liveness_threshold_cycles,
-    pyverilate_stitched_ip
+    pyverilate_stitched_ip,
 )
 
 try:
