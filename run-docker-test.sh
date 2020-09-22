@@ -32,7 +32,7 @@ FINN_BASE_ROOT=$(dirname "$SCRIPT")
 DOCKER_TAG=finn-base
 
 # Build the finn-base Docker image
-docker build -f docker/Dockerfile --tag=$DOCKER_TAG .
+docker build -f docker/Dockerfile -t $DOCKER_TAG .
 
 # Mount source folder and run test suite
-docker run -it -v $FINN_BASE_ROOT:/workspace/finn-base --rm $DOCKER_TAG $@
+docker run --rm -it -v $FINN_BASE_ROOT:/workspace/finn-base $DOCKER_TAG $@

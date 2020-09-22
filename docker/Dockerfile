@@ -28,15 +28,13 @@
 
 FROM mcr.microsoft.com/azureml/onnxruntime:latest
 MAINTAINER Yaman Umuroglu <yamanu@xilinx.com>
-ARG PYTHON_VERSION=3.7
+ARG PYTHON_VERSION=3.6
 
-WORKDIR /workspace
+WORKDIR /workspace/finn-base
 
 COPY docker/entrypoint.sh /usr/local/bin/
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 # color terminal output
-RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >>  /root/.bashrc
-
-WORKDIR /workspace/finn-base
+RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >> /root/.bashrc
 
 ENTRYPOINT ["entrypoint.sh"]
