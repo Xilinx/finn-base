@@ -28,18 +28,17 @@
 
 
 import copy
-
 import numpy as np
 import onnx.helper as helper
 import onnxruntime as rt
 
+import finn.analysis.topology as ta
 import finn.core.execute_custom_node as ex_cu_node
 from finn.core.modelwrapper import ModelWrapper
 from finn.core.remote_exec import remote_exec
 from finn.core.rtlsim_exec import rtlsim_exec
 from finn.custom_op.registry import getCustomOp
-import finn.analysis.topology as ta
-from finn.util.basic import sanitize_quant_values, get_sanitize_quant_tensors
+from finn.util.basic import get_sanitize_quant_tensors, sanitize_quant_values
 
 
 def execute_node(node, context, graph, return_full_exec_context=False):

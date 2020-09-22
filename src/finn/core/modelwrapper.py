@@ -27,21 +27,21 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import copy
-import os
 import onnx
 import onnx.helper as oh
 import onnx.numpy_helper as np_helper
+import os
 from onnx import TensorProto
 
 import finn.util.basic as util
 import finn.util.onnx as onnxutil
 from finn.core.datatype import DataType
+from finn.transformation.double_to_single_float import DoubleToSingleFloat
 from finn.transformation.general import (
-    RemoveUnusedTensors,
     RemoveStaticGraphInputs,
+    RemoveUnusedTensors,
     SortGraph,
 )
-from finn.transformation.double_to_single_float import DoubleToSingleFloat
 
 
 class ModelWrapper:

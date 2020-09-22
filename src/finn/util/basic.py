@@ -26,14 +26,13 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import numpy as np
 import os
 import random
 import string
 import subprocess
 import tempfile
 import warnings
-
-import numpy as np
 
 from finn.core.datatype import DataType
 
@@ -333,7 +332,7 @@ def calculate_signed_dot_prod_range(dt_a, dt_b, len):
 
 
 def sanitize_quant_values(model, node_tensors, execution_context, check_values=False):
-    """ Sanitize given list of tensors in execution_context by rounding values
+    """Sanitize given list of tensors in execution_context by rounding values
     that are supposed to be integers (as indicated by their quantization
     annotation). Will raise an assertion if the amount of rounding is too large.
     Returns the sanitized execution context.

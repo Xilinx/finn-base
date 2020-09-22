@@ -26,16 +26,15 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from pkgutil import get_data
-
 import numpy as np
 import onnx
 import onnx.numpy_helper as np_helper
+from pkgutil import get_data
 
 import finn.core.onnx_exec as oxe
+from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.infer_shapes import InferShapes
-from finn.core.datatype import DataType
 from finn.util.basic import gen_finn_dt_tensor
 
 

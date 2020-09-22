@@ -32,7 +32,7 @@ from finn.custom_op.registry import getCustomOp
 from finn.util.data_packing import npy_to_rtlsim_input, rtlsim_output_to_npy
 from finn.util.fpgadataflow import (
     pyverilate_get_liveness_threshold_cycles,
-    pyverilate_stitched_ip
+    pyverilate_stitched_ip,
 )
 
 try:

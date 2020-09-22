@@ -26,9 +26,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from abc import ABC, abstractmethod
-from finn.util.basic import get_by_name
 import onnx.helper as helper
+from abc import ABC, abstractmethod
+
+from finn.util.basic import get_by_name
 
 
 class CustomOp(ABC):
@@ -91,12 +92,12 @@ class CustomOp(ABC):
     @abstractmethod
     def get_nodeattr_types(self):
         """Returns a dict of permitted attributes for node, where:
-            returned_dict[attribute_name] = (dtype, require, default_value)
-            - dtype indicates which member of the ONNX AttributeProto
-            will be utilized
-            - require indicates whether this attribute is required
-            - default_val indicates the default value that will be used if the
-            attribute is not set
+        returned_dict[attribute_name] = (dtype, require, default_value)
+        - dtype indicates which member of the ONNX AttributeProto
+        will be utilized
+        - require indicates whether this attribute is required
+        - default_val indicates the default value that will be used if the
+        attribute is not set
         """
         pass
 

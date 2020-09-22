@@ -27,10 +27,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import binascii
+import numpy as np
 import os
 import sys
-
-import numpy as np
 from bitstring import BitArray
 
 from finn.core.datatype import DataType

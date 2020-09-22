@@ -27,11 +27,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-
 # create a mapping of all known CustomOp names and classes
 # make sure new CustomOp subclasses are imported here so that they get
 # registered and plug in correctly into the infrastructure
 custom_op = {}
+
 
 def getCustomOp(node):
     "Return a FINN CustomOp instance for the given ONNX node, if it exists."
