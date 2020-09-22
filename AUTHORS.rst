@@ -2,4 +2,4 @@
 Contributors
 ============
 
-* Yaman Umuroglu <maltanar@gmail.com>
+* Yaman Umuroglu <yamanu@xilinx.com>
