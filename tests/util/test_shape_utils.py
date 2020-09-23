@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of FINN nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -26,35 +26,16 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from finn.custom_op.debugmarker import DebugMarker
-from finn.custom_op.im2col import Im2Col
-from finn.custom_op.maxpoolnhwc import MaxPoolNHWC
-from finn.custom_op.multithreshold import MultiThreshold
-from finn.custom_op.quantavgpool2d import QuantAvgPool2d
-from finn.custom_op.streamingdataflowpartition import StreamingDataflowPartition
-from finn.custom_op.xnorpopcount import XnorPopcountMatMul
+import numpy as np
 
-# create a mapping of all known CustomOp names and classes
-# make sure new CustomOp subclasses are imported here so that they get
-# registered and plug in correctly into the infrastructure
-custom_op = {}
-
-custom_op["DebugMarker"] = DebugMarker
-custom_op["QuantAvgPool2d"] = QuantAvgPool2d
-custom_op["MaxPoolNHWC"] = MaxPoolNHWC
-custom_op["StreamingDataflowPartition"] = StreamingDataflowPartition
-custom_op["MultiThreshold"] = MultiThreshold
-custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
-custom_op["Im2Col"] = Im2Col
+import finn.util.basic as util
 
 
-def getCustomOp(node):
-    "Return a FINN CustomOp instance for the given ONNX node, if it exists."
-    op_type = node.op_type
-    try:
-        # lookup op_type in registry of CustomOps
-        inst = custom_op[op_type](node)
-        return inst
-    except KeyError:
-        # exception if op_type is not supported
-        raise Exception("Custom op_type %s is currently not supported." % op_type)
+def test_interleave_matrix_outer_dim_from_partitions():
+    A = np.eye(10)
+    n_parts = 2
+    Ax = util.interleave_matrix_outer_dim_from_partitions(A, n_parts)
+    part_size = 10 // n_parts
+    assert Ax.shape == (n_parts, part_size, 10)
+    for r_ind in range(A.shape[0]):
+        assert (A[r_ind] == Ax[r_ind % n_parts][r_ind // n_parts]).all()
