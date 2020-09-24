@@ -27,5 +27,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-cd /workspace/finn-base
-python setup.py develop && python setup.py test $@
+export SHELL=/bin/bash
+
+pip install --user -e /workspace/finn-base
+exec $@

@@ -27,12 +27,5 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-SCRIPT=$(readlink -f "$0")
-FINN_BASE_ROOT=$(dirname "$SCRIPT")
-DOCKER_TAG=finn-base
-
-# Build the finn-base Docker image
-docker build -f docker/Dockerfile -t $DOCKER_TAG .
-
-# Mount source folder and run test suite
-docker run --rm -it -v $FINN_BASE_ROOT:/workspace/finn-base $DOCKER_TAG $@
+cd /workspace/finn-base
+python setup.py test
