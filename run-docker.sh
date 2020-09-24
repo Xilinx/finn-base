@@ -58,7 +58,7 @@ docker build -f docker/Dockerfile -t $DOCKER_TAG \
             .
 
 # Launch container with current directory mounted
-docker run -t --rm $DOCKER_INTERACTIVE --name $DOCKER_TAG \
+docker run -t --rm $DOCKER_INTERACTIVE \
            -v $SCRIPTPATH:/workspace/finn-base \
            -w /workspace \
            -e SHELL=/bin/bash \
