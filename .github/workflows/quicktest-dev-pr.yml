@@ -19,5 +19,5 @@ jobs:
 
       - name: DockerRunQuicktest
         run: |
-          docker build -f docker/Dockerfile -t finn-base-gha .
+          docker build -f docker/Dockerfile.ci -t finn-base-gha .
           docker run --rm -v $(pwd):/workspace/finn-base finn-base-gha quicktest.sh

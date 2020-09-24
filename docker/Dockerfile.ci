@@ -28,33 +28,13 @@
 
 FROM mcr.microsoft.com/azureml/onnxruntime:latest
 MAINTAINER Yaman Umuroglu <yamanu@xilinx.com>
-ARG GID
-ARG GNAME
-ARG UNAME
-ARG UID
 
 RUN pip install --upgrade pip
 
-# Add host user
-RUN groupadd -g $GID $GNAME -f
-RUN useradd -u $UID -g $GNAME -ms /bin/bash $UNAME
-RUN usermod -aG sudo $UNAME
-USER $UNAME
-
-# Set ENV
-ENV PYTHONPATH "${PYTHONPATH}:/workspace/finn-base/src"
-ENV PATH "${PATH}:/home/$UNAME/.local/bin"
-
-# Color prompt
-RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >> /home/$UNAME/.bashrc
-
-# Copy entrypoint script as root then switch back to user
-USER root
 COPY ./docker/entrypoint.sh /usr/local/bin/
 COPY ./docker/quicktest.sh /usr/local/bin/
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/quicktest.sh
-USER $UNAME
 
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["bash"]
