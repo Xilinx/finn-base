@@ -43,6 +43,9 @@ DOCKER_INTERACTIVE=""
 if [ "$1" = "test" ]; then
         echo "Running test suite"
         DOCKER_CMD="quicktest.sh"
+elif [ "$1" = "docs" ]; then
+        echo "Building docs"
+        DOCKER_CMD="docsbuild.sh"
 else
         echo "Running container in interactive mode"
         DOCKER_CMD="bash"
