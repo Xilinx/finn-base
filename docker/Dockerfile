@@ -36,7 +36,7 @@ ARG UID
 RUN pip install --upgrade pip
 
 # Add host user
-RUN groupadd -f -g $GID $GNAME
+RUN groupadd -g $GID -f $GNAME
 RUN useradd -u $UID -g $GNAME -ms /bin/bash $UNAME
 RUN usermod -aG sudo $UNAME
 USER $UNAME
