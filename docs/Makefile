@@ -5,7 +5,7 @@
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
-BUILDDIR      = ../build/sphinx/
+BUILDDIR      = _build
 AUTODOCDIR    = api
 AUTODOCBUILD  = sphinx-apidoc
 PROJECT       = finn-base
