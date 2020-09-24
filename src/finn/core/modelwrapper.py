@@ -53,7 +53,7 @@ class ModelWrapper:
         onnx_model_proto can be either a ModelProto instance, or a string
         with the path to a stored .onnx file on disk, or serialized bytes.
 
-        - make_deepcopy : controls whether a deep copy of the ModelProto
+        make_deepcopy: controls whether a deep copy of the ModelProto
         is made internally.
         """
         if isinstance(onnx_model_proto, str):

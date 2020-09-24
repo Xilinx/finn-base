@@ -37,7 +37,7 @@ from finn.transformation.infer_shapes import InferShapes
 
 def test_infer_shapes():
     # load the onnx model
-    raw_m = get_data("finn.base-data", "onnx/mnist-conv/model.onnx")
+    raw_m = get_data("finn", "../../tests/data/onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     graph = model.graph
 
