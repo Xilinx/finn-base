@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright (c) 2020, Xilinx
 # All rights reserved.
 #
@@ -26,35 +27,39 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-FROM mcr.microsoft.com/azureml/onnxruntime:latest
-MAINTAINER Yaman Umuroglu <yamanu@xilinx.com>
-ARG GID
-ARG GNAME
-ARG UNAME
-ARG UID
+DOCKER_GID=$(id -g)
+DOCKER_GNAME=$(id -gn)
+DOCKER_UNAME=$(id -un)
+DOCKER_UID=$(id -u)
+DOCKER_TAG="finn-base"
 
-RUN pip install --upgrade pip
+# Absolute path to this script.
+SCRIPT=$(readlink -f "$0")
+# Absolute path of dir this script is in.
+SCRIPTPATH=$(dirname "$SCRIPT")
 
-# Add host user
-RUN groupadd -g $GID $GNAME -f
-RUN useradd -u $UID $UNAME -g $GNAME -ms /bin/bash
-RUN usermod -aG sudo $UNAME
-USER $UNAME
+DOCKER_INTERACTIVE=""
 
-# Set ENV
-ENV PYTHONPATH "${PYTHONPATH}:/workspace/finn-base/src"
-ENV PATH "${PATH}:/home/$UNAME/.local/bin"
+if [ "$1" = "test" ]; then
+        echo "Running test suite"
+        DOCKER_CMD="quicktest.sh"
+else
+        echo "Running container in interactive mode"
+        DOCKER_CMD="bash"
+        DOCKER_INTERACTIVE="-it"
+fi
 
-# Color prompt
-RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >> /home/$UNAME/.bashrc
+# Build the finn-base docker image
+docker build -f docker/Dockerfile -t $DOCKER_TAG \
+            --build-arg GID=$DOCKER_GID \
+            --build-arg GNAME=$DOCKER_GNAME \
+            --build-arg UNAME=$DOCKER_UNAME \
+            --build-arg UID=$DOCKER_UID \
+            .
 
-# Copy entrypoint script as root then switch back to user
-USER root
-COPY ./docker/entrypoint.sh /usr/local/bin/
-COPY ./docker/quicktest.sh /usr/local/bin/
-RUN chmod 755 /usr/local/bin/entrypoint.sh
-RUN chmod 755 /usr/local/bin/quicktest.sh
-USER $UNAME
-
-ENTRYPOINT ["entrypoint.sh"]
-CMD ["bash"]
+# Launch container with current directory mounted
+docker run -t --rm $DOCKER_INTERACTIVE --name $DOCKER_TAG \
+           -v $SCRIPTPATH:/workspace/finn-base \
+           -w /workspace \
+           -e SHELL=/bin/bash \
+           $DOCKER_TAG $DOCKER_CMD
