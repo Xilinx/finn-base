@@ -53,9 +53,9 @@ USER root
 COPY ./docker/entrypoint.sh /usr/local/bin/
 COPY ./docker/quicktest.sh /usr/local/bin/
 COPY ./docker/docsbuild.sh /usr/local/bin/
-RUN chmod 755 /usr/local/bin/entrypoint.sh
-RUN chmod 755 /usr/local/bin/quicktest.sh
-RUN chmod 755 /usr/local/bin/docsbuild.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/quicktest.sh
+RUN chmod +x /usr/local/bin/docsbuild.sh
 USER $UNAME
 
 ENTRYPOINT ["entrypoint.sh"]
