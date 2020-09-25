@@ -30,7 +30,7 @@ import numpy as np
 import onnx.helper as helper
 
 from finn.core.datatype import DataType
-from finn.custom_op import CustomOp
+from finn.custom_op.custom_op import CustomOp
 
 
 def multithreshold(v, thresholds, out_scale=None, out_bias=None):

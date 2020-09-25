@@ -3,7 +3,7 @@ import onnxruntime as rt
 from onnx import TensorProto, helper
 
 from finn.core.datatype import DataType
-from finn.custom_op import CustomOp
+from finn.custom_op.custom_op import CustomOp
 from finn.custom_op.maxpoolnhwc import compute_pool_output_dim
 
 

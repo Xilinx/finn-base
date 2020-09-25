@@ -30,7 +30,7 @@ import numpy as np
 from onnx import TensorProto, helper
 
 from finn.core.modelwrapper import ModelWrapper
-from finn.custom_op import CustomOp
+from finn.custom_op.custom_op import CustomOp
 
 
 def compute_pool_output_dim(ifm_dim, k, stride, pad=0):
