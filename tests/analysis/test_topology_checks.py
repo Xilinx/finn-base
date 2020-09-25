@@ -80,7 +80,7 @@ def test_all_tensors_f32():
 
 
 def test_node_inputs_in_expected_order():
-    raw_m = get_data("finn.base-data", "onnx/mnist-conv/model.onnx")
+    raw_m = get_data("finn", "../../tests/data/onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     model = model.transform(InferShapes())
     ret = model.analysis(ta.node_inputs_in_expected_order)
@@ -92,7 +92,7 @@ def test_node_inputs_in_expected_order():
 def test_nodes_topologically_sorted():
     # test analysis pass (nodes_topologically_sorted) with different models
     # test with data/onnx/mnist-conv/model.onnx
-    raw_m = get_data("finn.base-data", "onnx/mnist-conv/model.onnx")
+    raw_m = get_data("finn", "../../tests/data/onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     ret = model.analysis(ta.nodes_topologically_sorted)
     assert ret["nodes_topologically_sorted"] is True
