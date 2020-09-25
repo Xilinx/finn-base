@@ -3,7 +3,7 @@ from onnx import TensorProto, helper
 
 import finn.util.basic as util
 from finn.core.datatype import DataType
-from finn.custom_op.custom_op import CustomOp
+from finn.custom_op.base import CustomOp
 
 # adapted from A. Karpathy's CS231 im2col code
 # utilities to generate a patch matrix from a multichannel image

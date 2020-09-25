@@ -28,7 +28,7 @@
 
 from onnx import helper
 
-from finn.custom_op.custom_op import CustomOp
+from finn.custom_op.base import CustomOp
 
 
 class DebugMarker(CustomOp):

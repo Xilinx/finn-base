@@ -30,7 +30,7 @@ import numpy as np
 import onnx.helper as helper
 
 from finn.core.datatype import DataType
-from finn.custom_op.custom_op import CustomOp
+from finn.custom_op.base import CustomOp
 
 
 def xnorpopcountmatmul(inp0, inp1):
