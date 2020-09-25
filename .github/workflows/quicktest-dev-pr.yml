@@ -19,5 +19,10 @@ jobs:
 
       - name: DockerRunQuicktest
         run: |
-          docker build -f docker/Dockerfile.ci -t finn-base-gha .
+          docker build -f docker/Dockerfile -t finn-base-gha \
+                       --build-arg GID=$(id -g) \
+                       --build-arg GNAME=$(id -gn) \
+                       --build-arg UNAME=$(id -un) \
+                       --build-arg UID=$(id -u) \
+                       .
           docker run --rm -v $(pwd):/workspace/finn-base finn-base-gha quicktest.sh
