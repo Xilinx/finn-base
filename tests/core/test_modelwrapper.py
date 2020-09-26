@@ -35,7 +35,7 @@ from finn.core.modelwrapper import ModelWrapper
 
 
 def test_modelwrapper():
-    raw_m = get_data("finn", "../../tests/data/onnx/mnist-conv/model.onnx")
+    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     assert model.check_all_tensor_shapes_specified() is True
     inp_name = model.graph.input[0].name

@@ -37,7 +37,7 @@ from finn.transformation.infer_shapes import InferShapes
 
 
 def test_give_unique_node_names():
-    raw_m = get_data("finn", "../../tests/data/onnx/mnist-conv/model.onnx")
+    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     model = model.transform(GiveUniqueNodeNames())
     assert model.graph.node[0].name == "Reshape_0"

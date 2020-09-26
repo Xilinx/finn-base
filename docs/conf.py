@@ -37,6 +37,7 @@ except ImportError:
 output_dir = os.path.join(__location__, "api")
 module_dir = os.path.join(__location__, "../src/finn")
 template_dir = os.path.join(__location__, "_templates/apidoc")
+exclude_dir = os.path.join(__location__, "../src/finn/data")
 
 try:
     shutil.rmtree(output_dir)
@@ -47,10 +48,11 @@ try:
     import sphinx
     from pkg_resources import parse_version
 
-    cmd_line_template = "sphinx-apidoc -f -e -d 2 -t {templatedir} -o {outputdir} {moduledir}"
+    cmd_line_template = "sphinx-apidoc -f -e -d 2 -t {templatedir} -o {outputdir} {moduledir} {excludedir}"
     cmd_line = cmd_line_template.format(templatedir=template_dir,
                                         outputdir=output_dir,
-                                        moduledir=module_dir)
+                                        moduledir=module_dir,
+                                        excludedir=exclude_dir)
 
     args = cmd_line.split(" ")
     if parse_version(sphinx.__version__) >= parse_version('1.7'):
