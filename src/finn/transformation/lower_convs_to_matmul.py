@@ -34,6 +34,20 @@ from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
 
 
+def _auto_pad_to_explicit_padding(autopad_str, idim, k, stride, n_dims):
+    pad_total = (stride - 1) * idim - stride + k
+    pad_half_small = int((pad_total / 2))
+    pad_half_large = pad_total - pad_half_small
+    if autopad_str == "VALID":
+        return [0 for i in range(2 * n_dims)]
+    elif autopad_str == "SAME_UPPER":
+        return [pad_half_small, pad_half_large] * n_dims
+    elif autopad_str == "SAME_LOWER":
+        return [pad_half_large, pad_half_small] * n_dims
+    else:
+        raise Exception("Unsupported auto_pad: " + autopad_str)
+
+
 class LowerConvsToMatMul(Transformation):
     """Replace Conv layers with pairs of Im2Col-MatMul layers, plus Transpose
     layers to keep the original data layout."""
@@ -52,7 +66,6 @@ class LowerConvsToMatMul(Transformation):
                 odt = model.get_tensor_datatype(cnv_output)
                 # extract conv parameters
                 k = get_by_name(n.attribute, "kernel_shape").ints[-1]
-                pad = get_by_name(n.attribute, "pads").ints[-1]
                 stride = get_by_name(n.attribute, "strides").ints[-1]
                 group = get_by_name(n.attribute, "group").i
                 weight_name = n.input[1]
@@ -61,6 +74,30 @@ class LowerConvsToMatMul(Transformation):
                 ofm_ch = model.get_tensor_shape(n.output[0])[1]  # assume NCHW
                 ifm_dim = model.get_tensor_shape(n.input[0])[-1]  # assume NCHW
                 ofm_dim = model.get_tensor_shape(n.output[0])[-1]  # assume NCHW
+                # handle both auto_pad and explicit padding
+                auto_pad = get_by_name(n.attribute, "auto_pad")
+                if auto_pad is not None:
+                    # find equivalent specified padding
+                    auto_pad = auto_pad.s.decode("utf-8")
+                    if auto_pad == "NOTSET":
+                        # use specified padding
+                        pad = get_by_name(n.attribute, "pads").ints
+                    else:
+                        pad = _auto_pad_to_explicit_padding(
+                            auto_pad,
+                            ifm_dim,
+                            k,
+                            stride,
+                            len(model.get_tensor_shape(n.input[0])) - 2,
+                        )
+                else:
+                    # use specified padding
+                    pad = get_by_name(n.attribute, "pads").ints
+                # ensure all pads are equal for now
+                assert (
+                    len(set(pad)) <= 1
+                ), "Only all-equal padding supported for now: " + str(pad)
+                pad = pad[-1]
 
                 # if depthwise conv create sparse matrix and variable "dw"
                 # to store as attribute in Im2Col that indicates that the created
