@@ -1,4 +1,4 @@
-name: QuicktestPRAgainstDev
+name: QuicktestPR
 
 on:
   pull_request:
@@ -10,19 +10,22 @@ on:
 jobs:
 
   test:
-    name: Run quicktest on PR branch
+    name: Test PR against DEV
     runs-on: ubuntu-16.04
 
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v2
 
-      - name: DockerRunQuicktest
+      - name: Build Docker
         run: |
           docker build -f docker/Dockerfile -t finn-base-gha \
+                       --build-arg GROUP=$(id -gn) \
                        --build-arg GID=$(id -g) \
-                       --build-arg GNAME=$(id -gn) \
-                       --build-arg UNAME=$(id -un) \
+                       --build-arg USER=$(id -un) \
                        --build-arg UID=$(id -u) \
                        .
-          docker run --rm -v $(pwd):/workspace/finn-base finn-base-gha quicktest.sh
+
+      - name: Run Tests
+        run: |
+          docker run --rm -v $(pwd):/workspace/finn-base finn-base-gha run_tests.sh

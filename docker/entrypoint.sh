@@ -27,7 +27,21 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-export SHELL=/bin/bash
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'  # No Color
 
+# Green echo
+gecho () {
+  echo -e "${GREEN}$1${NC}"
+}
+
+# Red echo
+recho () {
+  echo -e "${RED}$1${NC}"
+}
+
+gecho "Installing finn-base in develop mode"
 pip install --user -e /workspace/finn-base
+
 exec $@

@@ -27,42 +27,58 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'  # No Color
+
+# Green echo
+gecho () {
+  echo -e "${GREEN}$1${NC}"
+}
+
+# Red echo
+recho () {
+  echo -e "${RED}$1${NC}"
+}
+
+DOCKER_GROUP=$(id -gn)
 DOCKER_GID=$(id -g)
-DOCKER_GNAME=$(id -gn)
-DOCKER_UNAME=$(id -un)
+DOCKER_USER=$(id -un)
 DOCKER_UID=$(id -u)
 DOCKER_TAG="finn-base"
 
 # Absolute path to this script.
 SCRIPT=$(readlink -f "$0")
 # Absolute path of dir this script is in.
-SCRIPTPATH=$(dirname "$SCRIPT")
+SCRIPTPATH=$(dirname "${SCRIPT}")
 
 DOCKER_INTERACTIVE=""
 
-if [ "$1" = "test" ]; then
+if [ "$1" = "tests" ]; then
         echo "Running test suite"
-        DOCKER_CMD="quicktest.sh"
+        DOCKER_CMD="run_tests.sh"
 elif [ "$1" = "docs" ]; then
         echo "Building docs"
-        DOCKER_CMD="docsbuild.sh"
-else
-        echo "Running container in interactive mode"
+        DOCKER_CMD="build_docs.sh"
+elif [ "$1" = "bash" ]; then
+        gecho "Running container in interactive mode"
         DOCKER_CMD="bash"
         DOCKER_INTERACTIVE="-it"
+else
+        recho "Provide one of the following options to run-docker.sh:"
+        recho "  {tests, docs, bash}"
+        exit -1
 fi
 
 # Build the finn-base docker image
-docker build -f docker/Dockerfile -t $DOCKER_TAG \
-            --build-arg GID=$DOCKER_GID \
-            --build-arg GNAME=$DOCKER_GNAME \
-            --build-arg UNAME=$DOCKER_UNAME \
-            --build-arg UID=$DOCKER_UID \
+docker build -f docker/Dockerfile -t ${DOCKER_TAG} \
+            --build-arg GROUP=${DOCKER_GROUP} \
+            --build-arg GID=${DOCKER_GID} \
+            --build-arg USER=${DOCKER_USER} \
+            --build-arg UID=${DOCKER_UID} \
             .
 
 # Launch container with current directory mounted
-docker run -t --rm $DOCKER_INTERACTIVE \
-           -v $SCRIPTPATH:/workspace/finn-base \
-           -w /workspace \
-           -e SHELL=/bin/bash \
-           $DOCKER_TAG $DOCKER_CMD
+docker run -t --rm ${DOCKER_INTERACTIVE} \
+           -v ${SCRIPTPATH}:/workspace/finn-base \
+           ${DOCKER_TAG} ${DOCKER_CMD}

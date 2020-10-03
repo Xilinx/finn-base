@@ -27,36 +27,52 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 FROM mcr.microsoft.com/azureml/onnxruntime:latest
-MAINTAINER Yaman Umuroglu <yamanu@xilinx.com>
+
+LABEL maintainer="Yaman Umuroglu <yamanu@xilinx.com>"
+
+ARG GROUP
 ARG GID
-ARG GNAME
-ARG UNAME
+ARG USER
 ARG UID
 
-RUN pip install --upgrade pip
+ENV SHELL=/bin/bash
 
-# Add host user
-RUN groupadd -g $GID $GNAME -f
-RUN useradd -u $UID -g $GNAME -ms /bin/bash $UNAME
-RUN usermod -aG sudo $UNAME
-USER $UNAME
+# Run below commands as root
+USER root
+
+# Copy entrypoint scripts to the workdir (as root)
+WORKDIR /usr/local/bin
+COPY docker/entrypoint.sh .
+COPY docker/run_tests.sh .
+COPY docker/build_docs.sh .
+RUN chmod +x entrypoint.sh run_tests.sh build_docs.sh
+
+# This creates /workspace if it doesn't exist
+WORKDIR /workspace
+
+# Add user
+RUN groupadd -o -g ${GID} ${GROUP} && \
+    useradd -u ${UID} -g ${GROUP} -ms /bin/bash ${USER} && \
+    usermod -aG sudo ${USER} && \
+    chown -R ${USER}:${GROUP} /workspace
+
+# Color prompt
+RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >> /home/${USER}/.bashrc
+
+COPY docker/requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    rm requirements.txt
+
+# Run below commands as user
+USER ${USER}
 
 # Set ENV
 ENV PYTHONPATH "${PYTHONPATH}:/workspace/finn-base/src"
-ENV PATH "${PATH}:/home/$UNAME/.local/bin"
+ENV PATH "${PATH}:/home/${USER}/.local/bin"
 
-# Color prompt
-RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >> /home/$UNAME/.bashrc
-
-# Copy entrypoint script as root then switch back to user
-USER root
-COPY ./docker/entrypoint.sh /usr/local/bin/
-COPY ./docker/quicktest.sh /usr/local/bin/
-COPY ./docker/docsbuild.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/quicktest.sh
-RUN chmod +x /usr/local/bin/docsbuild.sh
-USER $UNAME
+# Set workdir to gray before launching container
+WORKDIR /workspace/finn-base
 
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["bash"]
