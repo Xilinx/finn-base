@@ -28,7 +28,7 @@
 
 import finn.custom_op.registry as registry
 from finn.core.datatype import DataType
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 
 
 def _infer_node_datatype(model, node):

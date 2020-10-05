@@ -30,7 +30,7 @@ import warnings
 
 import finn.core.data_layout as DataLayout
 import finn.custom_op.registry as registry
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 from finn.util.basic import get_by_name
 
 

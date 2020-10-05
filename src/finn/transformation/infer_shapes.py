@@ -30,7 +30,7 @@ import onnx.shape_inference as si
 
 import finn.custom_op.registry as registry
 from finn.core.modelwrapper import ModelWrapper
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 
 
 def _make_shape_compatible_op(node, model):

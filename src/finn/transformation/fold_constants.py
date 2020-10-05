@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import finn.core.onnx_exec as oxe
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 from finn.transformation.infer_shapes import InferShapes
 
 

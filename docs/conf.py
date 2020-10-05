@@ -48,7 +48,7 @@ try:
     import sphinx
     from pkg_resources import parse_version
 
-    cmd_line_template = "sphinx-apidoc -f -e -d 2 -t {templatedir} -o {outputdir} {moduledir} {excludedir}"
+    cmd_line_template = "sphinx-apidoc -f -e -d 2 --implicit-namespaces -t {templatedir} -o {outputdir} {moduledir} {excludedir}"
     cmd_line = cmd_line_template.format(templatedir=template_dir,
                                         outputdir=output_dir,
                                         moduledir=module_dir,

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -26,6 +26,12 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from pkgutil import extend_path
 
-__path__ = extend_path(__path__, __name__)
+"""
+How to write an analysis pass for FINN
+--------------------------------------
+
+An analysis pass traverses the graph structure and produces information about
+certain properties. The convention is to take in a ModelWrapper, and return
+a dictionary of named properties that the analysis extracts.
+"""

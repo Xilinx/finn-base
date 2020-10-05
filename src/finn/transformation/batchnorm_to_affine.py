@@ -30,7 +30,7 @@ import numpy as np
 from onnx import TensorProto
 from onnx import helper as oh
 
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 from finn.transformation.infer_shapes import InferShapes
 
 

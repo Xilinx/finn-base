@@ -30,7 +30,7 @@ import warnings
 from onnx import helper
 
 from finn.core.modelwrapper import ModelWrapper
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 from finn.transformation.general import (
     GiveRandomTensorNames,
     GiveReadableTensorNames,

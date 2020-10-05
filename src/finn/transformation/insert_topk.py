@@ -31,7 +31,7 @@ from onnx import TensorProto
 from onnx import helper as oh
 
 from finn.core.datatype import DataType
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 
 
 class InsertTopK(Transformation):

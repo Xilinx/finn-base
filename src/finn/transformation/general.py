@@ -29,7 +29,7 @@
 from toposort import toposort_flatten
 
 import finn.util.basic as util
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 
 
 class RemoveUnusedTensors(Transformation):
