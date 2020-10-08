@@ -28,4 +28,12 @@ jobs:
 
       - name: Run Tests
         run: |
-          docker run --rm -v $(pwd):/workspace/finn-base finn-base-gha run_tests.sh
+          docker run --rm \
+                     -v $(pwd):/workspace/finn-base \
+                     finn-base-gha run_tests.sh
+
+      - name: Build Docs
+        run: |
+          docker run --rm \
+                     -v $(pwd):/workspace/finn-base \
+                     finn-base-gha build_docs.sh
