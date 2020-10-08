@@ -42,6 +42,6 @@ recho () {
 }
 
 gecho "Installing finn-base in develop mode"
-pip install --user -e /workspace/finn-base
+pip install --user --no-dependencies -e /workspace/finn-base
 
 exec $@
