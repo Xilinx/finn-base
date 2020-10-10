@@ -1,4 +1,4 @@
-name: QuicktestPR
+name: CI Pipeline
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
 jobs:
 
   test:
-    name: Test PR against DEV
+    name: Test PR or Push to DEV
     runs-on: ubuntu-16.04
 
     steps:
@@ -37,3 +37,9 @@ jobs:
           docker run --rm \
                      -v $(pwd):/workspace/finn-base \
                      finn-base-gha build_docs.sh
+
+      - name: Run Lint
+        run: |
+          docker run --rm \
+                     -v $(pwd):/workspace/finn-base \
+                     finn-base-gha pre-commit run --all-files
