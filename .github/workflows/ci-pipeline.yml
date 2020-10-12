@@ -11,7 +11,7 @@ jobs:
 
   test:
     name: Test PR or Push to DEV
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -37,9 +37,3 @@ jobs:
           docker run --rm \
                      -v $(pwd):/workspace/finn-base \
                      finn-base-gha build_docs.sh
-
-      - name: Run Lint
-        run: |
-          docker run --rm \
-                     -v $(pwd):/workspace/finn-base \
-                     finn-base-gha pre-commit run --all-files
