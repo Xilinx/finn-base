@@ -1,4 +1,4 @@
-name: QuicktestPR
+name: CI Pipeline
 
 on:
   pull_request:
@@ -10,8 +10,8 @@ on:
 jobs:
 
   test:
-    name: Test PR against DEV
-    runs-on: ubuntu-16.04
+    name: Test PR or Push to DEV
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -28,4 +28,12 @@ jobs:
 
       - name: Run Tests
         run: |
-          docker run --rm -v $(pwd):/workspace/finn-base finn-base-gha run_tests.sh
+          docker run --rm \
+                     -v $(pwd):/workspace/finn-base \
+                     finn-base-gha run_tests.sh
+
+      - name: Build Docs
+        run: |
+          docker run --rm \
+                     -v $(pwd):/workspace/finn-base \
+                     finn-base-gha build_docs.sh
