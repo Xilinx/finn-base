@@ -59,10 +59,18 @@ RUN groupadd -o -g ${GID} ${GROUP} && \
 # Color prompt
 RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '" >> /home/${USER}/.bashrc
 
+# Install Python package requirements
 COPY docker/requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     rm requirements.txt
+
+# Install fork of pyverilator
+RUN pip install git+https://github.com/maltanar/pyverilator.git#egg=pyverilator
+
+# Install other requirements via apt-get
+RUN apt-get update
+RUN apt-get install -y verilator
 
 # Run below commands as user
 USER ${USER}
