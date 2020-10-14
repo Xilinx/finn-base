@@ -163,17 +163,19 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file=""):
     after a set number of cycles. Can handle multiple i/o streams. See function
     implementation for details on how the top-level signals should be named.
 
-    sim: the PyVerilator object for simulation
-    io_dict: a dict of dicts in the following format:
-        {"inputs" : {"in0" : <input_data>, "in1" : <input_data>},
-         "outputs" : {"out0" : [], "out1" : []} }
-        <input_data> is a list of Python arbitrary-precision ints indicating
-        what data to push into the simulation, and the output lists are
-        similarly filled when the simulation is complete
-    num_out_values: number of total values to be read from the simulation to
-        finish the simulation and return.
+    Arguments:
 
-    returns: number of clock cycles elapsed for completion
+    * sim: the PyVerilator object for simulation
+    * io_dict: a dict of dicts in the following format:
+      {"inputs" : {"in0" : <input_data>, "in1" : <input_data>},
+      "outputs" : {"out0" : [], "out1" : []} }
+      <input_data> is a list of Python arbitrary-precision ints indicating
+      what data to push into the simulation, and the output lists are
+      similarly filled when the simulation is complete
+    * num_out_values: number of total values to be read from the simulation to
+      finish the simulation and return.
+
+    Returns: number of clock cycles elapsed for completion
 
     """
 
