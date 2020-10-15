@@ -261,7 +261,18 @@ class ConvertDivToMul(Transformation):
 
 
 class ApplyConfig(Transformation):
-    """Applies node properties from a JSON file"""
+    """Applies node properties (attributes) from a JSON file with config dict.
+    The JSON file can specify default values for particular op_types, as well
+    as values for nodes with particular names. Example dict::
+
+        {
+        # set kernel_size = 3 for all nodes with op_type=Im2Col
+        "Defaults" : {"kernel_size" : [3, ["Im2Col"]]},
+        # set kernel_size = 7 for the particular node with name Im2Col_0
+        "Im2Col_0" : {"kernel_size" : 7}
+        }
+
+    """
 
     def __init__(self, config_file):
         super().__init__()
