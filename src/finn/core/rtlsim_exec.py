@@ -34,6 +34,7 @@ from finn.util.fpgadataflow import (
     pyverilate_get_liveness_threshold_cycles,
     pyverilate_stitched_ip,
 )
+from finn.util.pyverilator import reset_rtlsim, toggle_clk
 
 try:
     from pyverilator import PyVerilator
@@ -41,9 +42,14 @@ except ModuleNotFoundError:
     PyVerilator = None
 
 
-def rtlsim_exec(model, execution_context):
+def rtlsim_exec(model, execution_context, pre_hook=None, post_hook=None):
     """Use PyVerilator to execute given model with stitched IP. The execution
-    context contains the input values."""
+    context contains the input values. Hook functions can be optionally
+    specified to observe/alter the state of the circuit, receiving the
+    PyVerilator sim object as their first argument:
+    - pre_hook : hook function to be called before sim start (after reset)
+    - post_hook : hook function to be called after sim end
+    """
 
     if PyVerilator is None:
         raise ImportError("Installation of PyVerilator is required.")
@@ -100,7 +106,14 @@ def rtlsim_exec(model, execution_context):
         model.set_metadata_prop("rtlsim_so", sim.lib._name)
     else:
         sim = PyVerilator(rtlsim_so, auto_eval=False)
-    ret = _run_rtlsim(sim, packed_input, num_out_values, trace_file)
+    ret = _run_rtlsim(
+        sim,
+        packed_input,
+        num_out_values,
+        trace_file,
+        pre_hook=pre_hook,
+        post_hook=post_hook,
+    )
     packed_output = ret[0]
     model.set_metadata_prop("cycles_rtlsim", str(ret[1]))
     # unpack output and put into context
@@ -110,27 +123,9 @@ def rtlsim_exec(model, execution_context):
     execution_context[o_name] = o_folded_tensor.reshape(o_shape)
 
 
-# TODO move the rtlsim functions below into a common location such as utils
-def _reset_rtlsim(sim):
-    """Sets reset input in pyverilator to zero, toggles the clock and set it
-    back to one"""
-    sim.io.ap_rst_n = 0
-    _toggle_clk(sim)
-    _toggle_clk(sim)
-    sim.io.ap_rst_n = 1
-    _toggle_clk(sim)
-    _toggle_clk(sim)
-
-
-def _toggle_clk(sim):
-    """Toggles the clock input in pyverilator once."""
-    sim.io.ap_clk = 0
-    sim.eval()
-    sim.io.ap_clk = 1
-    sim.eval()
-
-
-def _run_rtlsim(sim, inp, num_out_values, trace_file=None, reset=True):
+def _run_rtlsim(
+    sim, inp, num_out_values, trace_file=None, reset=True, pre_hook=None, post_hook=None
+):
     """Runs the pyverilator simulation by passing the input values to the simulation,
     toggle the clock and observing the execution time. Argument num_out_values contains
     the number of expected output values, so the simulation is closed after all
@@ -156,8 +151,12 @@ def _run_rtlsim(sim, inp, num_out_values, trace_file=None, reset=True):
     if trace_file is not None:
         sim.start_vcd_trace(trace_file)
     if reset:
-        _reset_rtlsim(sim)
+        reset_rtlsim(sim)
 
+    if pre_hook is not None:
+        pre_hook(sim)
+
+    # TODO use utils.fpgadataflow.rtlsim_multi_io instead of manual code below
     while not (output_observed):
         sim.io.s_axis_0_tvalid = 1 if len(inputs) > 0 else 0
         sim.io.s_axis_0_tdata = inputs[0] if len(inputs) > 0 else 0
@@ -165,7 +164,7 @@ def _run_rtlsim(sim, inp, num_out_values, trace_file=None, reset=True):
             inputs = inputs[1:]
         if sim.io.m_axis_0_tvalid == 1 and sim.io.m_axis_0_tready == 1:
             outputs = outputs + [sim.io.m_axis_0_tdata]
-        _toggle_clk(sim)
+        toggle_clk(sim)
 
         observation_count = observation_count + 1
         no_change_count = no_change_count + 1
@@ -187,6 +186,10 @@ def _run_rtlsim(sim, inp, num_out_values, trace_file=None, reset=True):
             else:
                 no_change_count = 0
                 old_outputs = outputs
+
+    if post_hook is not None:
+        post_hook(sim)
+
     if trace_file is not None:
         sim.flush_vcd_trace()
         sim.stop_vcd_trace()
