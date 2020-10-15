@@ -26,13 +26,12 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from toposort import toposort_flatten
 import json
 import warnings
+from toposort import toposort_flatten
 
 import finn.util.basic as util
 from finn.transformation.base import Transformation
-
 
 
 class RemoveUnusedTensors(Transformation):
@@ -268,15 +267,14 @@ class ApplyConfig(Transformation):
         super().__init__()
         self.config_file = config_file
 
-
     def apply(self, model):
 
-        with open(self.config_file, 'r') as f:
+        with open(self.config_file, "r") as f:
             model_config = json.load(f)
-        
-        used_configurations= ["Defaults"]
+
+        used_configurations = ["Defaults"]
         missing_configurations = []
-        
+
         # Configure network
         for node_idx, node in enumerate(model.graph.node):
 
@@ -285,34 +283,42 @@ class ApplyConfig(Transformation):
             except KeyError:
                 missing_configurations += [node.name]
                 node_config = {}
-            
+
             from finn.custom_op.registry import getCustomOp
-            
+
             try:
                 inst = getCustomOp(node)
             except Exception:
                 continue
             used_configurations += [node.name]
-            
-            #set specified defaults
-            default_configs = {k:v for k,v in model_config["Defaults"].items() if k not in model_config}
-            default_configs = {k:v[0] for k,v in default_configs.items() if v[1] == 'all' or node.op_type in v[1]}
-            for attr,value in default_configs.items():
-                inst.set_nodeattr(attr, value)
-                
-            # set node attributes from specified configuration
-            for attr,value in node_config.items():
+
+            # set specified defaults
+            default_configs = {
+                k: v
+                for k, v in model_config["Defaults"].items()
+                if k not in model_config
+            }
+            default_configs = {
+                k: v[0]
+                for k, v in default_configs.items()
+                if v[1] == "all" or node.op_type in v[1]
+            }
+            for attr, value in default_configs.items():
                 inst.set_nodeattr(attr, value)
 
+            # set node attributes from specified configuration
+            for attr, value in node_config.items():
+                inst.set_nodeattr(attr, value)
 
         # Configuration verification
-        if len(missing_configurations)> 0:
-            warnings.warn("\nNo HW configuration for nodes: "+ ", ".join(missing_configurations))    
-            
+        if len(missing_configurations) > 0:
+            warnings.warn(
+                "\nNo HW configuration for nodes: " + ", ".join(missing_configurations)
+            )
+
         unused_configs = [x for x in model_config if x not in used_configurations]
-        if len(unused_configs)> 0:
-            warnings.warn("\nUnused HW configurations: "+ ", ".join(unused_configs))    
+        if len(unused_configs) > 0:
+            warnings.warn("\nUnused HW configurations: " + ", ".join(unused_configs))
 
         # one iteration is enough
         return (model, False)
-

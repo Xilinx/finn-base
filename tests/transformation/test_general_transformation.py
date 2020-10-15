@@ -26,17 +26,22 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import json
 import numpy as np
 import onnx
+import os
 from pkgutil import get_data
-import json
 
 import finn.core.onnx_exec as oxe
 from finn.core.modelwrapper import ModelWrapper
-from finn.transformation.general import GiveUniqueNodeNames, GiveUniqueParameterTensors, ApplyConfig
+from finn.custom_op.registry import getCustomOp
+from finn.transformation.general import (
+    ApplyConfig,
+    GiveUniqueNodeNames,
+    GiveUniqueParameterTensors,
+)
 from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.lower_convs_to_matmul import LowerConvsToMatMul
-from finn.custom_op.registry import getCustomOp
 
 
 def test_give_unique_node_names():
@@ -122,29 +127,22 @@ def test_give_unique_parameter_tensors():
             param_cnt += 1
 
     assert len(param_set) == param_cnt, " There are still parameters reused"
-    
-    
+
+
 def test_apply_config():
     raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     model = model.transform(GiveUniqueNodeNames())
     model = model.transform(LowerConvsToMatMul())
     model = model.transform(GiveUniqueNodeNames())
-    model.save("foo.onnx")
     # set up a config in a dict, then dump it to JSON
     config = {}
-    config["Defaults"] = {
-        "kernel_size":[3,["Im2Col"]]
-    }
-    config["Im2Col_0"] = {
-        "kernel_size":7
-    }
+    config["Defaults"] = {"kernel_size": [3, ["Im2Col"]]}
+    config["Im2Col_0"] = {"kernel_size": 7}
     with open("config.json", "w") as f:
         json.dump(config, f, indent=4)
-    # load json from file and apply to model
-    with open("config.json", "r") as f:
-        floorplan = json.load(f)
     model = model.transform(ApplyConfig("config.json"))
     # check model
     assert getCustomOp(model.graph.node[2]).get_nodeattr("kernel_size") == 7
     assert getCustomOp(model.graph.node[9]).get_nodeattr("kernel_size") == 3
+    os.remove("config.json")
