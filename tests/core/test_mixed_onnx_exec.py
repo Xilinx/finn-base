@@ -41,7 +41,10 @@ def test_execute_mixed_model():
     graph_def = helper.make_graph(
         nodes=[
             helper.make_node(
-                "MultiThreshold", ["v", "thresholds"], ["out0"], domain="finn"
+                "MultiThreshold",
+                ["v", "thresholds"],
+                ["out0"],
+                domain="finn.custom_op.general",
             ),
             helper.make_node("Relu", ["out0"], ["out1"]),
         ],

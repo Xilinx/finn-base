@@ -60,7 +60,10 @@ def test_infer_shapes():
 
     # add multi-thresholding node and change Relu node
     mt_node = helper.make_node(
-        "MultiThreshold", ["mt_v0", "mt_thresh0"], [Relu_node.output[0]], domain="finn"
+        "MultiThreshold",
+        ["mt_v0", "mt_thresh0"],
+        [Relu_node.output[0]],
+        domain="finn.custom_op.general",
     )
     Relu_node.output[0] = "mt_v0"
 

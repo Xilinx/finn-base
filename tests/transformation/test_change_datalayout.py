@@ -75,7 +75,7 @@ def test_change_datalayout_quantavgpool(s, k, ibits, obits, signed, c, idim):
         "QuantAvgPool2d",
         ["inp"],
         ["outp"],
-        domain="finn",
+        domain="finn.custom_op.general",
         stride=s,
         kernel=k,
         ibits=ibits,
