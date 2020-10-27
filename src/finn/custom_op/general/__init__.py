@@ -26,21 +26,20 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import importlib
+from finn.custom_op.general.debugmarker import DebugMarker
+from finn.custom_op.general.im2col import Im2Col
+from finn.custom_op.general.maxpoolnhwc import MaxPoolNHWC
+from finn.custom_op.general.multithreshold import MultiThreshold
+from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
+from finn.custom_op.general.streamingdataflowpartition import StreamingDataflowPartition
+from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
 
+custom_op = dict()
 
-def getCustomOp(node):
-    "Return a FINN CustomOp instance for the given ONNX node, if it exists."
-    op_type = node.op_type
-    domain = node.domain
-    try:
-        opset_module = importlib.import_module(domain)
-        inst_wrapper = opset_module.custom_op[op_type]
-        inst = inst_wrapper(node)
-        return inst
-    except ModuleNotFoundError:
-        raise Exception(
-            "Could not load custom opset %s, check your PYTHONPATH" % domain
-        )
-    except KeyError:
-        raise Exception("Op %s not found in custom opset %s" % (op_type, domain))
+custom_op["DebugMarker"] = DebugMarker
+custom_op["QuantAvgPool2d"] = QuantAvgPool2d
+custom_op["MaxPoolNHWC"] = MaxPoolNHWC
+custom_op["StreamingDataflowPartition"] = StreamingDataflowPartition
+custom_op["MultiThreshold"] = MultiThreshold
+custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
+custom_op["Im2Col"] = Im2Col

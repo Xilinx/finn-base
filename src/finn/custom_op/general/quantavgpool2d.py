@@ -4,7 +4,7 @@ from onnx import TensorProto, helper
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
-from finn.custom_op.maxpoolnhwc import compute_pool_output_dim
+from finn.custom_op.general.maxpoolnhwc import compute_pool_output_dim
 
 
 class QuantAvgPool2d(CustomOp):
