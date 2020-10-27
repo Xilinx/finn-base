@@ -40,7 +40,7 @@ def _make_shape_compatible_op(node, model):
     op_type = node.op_type
     try:
         # lookup op_type in registry of CustomOps
-        inst = registry.custom_op[op_type](node)
+        inst = registry.getCustomOp(node)
         return inst.make_shape_compatible_op(model)
     except KeyError:
         # exception if op_type is not supported

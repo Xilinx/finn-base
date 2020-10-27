@@ -35,7 +35,7 @@ def execute_custom_node(node, context, graph):
     op_type = node.op_type
     try:
         # lookup op_type in registry of CustomOps
-        inst = registry.custom_op[op_type](node)
+        inst = registry.getCustomOp(node)
         inst.execute_node(context, graph)
     except KeyError:
         # exception if op_type is not supported
