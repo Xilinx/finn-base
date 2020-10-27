@@ -31,12 +31,13 @@ import onnx.shape_inference as si
 import finn.custom_op.registry as registry
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.base import Transformation
+from finn.util.basic import is_finn_op
 
 
 def _make_shape_compatible_op(node, model):
     """Return a shape-compatible non-FINN op for a given FINN op. Used for
     shape inference with custom ops."""
-    assert node.domain == "finn", 'Node domain is not set to "finn".'
+    assert is_finn_op(node.domain), "Node domain is not set to finn.*"
     op_type = node.op_type
     try:
         # lookup op_type in registry of CustomOps
@@ -55,7 +56,7 @@ def _hide_finn_ops(model):
     node_ind = 0
     for node in model.graph.node:
         node_ind += 1
-        if node.domain == "finn":
+        if is_finn_op(node.domain):
             new_node = _make_shape_compatible_op(node, model)
             hidden_ops[str(new_node)] = node
             model.graph.node.insert(node_ind, new_node)

@@ -29,6 +29,7 @@
 import finn.custom_op.registry as registry
 from finn.core.datatype import DataType
 from finn.transformation.base import Transformation
+from finn.util.basic import is_finn_op
 
 
 def _infer_node_datatype(model, node):
@@ -38,7 +39,7 @@ def _infer_node_datatype(model, node):
     idtypes = list(map(lambda x: model.get_tensor_datatype(x), node.input))
     odtypes = list(map(lambda x: model.get_tensor_datatype(x), node.output))
     op_type = node.op_type
-    if node.domain == "finn":
+    if is_finn_op(node.domain):
         # handle DataType inference for CustomOp
         try:
             # lookup op_type in registry of CustomOps

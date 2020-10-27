@@ -470,11 +470,11 @@ class ModelWrapper:
 
     def get_finn_nodes(self):
         """Returns a list of nodes where domain == 'finn'."""
-        return list(filter(lambda x: x.domain == "finn", self.graph.node))
+        return list(filter(util.is_finn_op, self.graph.node))
 
     def get_non_finn_nodes(self):
         """Returns a list of nodes where domain != 'finn'."""
-        return list(filter(lambda x: x.domain != "finn", self.graph.node))
+        return list(filter(lambda x: not util.is_finn_op(x), self.graph.node))
 
     def get_node_index(self, node):
         """Returns current index of given node."""

@@ -29,7 +29,12 @@
 import os
 import subprocess
 
-from finn.util.basic import get_by_name, get_rtlsim_trace_depth, make_build_dir
+from finn.util.basic import (
+    get_by_name,
+    get_rtlsim_trace_depth,
+    is_finn_op,
+    make_build_dir,
+)
 
 try:
     from pyverilator import PyVerilator
@@ -146,7 +151,7 @@ def is_fpgadataflow_node(node):
     """Returns True if given node is fpgadataflow node. Otherwise False."""
     is_node = False
     if node is not None:
-        if node.domain == "finn":
+        if is_finn_op(node.domain):
             n_backend = get_by_name(node.attribute, "backend")
             if n_backend is not None:
                 backend_value = n_backend.s.decode("UTF-8")

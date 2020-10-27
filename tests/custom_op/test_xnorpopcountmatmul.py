@@ -47,7 +47,7 @@ def test_xnorpopcountmatmul():
     W = helper.make_tensor_value_info("W", TensorProto.FLOAT, [K, N])
     out = helper.make_tensor_value_info("out", TensorProto.FLOAT, ["x", "y"])
     node_def = helper.make_node(
-        "XnorPopcountMatMul", ["x", "W"], ["out"], domain="finn"
+        "XnorPopcountMatMul", ["x", "W"], ["out"], domain="finn.custom_op.general"
     )
     modelproto = helper.make_model(
         helper.make_graph([node_def], "test_model", [x], [out], value_info=[W])

@@ -127,10 +127,4 @@ class QuantAvgPool2d(CustomOp):
 
     def verify_node(self):
         info_messages = []
-        # verify that "domain" is set to "finn"
-        domain_value = self.onnx_node.domain
-        if domain_value == "finn":
-            info_messages.append("Attribute domain is set correctly")
-        else:
-            info_messages.append('Attribute domain should be set to "finn"')
         return info_messages

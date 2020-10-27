@@ -38,7 +38,11 @@ from finn.core.modelwrapper import ModelWrapper
 from finn.core.remote_exec import remote_exec
 from finn.core.rtlsim_exec import rtlsim_exec
 from finn.custom_op.registry import getCustomOp
-from finn.util.basic import get_sanitize_quant_tensors, sanitize_quant_values
+from finn.util.basic import (
+    get_sanitize_quant_tensors,
+    is_finn_op,
+    sanitize_quant_values,
+)
 
 
 def execute_node(node, context, graph, return_full_exec_context=False):
@@ -74,12 +78,9 @@ def execute_node(node, context, graph, return_full_exec_context=False):
                 if tname != model_oname:
                     context[node.name + "_" + tname] = ret[tname]
     else:
-        if node.domain == "finn":
-
+        if is_finn_op(node.domain):
             ex_cu_node.execute_custom_node(node, context, graph)
-
         else:
-
             # onnxruntime unfortunately does not implement run_node as defined by ONNX,
             # it can only execute entire models -- so we create a model which solely
             # consists of our current node.
