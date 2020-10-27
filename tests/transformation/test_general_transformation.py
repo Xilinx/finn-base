@@ -130,6 +130,7 @@ def test_give_unique_parameter_tensors():
 
 
 def test_apply_config():
+
     raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     model = model.transform(GiveUniqueNodeNames())

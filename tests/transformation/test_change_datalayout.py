@@ -33,7 +33,7 @@ import finn.core.data_layout as DataLayout
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
-from finn.custom_op.maxpoolnhwc import compute_pool_output_dim
+from finn.custom_op.general.maxpoolnhwc import compute_pool_output_dim
 from finn.transformation.change_datalayout import ChangeDataLayoutQuantAvgPool2d
 from finn.transformation.general import GiveReadableTensorNames, GiveUniqueNodeNames
 from finn.transformation.infer_data_layouts import InferDataLayouts
@@ -57,6 +57,7 @@ from finn.util.basic import gen_finn_dt_tensor, get_by_name
 # input dimension
 @pytest.mark.parametrize("idim", [6, 7])
 def test_change_datalayout_quantavgpool(s, k, ibits, obits, signed, c, idim):
+
     n = 1
     odim = compute_pool_output_dim(idim, k, s)
     # determine input FINN datatype
