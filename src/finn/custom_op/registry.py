@@ -35,6 +35,9 @@ def getCustomOp(node):
     domain = node.domain
     try:
         opset_module = importlib.import_module(domain)
+        assert type(opset_module.custom_op) is dict, (
+            "custom_op dict not found in Python module %s" % domain
+        )
         inst_wrapper = opset_module.custom_op[op_type]
         inst = inst_wrapper(node)
         return inst
