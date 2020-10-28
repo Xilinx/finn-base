@@ -38,7 +38,7 @@ from pkgutil import get_data
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
-from finn.custom_op.im2col import compute_conv_output_dim
+from finn.custom_op.general.im2col import compute_conv_output_dim
 from finn.custom_op.registry import getCustomOp
 from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.lower_convs_to_matmul import LowerConvsToMatMul
@@ -46,6 +46,7 @@ from finn.util.basic import gen_finn_dt_tensor
 
 
 def test_conv_lowering_convmnist():
+
     # load the onnx model
     raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
@@ -81,6 +82,7 @@ def test_conv_lowering_convmnist():
 # padding
 @pytest.mark.parametrize("padding", [[0, 0, 0, 0], [1, 1, 1, 1]])
 def test_depthwise_conv_lowering(idt, k, ifm_dim, ifm_ch, stride, padding):
+
     wdt = idt
     odt = DataType.INT32
     ofm_ch = ifm_ch
@@ -139,6 +141,7 @@ def test_depthwise_conv_lowering(idt, k, ifm_dim, ifm_ch, stride, padding):
 
 
 def test_conv_lowering_conv_1x1():
+
     np.random.seed(0)
 
     in_feature_dim = 7

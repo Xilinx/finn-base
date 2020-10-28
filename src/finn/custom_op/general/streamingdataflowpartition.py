@@ -72,14 +72,6 @@ class StreamingDataflowPartition(CustomOp):
                     self.onnx_node.op_type, num_of_attr
                 )
             )
-
-        # verify that "domain" is set to "finn"
-        domain_value = self.onnx_node.domain
-        if domain_value == "finn":
-            info_messages.append("Attribute domain is set correctly")
-        else:
-            info_messages.append('Attribute domain should be set to "finn"')
-
         # verify that all necessary attributes exist
         try:
             self.get_nodeattr("model")

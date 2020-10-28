@@ -84,7 +84,7 @@ class ChangeDataLayoutQuantAvgPool2d(Transformation):
                     "QuantAvgPool2d",
                     [inp_trans_out],
                     [quantavg_out],
-                    domain="finn",
+                    domain="finn.custom_op.general",
                     stride=s,
                     kernel=k,
                     ibits=ibits,

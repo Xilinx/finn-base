@@ -29,7 +29,7 @@
 import numpy as np
 import time
 
-from finn.custom_op.multithreshold import multithreshold
+from finn.custom_op.general.multithreshold import multithreshold
 
 
 def compare(x, y):

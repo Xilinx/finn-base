@@ -66,6 +66,11 @@ alveo_default_platform["U250"] = "xilinx_u250_xdma_201830_2"
 alveo_default_platform["U280"] = "xilinx_u280_xdma_201920_3"
 
 
+def is_finn_op(op_type):
+    "Return whether given op_type string is a FINN custom op"
+    return op_type.startswith("finn")
+
+
 def get_rtlsim_trace_depth():
     """Return the trace depth for rtlsim via PyVerilator. Controllable
     via the RTLSIM_TRACE_DEPTH environment variable. If the env.var. is

@@ -147,7 +147,7 @@ def hls_mlp_maker(layer_spec):
             "StreamingFCLayer_Batch",
             node_inp_list,
             [current_out_name],
-            domain="finn",
+            domain="finn.custom_op.fpgadataflow",
             backend="fpgadataflow",
             resType="ap_resource_lut()",
             MW=mw,

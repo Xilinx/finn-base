@@ -93,6 +93,7 @@ class MaxPoolNHWC(CustomOp):
         inp = np.transpose(inp, (0, 3, 1, 2))
         dummy_out = np.transpose(dummy_out, (0, 3, 1, 2))
         # execute as regular MaxPool
+        orig_domain = node.domain
         node.domain = ""
         node.op_type = "MaxPool"
         inp_vi = helper.make_tensor_value_info(inp_name, TensorProto.FLOAT, inp.shape)
@@ -109,7 +110,7 @@ class MaxPoolNHWC(CustomOp):
 
         ret = execute_onnx(tmp_model, new_ctx)
         # restore original node props
-        node.domain = "finn"
+        node.domain = orig_domain
         node.op_type = "MaxPoolNHWC"
         outp = ret[out_name]
         # convert output NCHW -> NHWC
@@ -118,10 +119,4 @@ class MaxPoolNHWC(CustomOp):
 
     def verify_node(self):
         info_messages = []
-        # verify that "domain" is set to "finn"
-        domain_value = self.onnx_node.domain
-        if domain_value == "finn":
-            info_messages.append("Attribute domain is set correctly")
-        else:
-            info_messages.append('Attribute domain should be set to "finn"')
         return info_messages

@@ -31,6 +31,7 @@ import onnx
 import onnx.helper as oh
 import onnx.numpy_helper as np_helper
 import os
+import warnings
 from onnx import TensorProto
 
 import finn.util.basic as util
@@ -66,6 +67,19 @@ class ModelWrapper:
                 self._model_proto = copy.deepcopy(onnx_model_proto)
             else:
                 self._model_proto = onnx_model_proto
+        self.temporary_fix_oldstyle_domain()
+
+    def temporary_fix_oldstyle_domain(self):
+        found_oldstyle = False
+        for n in self.graph.node:
+            if n.domain == "finn":
+                n.domain = "finn.custom_op.general"
+                found_oldstyle = True
+        if found_oldstyle:
+            warnings.warn(
+                """Some old-style domain attributes were automatically converted to new-style,
+                i.e. domain=finn to domain=finn.custom_op.general"""
+            )
 
     @property
     def graph(self):
@@ -469,12 +483,12 @@ class ModelWrapper:
         return list(filter(lambda x: x.op_type == op_type, self.graph.node))
 
     def get_finn_nodes(self):
-        """Returns a list of nodes where domain == 'finn'."""
-        return list(filter(lambda x: x.domain == "finn", self.graph.node))
+        """Returns a list of nodes where domain == 'finn.*'."""
+        return list(filter(lambda x: util.is_finn_op(x.domain), self.graph.node))
 
     def get_non_finn_nodes(self):
-        """Returns a list of nodes where domain != 'finn'."""
-        return list(filter(lambda x: x.domain != "finn", self.graph.node))
+        """Returns a list of nodes where domain != 'finn.*'."""
+        return list(filter(lambda x: not util.is_finn_op(x.domain), self.graph.node))
 
     def get_node_index(self, node):
         """Returns current index of given node."""

@@ -26,42 +26,20 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from onnx import helper
+from finn.custom_op.general.debugmarker import DebugMarker
+from finn.custom_op.general.im2col import Im2Col
+from finn.custom_op.general.maxpoolnhwc import MaxPoolNHWC
+from finn.custom_op.general.multithreshold import MultiThreshold
+from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
+from finn.custom_op.general.streamingdataflowpartition import StreamingDataflowPartition
+from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
 
-from finn.custom_op.base import CustomOp
+custom_op = dict()
 
-
-class DebugMarker(CustomOp):
-    def get_nodeattr_types(self):
-        return {"export_debug_name": ("s", True, "")}
-
-    def make_shape_compatible_op(self, model):
-        node = self.onnx_node
-        return helper.make_node("Identity", [node.input[0]], [node.output[0]])
-
-    def infer_node_datatype(self, model):
-        node = self.onnx_node
-        # data type stays the same
-        dtype = model.get_tensor_datatype(node.input[0])
-        model.set_tensor_datatype(node.output[0], dtype)
-        # create quantization annotation for debug marker
-        model.set_tensor_datatype(self.get_nodeattr("export_debug_name"), dtype)
-
-    def execute_node(self, context, graph):
-        node = self.onnx_node
-        inp_name = node.input[0]
-        out_name = node.output[0]
-        inp = context[inp_name]
-        context[out_name] = inp
-        # insert debug marker output as separate tensor
-        context[self.get_nodeattr("export_debug_name")] = inp
-
-    def verify_node(self):
-        info_messages = []
-        # verify that "domain" is set to "finn"
-        domain_value = self.onnx_node.domain
-        if domain_value == "finn":
-            info_messages.append("Attribute domain is set correctly")
-        else:
-            info_messages.append('Attribute domain should be set to "finn"')
-        return info_messages
+custom_op["DebugMarker"] = DebugMarker
+custom_op["QuantAvgPool2d"] = QuantAvgPool2d
+custom_op["MaxPoolNHWC"] = MaxPoolNHWC
+custom_op["StreamingDataflowPartition"] = StreamingDataflowPartition
+custom_op["MultiThreshold"] = MultiThreshold
+custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
+custom_op["Im2Col"] = Im2Col

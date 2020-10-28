@@ -112,13 +112,6 @@ class XnorPopcountMatMul(CustomOp):
                 )
             )
 
-        # verify that "domain" is set to "finn"
-        domain_value = self.onnx_node.domain
-        if domain_value == "finn":
-            info_messages.append("Attribute domain is set correctly")
-        else:
-            info_messages.append('Attribute domain should be set to "finn"')
-
         # verify that all necessary attributes exist
         info_messages.append("XnorPopcountMatMul should not have any attributes")
 

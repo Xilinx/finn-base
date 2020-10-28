@@ -4,7 +4,7 @@ from onnx import TensorProto, helper
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
-from finn.custom_op.im2col import compute_conv_output_dim
+from finn.custom_op.general.im2col import compute_conv_output_dim
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 
@@ -37,7 +37,7 @@ def execution_im2col(x, idt, k, stride, ifm_ch, ifm_dim, pad_amt=0, pad_val=0):
         "Im2Col",
         ["inp"],
         ["outp"],
-        domain="finn",
+        domain="finn.custom_op.general",
         stride=stride,
         kernel_size=k,
         pad_amount=pad_amt,
@@ -266,6 +266,7 @@ def test_im2col():
 
 
 def test_im2col_infer_shapes():
+
     idt = DataType.BIPOLAR
     k = 2
     stride = 1
@@ -287,7 +288,7 @@ def test_im2col_infer_shapes():
         "Im2Col",
         ["abs"],
         ["im2col"],
-        domain="finn",
+        domain="finn.custom_op.general",
         stride=stride,
         kernel_size=k,
         input_shape="(1,{},{},{})".format(ifm_dim, ifm_dim, ifm_ch),

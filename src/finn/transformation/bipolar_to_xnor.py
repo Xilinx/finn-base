@@ -103,7 +103,7 @@ class ConvertBipolarMatMulToXnorPopcount(Transformation):
                         model.set_tensor_datatype(mm_input, DataType.BINARY)
                     # change node type and domain
                     n.op_type = "XnorPopcountMatMul"
-                    n.domain = "finn"
+                    n.domain = "finn.custom_op.general"
                     # convert weights into binary (-1,+1) -> (0,1)
                     Wbin = (model.get_initializer(mm_weight) + 1) / 2
                     # extract vector length (common matrix dim)

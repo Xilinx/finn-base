@@ -33,6 +33,7 @@ import finn.core.execute_custom_node as ex_cu_node
 
 
 def test_execute_custom_node_multithreshold():
+
     inputs = np.ndarray(
         shape=(6, 3, 2, 2),
         buffer=np.array(
@@ -147,7 +148,7 @@ def test_execute_custom_node_multithreshold():
     out = helper.make_tensor_value_info("out", TensorProto.FLOAT, [6, 3, 2, 2])
 
     node_def = helper.make_node(
-        "MultiThreshold", ["v", "thresholds"], ["out"], domain="finn"
+        "MultiThreshold", ["v", "thresholds"], ["out"], domain="finn.custom_op.general"
     )
 
     graph_def = helper.make_graph([node_def], "test_model", [v, thresholds], [out])
@@ -245,7 +246,7 @@ def test_execute_custom_node_multithreshold():
         "MultiThreshold",
         ["v", "thresholds"],
         ["out"],
-        domain="finn",
+        domain="finn.custom_op.general",
         out_scale=2.0,
         out_bias=-1.0,
     )
@@ -260,7 +261,7 @@ def test_execute_custom_node_multithreshold():
         "MultiThreshold",
         ["v", "thresholds"],
         ["out"],
-        domain="finn",
+        domain="finn.custom_op.general",
         data_layout="NHWC",
     )
 

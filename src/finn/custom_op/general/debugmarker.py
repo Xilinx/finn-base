@@ -26,24 +26,36 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import importlib
+from onnx import helper
+
+from finn.custom_op.base import CustomOp
 
 
-def getCustomOp(node):
-    "Return a FINN CustomOp instance for the given ONNX node, if it exists."
-    op_type = node.op_type
-    domain = node.domain
-    try:
-        opset_module = importlib.import_module(domain)
-        assert type(opset_module.custom_op) is dict, (
-            "custom_op dict not found in Python module %s" % domain
-        )
-        inst_wrapper = opset_module.custom_op[op_type]
-        inst = inst_wrapper(node)
-        return inst
-    except ModuleNotFoundError:
-        raise Exception(
-            "Could not load custom opset %s, check your PYTHONPATH" % domain
-        )
-    except KeyError:
-        raise Exception("Op %s not found in custom opset %s" % (op_type, domain))
+class DebugMarker(CustomOp):
+    def get_nodeattr_types(self):
+        return {"export_debug_name": ("s", True, "")}
+
+    def make_shape_compatible_op(self, model):
+        node = self.onnx_node
+        return helper.make_node("Identity", [node.input[0]], [node.output[0]])
+
+    def infer_node_datatype(self, model):
+        node = self.onnx_node
+        # data type stays the same
+        dtype = model.get_tensor_datatype(node.input[0])
+        model.set_tensor_datatype(node.output[0], dtype)
+        # create quantization annotation for debug marker
+        model.set_tensor_datatype(self.get_nodeattr("export_debug_name"), dtype)
+
+    def execute_node(self, context, graph):
+        node = self.onnx_node
+        inp_name = node.input[0]
+        out_name = node.output[0]
+        inp = context[inp_name]
+        context[out_name] = inp
+        # insert debug marker output as separate tensor
+        context[self.get_nodeattr("export_debug_name")] = inp
+
+    def verify_node(self):
+        info_messages = []
+        return info_messages
