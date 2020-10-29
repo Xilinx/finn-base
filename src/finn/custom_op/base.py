@@ -41,12 +41,31 @@ class CustomOp(ABC):
         super().__init__()
         self.onnx_node = onnx_node
 
+    def get_nodeattr_def(self, name):
+        """Return 4-tuple (dtype, required, default_val, allowed_values) for attribute
+        with name. allowed_values will be None if not specified."""
+        allowed_values = None
+        attrdef = self.get_nodeattr_types()[name]
+        if len(attrdef) == 3:
+            (dtype, req, def_val) = attrdef
+        elif len(attrdef) == 4:
+            (dtype, req, def_val, allowed_values) = attrdef
+        else:
+            raise Exception(
+                "Unexpected length %d n-tuple from get_nodeattr_types" % len(attrdef)
+            )
+        return (dtype, req, def_val, allowed_values)
+
+    def get_nodeattr_allowed_values(self, name):
+        "Return set of allowed values for given attribute, None if not specified."
+        return self.get_nodeattr_def(name)[3]
+
     def get_nodeattr(self, name):
         """Get a node attribute by name. Data is stored inside the ONNX node's
         AttributeProto container. Attribute must be part of get_nodeattr_types.
         Default value is returned if attribute is not set."""
         try:
-            (dtype, req, def_val) = self.get_nodeattr_types()[name]
+            (dtype, req, def_val, allowed_values) = self.get_nodeattr_def(name)
             attr = get_by_name(self.onnx_node.attribute, name)
             if attr is not None:
                 # dtype indicates which ONNX Attribute member to use
@@ -55,6 +74,12 @@ class CustomOp(ABC):
                 if dtype == "s":
                     # decode string attributes
                     ret = ret.decode("utf-8")
+                if allowed_values is not None:
+                    assert ret in allowed_values, "%s = %s not in %s" % (
+                        str(name),
+                        str(ret),
+                        str(allowed_values),
+                    )
                 return ret
             else:
                 if req:
@@ -73,7 +98,13 @@ class CustomOp(ABC):
         """Set a node attribute by name. Data is stored inside the ONNX node's
         AttributeProto container. Attribute must be part of get_nodeattr_types."""
         try:
-            (dtype, req, def_val) = self.get_nodeattr_types()[name]
+            (dtype, req, def_val, allowed_values) = self.get_nodeattr_def(name)
+            if allowed_values is not None:
+                assert value in allowed_values, "%s = %s not in %s" % (
+                    str(name),
+                    str(value),
+                    str(allowed_values),
+                )
             attr = get_by_name(self.onnx_node.attribute, name)
             if attr is not None:
                 # dtype indicates which ONNX Attribute member to use
@@ -92,12 +123,15 @@ class CustomOp(ABC):
     @abstractmethod
     def get_nodeattr_types(self):
         """Returns a dict of permitted attributes for node, where:
-        returned_dict[attribute_name] = (dtype, require, default_value)
+        ret_dict[attribute_name] = (dtype, require, default_value, <allowed_values>)
         - dtype indicates which member of the ONNX AttributeProto
         will be utilized
         - require indicates whether this attribute is required
         - default_val indicates the default value that will be used if the
         attribute is not set
+        - <allowed_values> (if specified) indicates that this attribute can only
+        be set to one of the values in the set <allowed_values>. If not specified,
+        all values permitted by dtype are allowed.
         """
         pass
 
