@@ -80,8 +80,8 @@ class Im2Col(CustomOp):
             "input_shape": ("s", True, ""),
             "pad_amount": ("i", False, 0),
             "pad_value": ("i", False, 0),
-            # depthwise: if != 0, infer ConvolutionInputGenerator with depthwise == 1
-            "depthwise": ("i", False, 0),
+            # depthwise: if 1, infer ConvolutionInputGenerator with depthwise == 1
+            "depthwise": ("i", False, 0, {0, 1}),
         }
 
     def make_shape_compatible_op(self, model):
