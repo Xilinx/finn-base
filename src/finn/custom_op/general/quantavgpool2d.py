@@ -8,8 +8,8 @@ from finn.custom_op.general.maxpoolnhwc import compute_pool_output_dim
 
 
 class QuantAvgPool2d(CustomOp):
-    """Class that corresponds to the quantized average pooling
-    layer from brevitas"""
+    """CustomOp that corresponds to the quantized average pooling
+    layer from Brevitas"""
 
     def get_nodeattr_types(self):
         return {
@@ -18,9 +18,9 @@ class QuantAvgPool2d(CustomOp):
             "ibits": ("i", True, 1),
             "obits": ("i", True, 1),
             # determines if values are signed (set to "1") or unsigned ("0")
-            "signed": ("i", True, 0),
+            "signed": ("i", True, 0, {0, 1}),
             # data layout attribute can be set to "NCHW" or "NHWC"
-            "data_layout": ("s", False, "NCHW"),
+            "data_layout": ("s", False, "NCHW", {"NCHW", "NHWC"}),
         }
 
     def make_shape_compatible_op(self, model):

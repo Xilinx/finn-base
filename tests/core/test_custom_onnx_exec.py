@@ -30,6 +30,7 @@ import numpy as np
 from onnx import TensorProto, helper
 
 import finn.core.execute_custom_node as ex_cu_node
+from finn.custom_op.registry import getCustomOp
 
 
 def test_execute_custom_node_multithreshold():
@@ -276,3 +277,20 @@ def test_execute_custom_node_multithreshold():
     )
     ex_cu_node.execute_custom_node(node_def, execution_context, graph_def)
     assert (execution_context["out"] == outputs_nhwc).all()
+    # check the set of allowed values
+    op_inst = getCustomOp(node_def)
+    assert op_inst.get_nodeattr_allowed_values("data_layout") == {"NCHW", "NHWC"}
+    # exercise the allowed value checks
+    # try to set attribute to non-allowed value, should raise an exception
+    try:
+        op_inst.set_nodeattr("data_layout", "xx")
+        assert False
+    except Exception:
+        assert True
+    # set a non-allowed value at the ONNX protobuf level
+    node_def.attribute[0].s = "xx".encode("utf-8")
+    try:
+        op_inst.get_nodeattr("data_layout")
+        assert False
+    except Exception:
+        assert True
