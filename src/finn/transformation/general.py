@@ -261,7 +261,8 @@ class ConvertDivToMul(Transformation):
 
 
 class ApplyConfig(Transformation):
-    """Applies node properties (attributes) from a JSON file with config dict.
+    """Applies node properties (attributes) from either a config dict or its JSON 
+    representation given as a filename.
     The JSON file can specify default values for particular op_types, as well
     as values for nodes with particular names. Example dict::
 
