@@ -283,7 +283,7 @@ class ApplyConfig(Transformation):
         if isinstance(self.config, dict):
             model_config = self.config
         else:
-            with open(self.config_file, "r") as f:
+            with open(self.config, "r") as f:
                 model_config = json.load(f)
 
         used_configurations = ["Defaults"]
