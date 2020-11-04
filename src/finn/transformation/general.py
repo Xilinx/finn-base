@@ -274,14 +274,17 @@ class ApplyConfig(Transformation):
 
     """
 
-    def __init__(self, config_file):
+    def __init__(self, config):
         super().__init__()
-        self.config_file = config_file
+        self.config = config
 
     def apply(self, model):
 
-        with open(self.config_file, "r") as f:
-            model_config = json.load(f)
+        if isinstance(self.config, dict):
+            model_config = self.config
+        else:
+            with open(self.config_file, "r") as f:
+                model_config = json.load(f)
 
         used_configurations = ["Defaults"]
         missing_configurations = []
