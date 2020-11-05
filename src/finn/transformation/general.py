@@ -261,7 +261,8 @@ class ConvertDivToMul(Transformation):
 
 
 class ApplyConfig(Transformation):
-    """Applies node properties (attributes) from a JSON file with config dict.
+    """Applies node properties (attributes) from either a config dict or its JSON
+    representation given as a filename.
     The JSON file can specify default values for particular op_types, as well
     as values for nodes with particular names. Example dict::
 
@@ -274,14 +275,17 @@ class ApplyConfig(Transformation):
 
     """
 
-    def __init__(self, config_file):
+    def __init__(self, config):
         super().__init__()
-        self.config_file = config_file
+        self.config = config
 
     def apply(self, model):
 
-        with open(self.config_file, "r") as f:
-            model_config = json.load(f)
+        if isinstance(self.config, dict):
+            model_config = self.config
+        else:
+            with open(self.config, "r") as f:
+                model_config = json.load(f)
 
         used_configurations = ["Defaults"]
         missing_configurations = []
