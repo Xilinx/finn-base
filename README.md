@@ -11,6 +11,25 @@
 * extensions to ONNX models using annotations, including few-bit data types, sparsity and data layout specifiers
 * several transformation passes, including topological sorting, constant folding and convolution lowering
 * several custom ops including im2col and multi-thresholding for quantized activations
+* several utility functions, including packing for few-bit integers
+
+## Installation
+
+Install with full functionality:
+
+`pip install finn-base[onnx]`
+
+Lightweight install for e.g. access to data packing utility functions:
+
+`pip install finn-base`
+
+## Testing
+
+With Docker CE installed, execute the following in the repo root:
+
+`./run-docker.sh tests`
+
+Alternatively, pull requests to `dev` will trigger GitHub Actions for the above.
 
 ## Documentation
 

@@ -20,12 +20,39 @@ compiler <https://github.com/Xilinx/finn/>`__, including:
    constant folding and convolution lowering
 -  several custom ops including im2col and multi-thresholding for
    quantized activations
+-  several utility functions, including packing for few-bit integers
+
+Installation
+============
+
+Install with full functionality:
+
+::
+
+  pip install finn-base[onnx]
+
+Lightweight install for e.g. access to data packing utility functions:
+
+::
+
+  pip install finn-base
+
+Testing
+=======
+
+With Docker CE installed, execute the following in the repo root:
+
+::
+
+  ./run-docker.sh tests
+
+Alternatively, pull requests to `dev` will trigger GitHub Actions for the above.
+
 
 .. toctree::
    :maxdepth: 2
    :hidden:
 
-   README <readme>
    API <api/modules>
    License <license>
    Contributors <authors>
