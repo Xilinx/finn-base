@@ -25,11 +25,11 @@ compiler <https://github.com/Xilinx/finn/>`__, including:
 Installation
 ============
 
-Install with full functionality:
+Install with full functionality including documentation building:
 
 ::
 
-  pip install finn-base[onnx]
+  pip install finn-base[onnx,pyverilator,docs]
 
 Lightweight install for e.g. access to data packing utility functions:
 

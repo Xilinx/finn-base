@@ -15,21 +15,7 @@
 
 ## Installation
 
-Install with full functionality:
-
-`pip install finn-base[onnx]`
-
-Lightweight install for e.g. access to data packing utility functions:
-
-`pip install finn-base`
-
-## Testing
-
-With Docker CE installed, execute the following in the repo root:
-
-`./run-docker.sh tests`
-
-Alternatively, pull requests to `dev` will trigger GitHub Actions for the above.
+`finn-base` can be installed via pip by [following these instructions](http://finn-base.readthedocs.io/).
 
 ## Documentation
 
