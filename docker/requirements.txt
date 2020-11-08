@@ -1,5 +1,5 @@
 bitstring>=3.1.7
-numpy>=1.19.2
+numpy
 onnx==1.7.0
 onnxruntime==1.4.0
 pre-commit>=2.7.1
