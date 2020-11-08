@@ -53,6 +53,8 @@ Alternatively, pull requests to `dev` will trigger GitHub Actions for the above.
    :maxdepth: 2
    :hidden:
 
+   Overview <overview>
+   Tutorials <tutorials>
    API <api/modules>
    License <license>
    Contributors <authors>
