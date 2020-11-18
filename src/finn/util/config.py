@@ -28,6 +28,9 @@
 
 import json
 
+from finn.custom_op.registry import getCustomOp
+
+
 def extract_model_config_to_json(model, json_filename, attr_names_to_extract):
     """Create a json file with layer name -> attribute mappings extracted from the
     model. The created json file can be later applied on a model with
@@ -36,7 +39,6 @@ def extract_model_config_to_json(model, json_filename, attr_names_to_extract):
     cfg = dict()
     cfg["Defaults"] = dict()
     for n in model.graph.node:
-        attrs = ["PE", "SIMD", "ram_style"]
         oi = getCustomOp(n)
         layer_dict = dict()
         for attr in attr_names_to_extract:
