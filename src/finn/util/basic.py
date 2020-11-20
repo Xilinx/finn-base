@@ -145,15 +145,17 @@ def get_sanitize_quant_tensors():
 
 
 def make_build_dir(prefix=""):
-    """Creates a temporary folder with given prefix to be used as a build dir.
+    """Creates a folder with given prefix to be used as a build dir.
     Use this function instead of tempfile.mkdtemp to ensure any generated files
     will survive on the host after the FINN Docker container exits."""
     try:
-        inst_prefix = os.environ["FINN_INST_NAME"] + "/"
-        return tempfile.mkdtemp(prefix=inst_prefix + prefix)
+        tmpdir = tempfile.mkdtemp(prefix=prefix)
+        newdir = tmpdir.replace("/tmp", os.environ["FINN_BUILD_DIR"])
+        os.makedirs(newdir)
+        return newdir
     except KeyError:
         raise Exception(
-            """Environment variable FINN_INST_NAME must be set
+            """Environment variable FINN_BUILD_DIR must be set
         correctly. Please ensure you have launched the Docker contaier correctly.
         """
         )
