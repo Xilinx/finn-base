@@ -31,6 +31,7 @@ import os
 import random
 import string
 import subprocess
+import sys
 import tempfile
 import warnings
 
@@ -448,3 +449,18 @@ class CppBuilder:
         bash_command = ["bash", self.compile_script]
         process_compile = subprocess.Popen(bash_command, stdout=subprocess.PIPE)
         process_compile.communicate()
+
+
+def launch_process_helper(args):
+    """Helper function to launch a process in a way that facilitates logging
+    stdout/stderr with Python loggers.
+    Returns (cmd_out, cmd_err)."""
+    with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
+        (cmd_out, cmd_err) = proc.communicate()
+    if cmd_out is not None:
+        cmd_out = cmd_out.decode("utf-8")
+        sys.stdout.write(cmd_out)
+    if cmd_err is not None:
+        cmd_err = cmd_err.decode("utf-8")
+        sys.stderr.write(cmd_err)
+    return (cmd_out, cmd_err)
