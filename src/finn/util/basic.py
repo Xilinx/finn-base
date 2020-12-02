@@ -451,14 +451,14 @@ class CppBuilder:
         process_compile.communicate()
 
 
-def launch_process_helper(args, proc_env=None):
+def launch_process_helper(args, proc_env=None, cwd=None):
     """Helper function to launch a process in a way that facilitates logging
     stdout/stderr with Python loggers.
     Returns (cmd_out, cmd_err)."""
     if proc_env is None:
         proc_env = os.environ.copy()
     with subprocess.Popen(
-        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=proc_env
+        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=proc_env, cwd=cwd
     ) as proc:
         (cmd_out, cmd_err) = proc.communicate()
     if cmd_out is not None:
