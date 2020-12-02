@@ -26,7 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-FROM mcr.microsoft.com/azureml/onnxruntime:latest
+FROM mcr.microsoft.com/azureml/onnxruntime:v1.4.0
 
 LABEL maintainer="Yaman Umuroglu <yamanu@xilinx.com>"
 
@@ -39,6 +39,12 @@ ENV SHELL=/bin/bash
 
 # Run below commands as root
 USER root
+
+RUN apt-get update
+RUN apt-get install -y git verilator
+# use python3 and pip3 as python and pip defaults
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+RUN update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 10
 
 # Copy entrypoint scripts to the workdir (as root)
 WORKDIR /usr/local/bin
@@ -61,16 +67,13 @@ RUN echo "PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\
 
 # Install Python package requirements
 COPY docker/requirements.txt .
-RUN pip install --upgrade pip && \
+RUN python -mpip install --upgrade pip && \
+    pip install --upgrade setuptools &&\
     pip install -r requirements.txt && \
     rm requirements.txt
 
-# Install fork of pyverilator
+# Install custom fork of pyverilator
 RUN pip install git+https://github.com/maltanar/pyverilator.git#egg=pyverilator
-
-# Install other requirements via apt-get
-RUN apt-get update
-RUN apt-get install -y verilator
 
 # Run below commands as user
 USER ${USER}
