@@ -41,7 +41,7 @@ ENV SHELL=/bin/bash
 USER root
 
 RUN apt-get update
-RUN apt-get install -y git verilator
+RUN apt-get install -y git build-essential verilator python3-dev
 # use python3 and pip3 as python and pip defaults
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 RUN update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 10
