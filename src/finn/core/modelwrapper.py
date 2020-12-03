@@ -73,12 +73,20 @@ class ModelWrapper:
         found_oldstyle = False
         for n in self.graph.node:
             if n.domain == "finn":
-                n.domain = "finn.custom_op.general"
+                n_backend = util.get_by_name(n.attribute, "backend")
+                if n_backend is not None:
+                    backend_value = n_backend.s.decode("UTF-8")
+                    if backend_value == "fpgadataflow":
+                        n.domain = "finn.custom_op.fpgadataflow"
+                    else:
+                        warnings.warn("Can't fix domain for node " + str(n))
+                else:
+                    n.domain = "finn.custom_op.general"
                 found_oldstyle = True
         if found_oldstyle:
             warnings.warn(
                 """Some old-style domain attributes were automatically converted to new-style,
-                i.e. domain=finn to domain=finn.custom_op.general"""
+                i.e. domain=finn to domain=finn.custom_op.<general|fpgadataflow|...>"""
             )
 
     @property
