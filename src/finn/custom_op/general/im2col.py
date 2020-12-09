@@ -9,10 +9,13 @@ from finn.custom_op.base import CustomOp
 # utilities to generate a patch matrix from a multichannel image
 # of shape (batches, channels, height, width)
 
-
 def compute_conv_output_dim(ifm_dim, k, stride, pad=0):
     """Returns spatial output dimension size for convolution with given params."""
-    return int(((ifm_dim + 2 * pad - k) / stride) + 1)
+    if (ifm_dim == 1):
+        out_dim = 1
+    else:
+        out_dim = int(((ifm_dim + 2 * pad - k) / stride) + 1)
+    return out_dim
 
 
 def get_im2col_indices_nchw(
@@ -38,16 +41,26 @@ def get_im2col_indices_nchw(
 
 
 def im2col_indices_nchw(
-    x, field_height, field_width, padding=0, stride_y=1, stride_x=1, pad_val=0
+    x, H, W, field_height, field_width, padding=0, stride_y=1, stride_x=1, pad_val=0
 ):
     """Performs im2col on x with given field height and width, as well as values
     for padding and stride size.
     Returns result of im2col."""
     # Zero-pad the input
     p = padding
-    x_padded = np.pad(
-        x, ((0, 0), (0, 0), (p, p), (p, p)), mode="constant", constant_values=pad_val
-    )
+
+    if (H == 1): # Shape of input image is: (1, C, 1, W)
+        x_padded = np.pad(
+            x, ((0, 0), (0, 0), (0, 0), (p, p)), mode="constant", constant_values=pad_val
+        )
+    elif (W == 1): # Shape of input image is: (1, C, H, 1)
+        x_padded = np.pad(
+            x, ((0, 0), (0, 0), (p, p), (0, 0)), mode="constant", constant_values=pad_val
+        )
+    elif (H > 1 and W > 1): # Shape of input image is: (1, C, H, W)
+        x_padded = np.pad(
+            x, ((0, 0), (0, 0), (p, p), (p, p)), mode="constant", constant_values=pad_val
+        )
 
     k, i, j = get_im2col_indices_nchw(
         x.shape, field_height, field_width, padding, stride_y, stride_x
@@ -76,7 +89,7 @@ class Im2Col(CustomOp):
     def get_nodeattr_types(self):
         return {
             "stride": ("i", True, 1),
-            "kernel_size": ("i", True, 1),
+            "kernel_size": ("s", True, 1),
             "input_shape": ("s", True, ""),
             "pad_amount": ("i", False, 0),
             "pad_value": ("i", False, 0),
@@ -85,7 +98,7 @@ class Im2Col(CustomOp):
         }
 
     def make_shape_compatible_op(self, model):
-        k = self.get_nodeattr("kernel_size")
+        k = self.get_nodeattr("kernel_size") # Assumption: Height x Width
         stride = self.get_nodeattr("stride")
         ishape = self.get_nodeattr("input_shape")
         pad = self.get_nodeattr("pad_amount")
@@ -97,15 +110,25 @@ class Im2Col(CustomOp):
         for i in range(0, len(ishape)):
             ishape[i] = int(ishape[i])
 
+        # convert string into list of integers (kernel shape)
+        k = k.strip("(")
+        k = k.strip(")")
+        k = k.split(",")
+        for i in range(0, len(k)):
+             k[i] = int(k[i])
+        k_H = k[0]
+        k_W = k[1]
+
         # extract all necessary information and determine output dimensions
         ifm_ch = ishape[-1]
         assert len(ishape) == 4, "Unexpected input shape for Im2Col"
-        assert ishape[1] == ishape[2], "Im2Col for non-square images unsupported"
-        ifm_dim = ishape[1]
-        ofm_dim = compute_conv_output_dim(ifm_dim, k, stride, pad)
+        ifm_dim_H = ishape[1] # NHWC
+        ifm_dim_W = ishape[2]
+        ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad)
+        ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad)
 
         # implement tensor with correct shape
-        values = np.random.randn(1, ofm_dim, ofm_dim, k * k * ifm_ch).astype(np.float32)
+        values = np.random.randn(1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch).astype(np.float32)
         return helper.make_node(
             "Constant",
             inputs=[],
@@ -126,7 +149,15 @@ class Im2Col(CustomOp):
 
     def execute_node(self, context, graph):
         node = self.onnx_node
-        k = self.get_nodeattr("kernel_size")
+        k = self.get_nodeattr("kernel_size") # Assumption: Height x Width
+        k = k.strip("(")
+        k = k.strip(")")
+        k = k.split(",")
+        for i in range(0, len(k)):
+                k[i] = int(k[i])
+        k_H = k[0]
+        k_W = k[1]
+
         stride = self.get_nodeattr("stride")
         pad = self.get_nodeattr("pad_amount")
         pad_val = self.get_nodeattr("pad_value")
@@ -141,17 +172,18 @@ class Im2Col(CustomOp):
         # check that input is NHWC
         assert x.ndim == 4, "Unexpected number of input dims for Im2Col"
         N, H, W, C = x.shape
-        assert H == W, "Unexpected input shape for Im2Col"
-        out_dim = compute_conv_output_dim(H, k, stride, pad)
+        out_dim_H = compute_conv_output_dim(H, k_H, stride, pad)
+        out_dim_W = compute_conv_output_dim(W, k_W, stride, pad)
         # internally convert input to NCHW
         x = x.transpose(0, 3, 1, 2)
         # call NCHW im2col implementation
-        ret = im2col_indices_nchw(x, k, k, pad, stride, stride, pad_val=pad_val)
-        # result shape is (k*k*N, out_dim*out_dim), convert to NCHW
-        ret = ret.reshape(N, C, k, k, out_dim, out_dim)
+        ret = im2col_indices_nchw(x, H, W, k_H, k_W, pad, stride, stride, pad_val=pad_val)
+        # result shape is (k_H*k_W*N, out_dim_H*out_dim_W), convert to NCHW
+        #print("{}\n{}".format(ret.shape,ret))
+        ret = ret.reshape(N, C, k_H, k_W, out_dim_H, out_dim_W)
         # (N=0,C=1,kh=2,kw=3,H=4,W=5) -> (N=0,H=4,W=5,kh=2,kw=3,C=1)
         ret = ret.transpose(0, 4, 5, 2, 3, 1)
-        ret = ret.reshape(N, out_dim, out_dim, k * k * C)
+        ret = ret.reshape(N, out_dim_H, out_dim_W, k_H * k_W * C)
 
         # ret = ret.reshape(N, k * k * C, out_dim, out_dim)
         # convert output back to NHWC
