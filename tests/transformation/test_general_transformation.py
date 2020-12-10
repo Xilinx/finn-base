@@ -144,6 +144,6 @@ def test_apply_config():
         json.dump(config, f, indent=4)
     model = model.transform(ApplyConfig("config.json"))
     # check model
-    assert getCustomOp(model.graph.node[2]).get_nodeattr("kernel_size") == 7
-    assert getCustomOp(model.graph.node[9]).get_nodeattr("kernel_size") == 3
+    assert getCustomOp(model.graph.node[2]).get_nodeattr("kernel_size") == [7]
+    assert getCustomOp(model.graph.node[9]).get_nodeattr("kernel_size") == [3]
     os.remove("config.json")

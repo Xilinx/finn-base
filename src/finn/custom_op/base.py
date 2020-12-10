@@ -112,7 +112,11 @@ class CustomOp(ABC):
                 if dtype == "s":
                     # encode string attributes
                     value = value.encode("utf-8")
-                attr.__setattr__(dtype, value)
+                    attr.__setattr__(dtype, value)
+                elif dtype == "ints":
+                    attr.ints[:] = value
+                else:
+                    attr.__setattr__(dtype, value)
             else:
                 # not set, create and insert AttributeProto
                 attr_proto = helper.make_attribute(name, value)
