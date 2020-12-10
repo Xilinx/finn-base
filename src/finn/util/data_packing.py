@@ -320,6 +320,14 @@ def finnpy_to_packed_bytearray(
     input.
     """
 
+    # handle no-packing cases via casting to save on compute
+    if issubclass(type(ndarray), np.ndarray):
+        inp_is_byte = ndarray.dtype in [np.uint8, np.int8]
+        out_is_byte = dtype.bitwidth() == 8
+        double_reverse = reverse_inner and reverse_endian
+        if inp_is_byte and out_is_byte and double_reverse:
+            return ndarray.astype(np.uint8)
+
     if (not issubclass(type(ndarray), np.ndarray)) or ndarray.dtype != np.float32:
         # try to convert to a float numpy array (container dtype is float)
         ndarray = np.asarray(ndarray, dtype=np.float32)
@@ -364,6 +372,15 @@ def packed_bytearray_to_finnpy(
         raise Exception("packed_bytearray_to_finnpy needs NumPy uint8 arrays")
     if packed_bytearray.ndim == 0:
         raise Exception("packed_bytearray_to_finnpy expects at least 1D ndarray")
+    # handle no-packing cases via casting to save on compute
+    out_is_byte = dtype.bitwidth() == 8
+    double_reverse = reverse_inner and reverse_endian
+    if out_is_byte and double_reverse:
+        if output_shape is None:
+            output_shape = packed_bytearray.shape
+        no_unpad = np.prod(packed_bytearray.shape) == np.prod(output_shape)
+        if no_unpad:
+            return packed_bytearray.reshape(packed_bytearray.shape).astype(np.float32)
     packed_dim = packed_bytearray.ndim - 1
     packed_bits = packed_bytearray.shape[packed_dim] * 8
     target_bits = dtype.bitwidth()
