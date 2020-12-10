@@ -138,8 +138,8 @@ def test_apply_config():
     model = model.transform(GiveUniqueNodeNames())
     # set up a config in a dict, then dump it to JSON
     config = {}
-    config["Defaults"] = {"kernel_size": [3, ["Im2Col"]]}
-    config["Im2Col_0"] = {"kernel_size": 7}
+    config["Defaults"] = {"kernel_size": [[3], ["Im2Col"]]}
+    config["Im2Col_0"] = {"kernel_size": [7]}
     with open("config.json", "w") as f:
         json.dump(config, f, indent=4)
     model = model.transform(ApplyConfig("config.json"))
