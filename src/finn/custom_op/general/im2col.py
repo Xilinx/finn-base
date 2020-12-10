@@ -89,7 +89,7 @@ class Im2Col(CustomOp):
     def get_nodeattr_types(self):
         return {
             "stride": ("i", True, 1),
-            "kernel_size": ("s", True, 1),
+            "kernel_size": ("ints", True, []),
             "input_shape": ("s", True, ""),
             "pad_amount": ("i", False, 0),
             "pad_value": ("i", False, 0),
@@ -110,20 +110,24 @@ class Im2Col(CustomOp):
         for i in range(0, len(ishape)):
             ishape[i] = int(ishape[i])
 
-        # convert string into list of integers (kernel shape)
-        k = k.strip("(")
-        k = k.strip(")")
-        k = k.split(",")
-        for i in range(0, len(k)):
-             k[i] = int(k[i])
-        k_H = k[0]
-        k_W = k[1]
+        if len(k) == 1: # Assume square kernel
+            k_H = k[0]
+            k_W = k[0]
+        else:
+            k_H = k[0]
+            k_W = k[1]
 
         # extract all necessary information and determine output dimensions
         ifm_ch = ishape[-1]
         assert len(ishape) == 4, "Unexpected input shape for Im2Col"
         ifm_dim_H = ishape[1] # NHWC
         ifm_dim_W = ishape[2]
+
+        if (ifm_dim_H == 1):
+            assert (k_H == 1), "Unexpected kernel shape for input image of dimensions (N, 1, W, C)"
+        if (ifm_dim_W == 1):
+            assert (k_W == 1), "Unexpected kernel shape for input image of dimensions (N, H, 1, C)"
+
         ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad)
         ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad)
 
@@ -150,13 +154,13 @@ class Im2Col(CustomOp):
     def execute_node(self, context, graph):
         node = self.onnx_node
         k = self.get_nodeattr("kernel_size") # Assumption: Height x Width
-        k = k.strip("(")
-        k = k.strip(")")
-        k = k.split(",")
-        for i in range(0, len(k)):
-                k[i] = int(k[i])
-        k_H = k[0]
-        k_W = k[1]
+
+        if len(k) == 1: # Assume square kernel
+            k_H = k[0]
+            k_W = k[0]
+        else:
+            k_H = k[0]
+            k_W = k[1]
 
         stride = self.get_nodeattr("stride")
         pad = self.get_nodeattr("pad_amount")
@@ -172,6 +176,12 @@ class Im2Col(CustomOp):
         # check that input is NHWC
         assert x.ndim == 4, "Unexpected number of input dims for Im2Col"
         N, H, W, C = x.shape
+
+        if (H == 1):
+            assert (k_H == 1), "Unexpected kernel shape for input image of dimensions (N, 1, W, C)"
+        if (W == 1):
+            assert (k_W == 1), "Unexpected kernel shape for input image of dimensions (N, H, 1, C)"
+
         out_dim_H = compute_conv_output_dim(H, k_H, stride, pad)
         out_dim_W = compute_conv_output_dim(W, k_W, stride, pad)
         # internally convert input to NCHW
@@ -179,7 +189,6 @@ class Im2Col(CustomOp):
         # call NCHW im2col implementation
         ret = im2col_indices_nchw(x, H, W, k_H, k_W, pad, stride, stride, pad_val=pad_val)
         # result shape is (k_H*k_W*N, out_dim_H*out_dim_W), convert to NCHW
-        #print("{}\n{}".format(ret.shape,ret))
         ret = ret.reshape(N, C, k_H, k_W, out_dim_H, out_dim_W)
         # (N=0,C=1,kh=2,kw=3,H=4,W=5) -> (N=0,H=4,W=5,kh=2,kw=3,C=1)
         ret = ret.transpose(0, 4, 5, 2, 3, 1)

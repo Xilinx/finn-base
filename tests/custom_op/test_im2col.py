@@ -40,7 +40,7 @@ def execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad
         ["outp"],
         domain="finn.custom_op.general",
         stride=stride,
-        kernel_size="({},{})".format(k_H, k_W),
+        kernel_size=[k_H, k_W],
         pad_amount=pad_amt,
         pad_value=pad_val,
         input_shape="(1,{},{},{})".format(ifm_dim_H, ifm_dim_W, ifm_ch),
@@ -674,7 +674,7 @@ def test_im2col_infer_shapes():
         ["im2col"],
         domain="finn.custom_op.general",
         stride=stride,
-        kernel_size="({},{})".format(k_H, k_W),
+        kernel_size=[k_H, k_W],
         input_shape="(1,{},{},{})".format(ifm_dim_H, ifm_dim_W, ifm_ch),
     )
 
