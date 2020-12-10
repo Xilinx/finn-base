@@ -1,6 +1,5 @@
 import numpy as np
 from onnx import TensorProto, helper
-import pytest
 
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
@@ -702,4 +701,4 @@ def test_im2col_infer_shapes():
 
     # test shape inference
     model.transform(InferShapes())
-    assert model.get_tensor_shape("im2col") == [1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch], ""
+    assert model.get_tensor_shape("im2col") == [1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch]
