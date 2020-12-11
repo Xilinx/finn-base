@@ -113,8 +113,21 @@ class CustomOp(ABC):
                     # encode string attributes
                     value = value.encode("utf-8")
                     attr.__setattr__(dtype, value)
-                elif dtype == "ints":
+                elif dtype == "floats":  # list of floats
+                    attr.floats[:] = value
+                elif dtype == "ints":  # list of integers
                     attr.ints[:] = value
+                elif dtype == "strings":  # list of strings
+                    for i, v in enumerate(value):
+                        encoded_val = value[i]
+                        value[i] = encoded_val.encode("utf-8")
+                    attr.strings[:] = value
+                elif dtype == "tensors":
+                    attr.tensors[:] = value
+                elif dtype == "graphs":
+                    attr.graphs[:] = value
+                elif dtype == "sparse_tensors":
+                    attr.sparse_tensors[:] = value
                 else:
                     attr.__setattr__(dtype, value)
             else:
