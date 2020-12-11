@@ -21,7 +21,10 @@ def check_two_dict_for_equality(dict1, dict2):
 
     return True
 
-def execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt=0, pad_val=0):
+
+def execution_im2col(
+    x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt=0, pad_val=0
+):
     ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
     ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
@@ -56,7 +59,12 @@ def execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad
 
     # test shape inference
     model.transform(InferShapes())
-    assert model.get_tensor_shape("outp") == [1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch]
+    assert model.get_tensor_shape("outp") == [
+        1,
+        ofm_dim_H,
+        ofm_dim_W,
+        k_H * k_W * ifm_ch,
+    ]
 
     # test datatype inference
     assert model.get_tensor_datatype("outp") is DataType.FLOAT32
@@ -72,7 +80,7 @@ def execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad
     return y_produced
 
 
-### Configurations tested:
+# Configurations tested:
 # case id     | 0       | 1    | 2    | 3    | 4    | 5    | 6    | 7    | 8    |
 # idt         | Bipolar | INT8 | INT8 | INT8 | INT8 | INT8 | INT8 | INT8 | INT8 |
 # ifm_dim_H   | 4       | 4    | 4    | 4    | 4    | 4    | 5    | 5    | 5    |
@@ -83,6 +91,7 @@ def execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad
 # k_H         | 2       | 2    | 2    | 2    | 3    | 3    | 3    | 3    | 3    |
 # k_W         | 2       | 2    | 2    | 2    | 2    | 2    | 1    | 1    | 1    |
 # stride      | 1       | 1    | 1    | 1    | 1    | 1    | 1    | 1    | 2    |
+
 
 def test_im2col():
     case_id = 0
@@ -164,8 +173,12 @@ def test_im2col():
         dtype=np.float32,
     ).reshape(1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch)
 
-    produced = execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val)
-    assert (produced == expected).all(), "Test failed for case number {}".format(case_id)
+    produced = execution_im2col(
+        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+    )
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
 
     case_id = 1
     idt = DataType.INT8
@@ -216,8 +229,12 @@ def test_im2col():
         dtype=np.float32,
     )
 
-    produced = execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val)
-    assert (produced == expected).all(), "Test failed for case number {}".format(case_id)
+    produced = execution_im2col(
+        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+    )
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
 
     case_id = 2
     idt = DataType.INT8
@@ -288,10 +305,13 @@ def test_im2col():
         dtype=np.float32,
     )
 
-    produced = execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val)
-    assert (produced == expected).all(), "Test failed for case number {}".format(case_id)
+    produced = execution_im2col(
+        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+    )
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
 
-    ###################################### Non-square image and/or kernel tests ######################################
     case_id = 3
     idt = DataType.INT8
     k_H = 2
@@ -310,7 +330,7 @@ def test_im2col():
         [
             [
                 [[1, -1], [2, -2], [3, -3], [4, -4], [5, -5]],
-                [[6, -6], [7, -7], [8, -8], [9, -9],[10, -10]],
+                [[6, -6], [7, -7], [8, -8], [9, -9], [10, -10]],
                 [[11, -11], [12, -12], [13, -13], [14, -14], [15, -15]],
                 [[16, -16], [17, -17], [18, -18], [19, -19], [20, -20]],
             ]
@@ -325,27 +345,31 @@ def test_im2col():
                     [1, -1, 2, -2, 6, -6, 7, -7],
                     [2, -2, 3, -3, 7, -7, 8, -8],
                     [3, -3, 4, -4, 8, -8, 9, -9],
-                    [4, -4, 5, -5, 9, -9, 10, -10]
+                    [4, -4, 5, -5, 9, -9, 10, -10],
                 ],
                 [
                     [6, -6, 7, -7, 11, -11, 12, -12],
                     [7, -7, 8, -8, 12, -12, 13, -13],
                     [8, -8, 9, -9, 13, -13, 14, -14],
-                    [9, -9, 10, -10, 14, -14, 15, -15]
+                    [9, -9, 10, -10, 14, -14, 15, -15],
                 ],
                 [
                     [11, -11, 12, -12, 16, -16, 17, -17],
                     [12, -12, 13, -13, 17, -17, 18, -18],
                     [13, -13, 14, -14, 18, -18, 19, -19],
-                    [14, -14, 15, -15, 19, -19, 20, -20]
+                    [14, -14, 15, -15, 19, -19, 20, -20],
                 ],
             ]
         ],
         dtype=np.float32,
     )
 
-    produced = execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val)
-    assert (produced == expected).all(), "Test failed for case number {}".format(case_id)
+    produced = execution_im2col(
+        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+    )
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
 
     case_id = 4
     idt = DataType.INT8
@@ -365,7 +389,7 @@ def test_im2col():
         [
             [
                 [[1, -1], [2, -2], [3, -3], [4, -4], [5, -5]],
-                [[6, -6], [7, -7], [8, -8], [9, -9],[10, -10]],
+                [[6, -6], [7, -7], [8, -8], [9, -9], [10, -10]],
                 [[11, -11], [12, -12], [13, -13], [14, -14], [15, -15]],
                 [[16, -16], [17, -17], [18, -18], [19, -19], [20, -20]],
             ]
@@ -380,21 +404,25 @@ def test_im2col():
                     [1, -1, 2, -2, 6, -6, 7, -7, 11, -11, 12, -12],
                     [2, -2, 3, -3, 7, -7, 8, -8, 12, -12, 13, -13],
                     [3, -3, 4, -4, 8, -8, 9, -9, 13, -13, 14, -14],
-                    [4, -4, 5, -5, 9, -9, 10, -10, 14, -14, 15, -15]
+                    [4, -4, 5, -5, 9, -9, 10, -10, 14, -14, 15, -15],
                 ],
                 [
                     [6, -6, 7, -7, 11, -11, 12, -12, 16, -16, 17, -17],
                     [7, -7, 8, -8, 12, -12, 13, -13, 17, -17, 18, -18],
                     [8, -8, 9, -9, 13, -13, 14, -14, 18, -18, 19, -19],
-                    [9, -9, 10, -10, 14, -14, 15, -15, 19, -19, 20, -20]
-                ]
+                    [9, -9, 10, -10, 14, -14, 15, -15, 19, -19, 20, -20],
+                ],
             ]
         ],
         dtype=np.float32,
     )
 
-    produced = execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val)
-    assert (produced == expected).all(), "Test failed for case number {}".format(case_id)
+    produced = execution_im2col(
+        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+    )
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
 
     case_id = 5
     idt = DataType.INT8
@@ -414,7 +442,7 @@ def test_im2col():
         [
             [
                 [[1, -1], [2, -2], [3, -3], [4, -4], [5, -5]],
-                [[6, -6], [7, -7], [8, -8], [9, -9],[10, -10]],
+                [[6, -6], [7, -7], [8, -8], [9, -9], [10, -10]],
                 [[11, -11], [12, -12], [13, -13], [14, -14], [15, -15]],
                 [[16, -16], [17, -17], [18, -18], [19, -19], [20, -20]],
             ]
@@ -431,7 +459,7 @@ def test_im2col():
                     [0, 0, 0, 0, 2, -2, 3, -3, 7, -7, 8, -8],
                     [0, 0, 0, 0, 3, -3, 4, -4, 8, -8, 9, -9],
                     [0, 0, 0, 0, 4, -4, 5, -5, 9, -9, 10, -10],
-                    [0, 0, 0, 0, 5, -5, 0, 0, 10, -10, 0, 0]
+                    [0, 0, 0, 0, 5, -5, 0, 0, 10, -10, 0, 0],
                 ],
                 [
                     [0, 0, 1, -1, 0, 0, 6, -6, 0, 0, 11, -11],
@@ -439,7 +467,7 @@ def test_im2col():
                     [2, -2, 3, -3, 7, -7, 8, -8, 12, -12, 13, -13],
                     [3, -3, 4, -4, 8, -8, 9, -9, 13, -13, 14, -14],
                     [4, -4, 5, -5, 9, -9, 10, -10, 14, -14, 15, -15],
-                    [5, -5, 0, 0, 10, -10, 0, 0, 15, -15, 0, 0]
+                    [5, -5, 0, 0, 10, -10, 0, 0, 15, -15, 0, 0],
                 ],
                 [
                     [0, 0, 6, -6, 0, 0, 11, -11, 0, 0, 16, -16],
@@ -447,7 +475,7 @@ def test_im2col():
                     [7, -7, 8, -8, 12, -12, 13, -13, 17, -17, 18, -18],
                     [8, -8, 9, -9, 13, -13, 14, -14, 18, -18, 19, -19],
                     [9, -9, 10, -10, 14, -14, 15, -15, 19, -19, 20, -20],
-                    [10, -10, 0, 0, 15, -15, 0, 0, 20, -20, 0, 0]
+                    [10, -10, 0, 0, 15, -15, 0, 0, 20, -20, 0, 0],
                 ],
                 [
                     [0, 0, 11, -11, 0, 0, 16, -16, 0, 0, 0, 0],
@@ -455,16 +483,19 @@ def test_im2col():
                     [12, -12, 13, -13, 17, -17, 18, -18, 0, 0, 0, 0],
                     [13, -13, 14, -14, 18, -18, 19, -19, 0, 0, 0, 0],
                     [14, -14, 15, -15, 19, -19, 20, -20, 0, 0, 0, 0],
-                    [15, -15, 0, 0, 20, -20, 0, 0, 0, 0, 0, 0]
+                    [15, -15, 0, 0, 20, -20, 0, 0, 0, 0, 0, 0],
                 ],
-
             ]
         ],
         dtype=np.float32,
     )
 
-    produced = execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val)
-    assert (produced == expected).all(), "Test failed for case number {}".format(case_id)
+    produced = execution_im2col(
+        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+    )
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
 
     case_id = 6
     idt = DataType.INT8
@@ -481,47 +512,21 @@ def test_im2col():
     ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
-        [
-            [
-                [
-                    [1, -1]
-                ],
-                [
-                    [2, -2]
-                ],
-                [
-                    [3, -3]
-                ],
-                [
-                    [4, -4]
-                ],
-                [
-                    [5, -5]
-                ]
-            ]
-        ],
+        [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
         dtype=np.float32,
     )
 
     expected = np.asarray(
-        [
-            [
-                [
-                    [1, -1, 2, -2, 3, -3]
-                ],
-                [
-                    [2, -2, 3, -3, 4, -4]
-                ],
-                [
-                    [3, -3, 4, -4, 5, -5]
-                ]
-            ]
-        ],
+        [[[[1, -1, 2, -2, 3, -3]], [[2, -2, 3, -3, 4, -4]], [[3, -3, 4, -4, 5, -5]]]],
         dtype=np.float32,
     )
 
-    produced = execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val)
-    assert (produced == expected).all(), "Test failed for case number {}".format(case_id)
+    produced = execution_im2col(
+        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+    )
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
 
     case_id = 7
     idt = DataType.INT8
@@ -538,53 +543,29 @@ def test_im2col():
     ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
-        [
-            [
-                [
-                    [1, -1]
-                ],
-                [
-                    [2, -2]
-                ],
-                [
-                    [3, -3]
-                ],
-                [
-                    [4, -4]
-                ],
-                [
-                    [5, -5]
-                ]
-            ]
-        ],
+        [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
         dtype=np.float32,
     )
 
     expected = np.asarray(
         [
             [
-                [
-                    [0, 0, 1, -1, 2, -2]
-                ],
-                [
-                    [1, -1, 2, -2, 3, -3]
-                ],
-                [
-                    [2, -2, 3, -3, 4, -4]
-                ],
-                [
-                    [3, -3, 4, -4, 5, -5]
-                ],
-                [
-                    [4, -4, 5, -5, 0, 0]
-                ]
+                [[0, 0, 1, -1, 2, -2]],
+                [[1, -1, 2, -2, 3, -3]],
+                [[2, -2, 3, -3, 4, -4]],
+                [[3, -3, 4, -4, 5, -5]],
+                [[4, -4, 5, -5, 0, 0]],
             ]
         ],
         dtype=np.float32,
     )
 
-    produced = execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val)
-    assert (produced == expected).all(), "Test failed for case number {}".format(case_id)
+    produced = execution_im2col(
+        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+    )
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
 
     case_id = 8
     idt = DataType.INT8
@@ -601,47 +582,21 @@ def test_im2col():
     ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
-        [
-            [
-                [
-                    [1, -1]
-                ],
-                [
-                    [2, -2]
-                ],
-                [
-                    [3, -3]
-                ],
-                [
-                    [4, -4]
-                ],
-                [
-                    [5, -5]
-                ]
-            ]
-        ],
+        [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
         dtype=np.float32,
     )
 
     expected = np.asarray(
-        [
-            [
-                [
-                    [0, 0, 1, -1, 2, -2]
-                ],
-                [
-                    [2, -2, 3, -3, 4, -4]
-                ],
-                [
-                    [4, -4, 5, -5, 0, 0]
-                ]
-            ]
-        ],
+        [[[[0, 0, 1, -1, 2, -2]], [[2, -2, 3, -3, 4, -4]], [[4, -4, 5, -5, 0, 0]]]],
         dtype=np.float32,
     )
 
-    produced = execution_im2col(x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val)
-    assert (produced == expected).all(), "Test failed for case number {}".format(case_id)
+    produced = execution_im2col(
+        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+    )
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
 
 
 def test_im2col_infer_shapes():
@@ -652,7 +607,7 @@ def test_im2col_infer_shapes():
     ifm_ch = 1
     ifm_dim_H = 4
     ifm_dim_W = 4
-    pad_amt = 0 # default
+    pad_amt = 0  # default
 
     ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
     ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
@@ -689,7 +644,9 @@ def test_im2col_infer_shapes():
                 "abs", TensorProto.FLOAT, [1, ifm_dim_H, ifm_dim_W, ifm_ch]
             ),
             helper.make_tensor_value_info(
-                "im2col", TensorProto.FLOAT, [1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch]
+                "im2col",
+                TensorProto.FLOAT,
+                [1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch],
             ),
         ],
     )
@@ -701,4 +658,9 @@ def test_im2col_infer_shapes():
 
     # test shape inference
     model.transform(InferShapes())
-    assert model.get_tensor_shape("im2col") == [1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch]
+    assert model.get_tensor_shape("im2col") == [
+        1,
+        ofm_dim_H,
+        ofm_dim_W,
+        k_H * k_W * ifm_ch,
+    ]
