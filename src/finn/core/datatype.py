@@ -226,3 +226,23 @@ class DataType(Enum):
                 return "ap_uint<%d>" % self.bitwidth()
         else:
             return "float"
+
+    def to_numpy_dt(self):
+        "For 8/16/32/64-bit types, return equivalent NumPy dtype"
+        return _finndt_to_numpydt[self]
+
+
+_finndt_to_numpydt = {
+    # signed ints
+    DataType.INT8: np.int8,
+    DataType.INT16: np.int16,
+    DataType.INT32: np.int32,
+    DataType.INT64: np.int64,
+    # unsigned ints
+    DataType.UINT8: np.uint8,
+    DataType.UINT16: np.uint16,
+    DataType.UINT32: np.uint32,
+    DataType.UINT64: np.uint64,
+    # floats
+    DataType.FLOAT32: np.float32,
+}
