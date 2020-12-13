@@ -165,10 +165,10 @@ def test_non_equal_padding(
 @pytest.mark.parametrize("idt", [DataType.INT2, DataType.INT4])
 # kernel size
 @pytest.mark.parametrize("k_H", [2, 4])
-@pytest.mark.parametrize("k_W", [2, 4, 1])
+@pytest.mark.parametrize("k_W", [2, 4])
 # input dimension
 @pytest.mark.parametrize("ifm_dim_H", [4, 6])
-@pytest.mark.parametrize("ifm_dim_W", [4, 6, 1])
+@pytest.mark.parametrize("ifm_dim_W", [4, 6])
 # input channels
 @pytest.mark.parametrize("ifm_ch", [2, 3])
 # stride
@@ -182,13 +182,6 @@ def test_depthwise_conv_lowering(
         pytest.skip("Kernel height must be smaller than image height")
     if k_W > ifm_dim_W:
         pytest.skip("Kernel width must be smaller than image height")
-    # Ensure the right padding parameters are set
-    if ifm_dim_H == 1:
-        padding[0] = 0
-        padding[2] = 0
-    if ifm_dim_W == 1:
-        padding[1] = 0
-        padding[3] = 0
 
     wdt = idt
     odt = DataType.INT32
