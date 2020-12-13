@@ -4,7 +4,7 @@ from onnx import TensorProto, helper
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
-from finn.custom_op.general.im2col import compute_conv_output_dim_2D_padding
+from finn.custom_op.general.im2col import compute_conv_output_dim
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 
@@ -23,12 +23,10 @@ def check_two_dict_for_equality(dict1, dict2):
 
 
 def execution_im2col(
-    x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val=0
+    x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt=0, pad_val=0
 ):
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     # set up onnx model
     inp = helper.make_tensor_value_info(
@@ -105,13 +103,11 @@ def test_im2col():
     ifm_ch = 1
     ifm_dim_H = 4
     ifm_dim_W = 4
-    pad_amt = [0, 0, 0, 0]
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -192,13 +188,11 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_H = 4
     ifm_dim_W = 4
-    pad_amt = [0, 0, 0, 0]
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -250,13 +244,11 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_H = 4
     ifm_dim_W = 4
-    pad_amt = [1, 1, 1, 1]
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 1
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -328,13 +320,11 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_H = 4
     ifm_dim_W = 5
-    pad_amt = [0, 0, 0, 0]
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -389,13 +379,11 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_H = 4
     ifm_dim_W = 5
-    pad_amt = [0, 0, 0, 0]
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -444,13 +432,11 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_H = 4
     ifm_dim_W = 5
-    pad_amt = [1, 1, 1, 1]
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 1
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -519,13 +505,11 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 1
-    pad_amt = [0, 0, 0, 0]
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -552,13 +536,11 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 1
-    pad_amt = [1, 0, 1, 0]
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 1
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -593,13 +575,11 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 1
-    pad_amt = [1, 0, 1, 0]
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 1
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -627,12 +607,10 @@ def test_im2col_infer_shapes():
     ifm_ch = 1
     ifm_dim_H = 4
     ifm_dim_W = 4
-    pad_amt = [0, 0, 0, 0]  # default
-    pad_amt_H = pad_amt[0] + pad_amt[2]
-    pad_amt_W = pad_amt[1] + pad_amt[3]
+    pad_amt = 0  # default
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
 
     # set up onnx model
     inp = helper.make_tensor_value_info(
