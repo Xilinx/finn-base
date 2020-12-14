@@ -75,8 +75,8 @@ def test_conv_lowering_convmnist():
 @pytest.mark.parametrize("k_H", [3])
 @pytest.mark.parametrize("k_W", [3, 1])
 # input dimension
-@pytest.mark.parametrize("ifm_dim_H", [10])
-@pytest.mark.parametrize("ifm_dim_W", [10, 1])
+@pytest.mark.parametrize("ifm_dim_H", [12])
+@pytest.mark.parametrize("ifm_dim_W", [12, 1])
 # input channels
 @pytest.mark.parametrize("ifm_ch", [2])
 # stride
@@ -84,7 +84,7 @@ def test_conv_lowering_convmnist():
 # padding
 @pytest.mark.parametrize("padding", [[0, 0, 0, 0], [1, 1, 1, 1]])
 # dilations
-@pytest.mark.parametrize("dilations", [[1, 1], [2, 2]])
+@pytest.mark.parametrize("dilations", [[1, 1], [2, 2], [3, 3], [4, 4]])
 # depthwise or channelwise
 @pytest.mark.parametrize("dw", [True, False])
 def test_dilations(
@@ -192,7 +192,7 @@ def test_dilations(
 @pytest.mark.parametrize("ifm_ch", [2])
 # stride
 @pytest.mark.parametrize("stride", [1, 2])
-# padding
+# padding. Padding is applied to dimensions H and W as: [H_begin, W_begin, H_end, W_end]
 @pytest.mark.parametrize(
     "padding",
     [

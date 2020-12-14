@@ -107,7 +107,6 @@ class LowerConvsToMatMul(Transformation):
                         # use specified padding
                         pad = get_by_name(n.attribute, "pads").ints
                     else:
-                        assert auto_pad != "NOTSET", print("AUTOPAD NOT SUPPORTED YET")
                         pad = _auto_pad_to_explicit_padding(
                             auto_pad,
                             ifm_dim_H,
