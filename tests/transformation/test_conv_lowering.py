@@ -38,7 +38,7 @@ from pkgutil import get_data
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
-from finn.custom_op.general.im2col import compute_conv_output_dim_2D_padding
+from finn.custom_op.general.im2col import compute_conv_output_dim
 from finn.custom_op.registry import getCustomOp
 from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.lower_convs_to_matmul import LowerConvsToMatMul
@@ -107,11 +107,12 @@ def test_dilations(
     ofm_ch = ifm_ch
     pad_H = padding[0] + padding[2]
     pad_W = padding[1] + padding[3]
-    ofm_dim_H = compute_conv_output_dim_2D_padding(
-        ifm_dim_H, k_H, stride, pad_H, dilations[0]
+
+    ofm_dim_H = compute_conv_output_dim(
+        ifm_dim_H, k_H, stride, pad_H, dilations[0], non_equal=True
     )
-    ofm_dim_W = compute_conv_output_dim_2D_padding(
-        ifm_dim_W, k_W, stride, pad_W, dilations[0]
+    ofm_dim_W = compute_conv_output_dim(
+        ifm_dim_W, k_W, stride, pad_W, dilations[0], non_equal=True
     )
 
     # set up onnx model
@@ -222,8 +223,9 @@ def test_non_equal_padding(
     ofm_ch = ifm_ch
     pad_H = padding[0] + padding[2]
     pad_W = padding[1] + padding[3]
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_W)
+
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_H, non_equal=True)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_W, non_equal=True)
 
     # set up onnx model
     inp = oh.make_tensor_value_info(
@@ -306,8 +308,9 @@ def test_depthwise_conv_lowering(
     ofm_ch = ifm_ch
     pad_H = padding[0] + padding[2]
     pad_W = padding[1] + padding[3]
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_W)
+
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_H, non_equal=True)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_W, non_equal=True)
 
     # set up onnx model
     inp = oh.make_tensor_value_info(
@@ -395,8 +398,9 @@ def test_regular_conv_lowering(
     ofm_ch = ifm_ch
     pad_H = padding[0] + padding[2]
     pad_W = padding[1] + padding[3]
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_W)
+
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_H, non_equal=True)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_W, non_equal=True)
 
     # set up onnx model
     inp = oh.make_tensor_value_info(

@@ -4,7 +4,7 @@ from onnx import TensorProto, helper
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
-from finn.custom_op.general.im2col import compute_conv_output_dim_2D_padding
+from finn.custom_op.general.im2col import compute_conv_output_dim
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 
@@ -37,11 +37,12 @@ def execution_im2col(
 ):
     pad_amt_H = pad_amt[0] + pad_amt[2]
     pad_amt_W = pad_amt[1] + pad_amt[3]
-    ofm_dim_H = compute_conv_output_dim_2D_padding(
-        ifm_dim_H, k_H, stride, pad_amt_H, dilation
+
+    ofm_dim_H = compute_conv_output_dim(
+        ifm_dim_H, k_H, stride, pad_amt_H, dilation, non_equal=True
     )
-    ofm_dim_W = compute_conv_output_dim_2D_padding(
-        ifm_dim_W, k_W, stride, pad_amt_W, dilation
+    ofm_dim_W = compute_conv_output_dim(
+        ifm_dim_W, k_W, stride, pad_amt_W, dilation, non_equal=True
     )
 
     # set up onnx model
@@ -698,8 +699,12 @@ def test_im2col():
     pad_amt_W = pad_amt[1] + pad_amt[3]
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_amt_H)
-    ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_amt_W)
+    ofm_dim_H = compute_conv_output_dim(
+        ifm_dim_H, k_H, stride, pad_amt_H, non_equal=True
+    )
+    ofm_dim_W = compute_conv_output_dim(
+        ifm_dim_W, k_W, stride, pad_amt_W, non_equal=True
+    )
 
     x = np.asarray(
         [
@@ -1180,11 +1185,11 @@ def test_im2col_infer_shapes():
     pad_amt_W = pad_amt[1] + pad_amt[3]
     dilation = 1
 
-    ofm_dim_H = compute_conv_output_dim_2D_padding(
-        ifm_dim_H, k_H, stride, pad_amt_H, dilation
+    ofm_dim_H = compute_conv_output_dim(
+        ifm_dim_H, k_H, stride, pad_amt_H, dilation, non_equal=True
     )
-    ofm_dim_W = compute_conv_output_dim_2D_padding(
-        ifm_dim_W, k_W, stride, pad_amt_W, dilation
+    ofm_dim_W = compute_conv_output_dim(
+        ifm_dim_W, k_W, stride, pad_amt_W, dilation, non_equal=True
     )
 
     # set up onnx model
