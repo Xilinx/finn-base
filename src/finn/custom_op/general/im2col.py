@@ -10,21 +10,12 @@ from finn.custom_op.base import CustomOp
 # of shape (batches, channels, height, width)
 
 
-def compute_conv_output_dim_2D_padding(ifm_dim, k, stride, pad=0):
-    """Returns spatial output dimension size for convolution with given params.
-    Pad denotes the total amount of padding among a certain dimension"""
+def compute_conv_output_dim(ifm_dim, k, stride, pad=0, non_equal=False):
+    """Returns spatial output dimension size for convolution with given params."""
     if ifm_dim == 1:
         out_dim = 1
-    else:
+    elif non_equal is True:
         out_dim = int(((ifm_dim + pad - k) / stride) + 1)
-    return out_dim
-
-
-def compute_conv_output_dim(ifm_dim, k, stride, pad=0):
-    """Returns spatial output dimension size for convolution with given params.
-    Pad is either 0 or 1"""
-    if ifm_dim == 1:
-        out_dim = 1
     else:
         out_dim = int(((ifm_dim + 2 * pad - k) / stride) + 1)
     return out_dim
@@ -38,8 +29,10 @@ def get_im2col_indices_nchw(
     N, C, H, W = x_shape
     pad_H = padding[0] + padding[2]
     pad_W = padding[1] + padding[3]
-    out_height = compute_conv_output_dim_2D_padding(H, field_height, stride_y, pad_H)
-    out_width = compute_conv_output_dim_2D_padding(W, field_width, stride_x, pad_W)
+    out_height = compute_conv_output_dim(
+        H, field_height, stride_y, pad_H, non_equal=True
+    )
+    out_width = compute_conv_output_dim(W, field_width, stride_x, pad_W, non_equal=True)
 
     i0 = np.repeat(np.arange(field_height), field_width)
     i0 = np.tile(i0, C)
@@ -159,8 +152,12 @@ class Im2Col(CustomOp):
                 k_W == 1
             ), "Unexpected kernel shape for input image of dimensions (N, H, 1, C)"
 
-        ofm_dim_H = compute_conv_output_dim_2D_padding(ifm_dim_H, k_H, stride, pad_H)
-        ofm_dim_W = compute_conv_output_dim_2D_padding(ifm_dim_W, k_W, stride, pad_W)
+        ofm_dim_H = compute_conv_output_dim(
+            ifm_dim_H, k_H, stride, pad_H, non_equal=True
+        )
+        ofm_dim_W = compute_conv_output_dim(
+            ifm_dim_W, k_W, stride, pad_W, non_equal=True
+        )
 
         # implement tensor with correct shape
         values = np.random.randn(1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch).astype(
@@ -222,8 +219,8 @@ class Im2Col(CustomOp):
                 k_W == 1
             ), "Unexpected kernel shape for input image of dimensions (N, H, 1, C)"
 
-        out_dim_H = compute_conv_output_dim_2D_padding(H, k_H, stride, pad_H)
-        out_dim_W = compute_conv_output_dim_2D_padding(W, k_W, stride, pad_W)
+        out_dim_H = compute_conv_output_dim(H, k_H, stride, pad_H, non_equal=True)
+        out_dim_W = compute_conv_output_dim(W, k_W, stride, pad_W, non_equal=True)
 
         # internally convert input to NCHW
         x = x.transpose(0, 3, 1, 2)
