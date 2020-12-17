@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -35,9 +35,10 @@ from finn.core.rtlsim_exec import rtlsim_exec
 from finn.util.basic import gen_finn_dt_tensor
 
 
-def throughput_test_remote(model, batchsize=1000):
+def throughput_test_remote(model, batchsize=1000, timeout=None):
     """Runs the throughput test for the given model remotely on the pynq board.
     The metadata properties related to the pynq board have to be set.
+    Additionally a timeout for the SSH communication can be set.
     Returns a dictionary with results of the throughput test. Returns None
     if the test fails."""
 
@@ -83,7 +84,7 @@ def throughput_test_remote(model, batchsize=1000):
     ).format(pynq_username, pynq_ip, pynq_port, pynq_target_dir, deployment_folder)
     bash_command = ["/bin/bash", "-c", cmd]
     process_throughput_test = subprocess.Popen(bash_command, stdout=subprocess.PIPE)
-    process_throughput_test.communicate()
+    process_throughput_test.communicate(timeout=timeout)
 
     # remove any pre-existing metrics file
     try:
@@ -101,7 +102,7 @@ def throughput_test_remote(model, batchsize=1000):
     )
     bash_command = ["/bin/bash", "-c", cmd]
     process_compile = subprocess.Popen(bash_command, stdout=subprocess.PIPE)
-    process_compile.communicate()
+    process_compile.communicate(timeout=timeout)
 
     try:
         with open("{}/nw_metrics.txt".format(deployment_dir), "r") as file:

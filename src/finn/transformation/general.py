@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -26,10 +26,12 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import json
+import warnings
 from toposort import toposort_flatten
 
 import finn.util.basic as util
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 
 
 class RemoveUnusedTensors(Transformation):
@@ -255,4 +257,83 @@ class ConvertDivToMul(Transformation):
                     n.op_type = "Mul"
                     model.set_initializer(n.input[1], 1.0 / A)
         # return model_was_changed = False as single iteration is always enough
+        return (model, False)
+
+
+class ApplyConfig(Transformation):
+    """Applies node properties (attributes) from either a config dict or its JSON
+    representation given as a filename.
+    The JSON file can specify default values for particular op_types, as well
+    as values for nodes with particular names. Example dict::
+
+        {
+        # set kernel_size = 3 for all nodes with op_type=Im2Col
+        "Defaults" : {"kernel_size" : [3, ["Im2Col"]]},
+        # set kernel_size = 7 for the particular node with name Im2Col_0
+        "Im2Col_0" : {"kernel_size" : 7}
+        }
+
+    """
+
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+
+    def apply(self, model):
+
+        if isinstance(self.config, dict):
+            model_config = self.config
+        else:
+            with open(self.config, "r") as f:
+                model_config = json.load(f)
+
+        used_configurations = ["Defaults"]
+        missing_configurations = []
+
+        # Configure network
+        for node_idx, node in enumerate(model.graph.node):
+
+            try:
+                node_config = model_config[node.name]
+            except KeyError:
+                missing_configurations += [node.name]
+                node_config = {}
+
+            from finn.custom_op.registry import getCustomOp
+
+            try:
+                inst = getCustomOp(node)
+            except Exception:
+                continue
+            used_configurations += [node.name]
+
+            # set specified defaults
+            default_configs = {
+                k: v
+                for k, v in model_config["Defaults"].items()
+                if k not in model_config
+            }
+            default_configs = {
+                k: v[0]
+                for k, v in default_configs.items()
+                if v[1] == "all" or node.op_type in v[1]
+            }
+            for attr, value in default_configs.items():
+                inst.set_nodeattr(attr, value)
+
+            # set node attributes from specified configuration
+            for attr, value in node_config.items():
+                inst.set_nodeattr(attr, value)
+
+        # Configuration verification
+        if len(missing_configurations) > 0:
+            warnings.warn(
+                "\nNo HW configuration for nodes: " + ", ".join(missing_configurations)
+            )
+
+        unused_configs = [x for x in model_config if x not in used_configurations]
+        if len(unused_configs) > 0:
+            warnings.warn("\nUnused HW configurations: " + ", ".join(unused_configs))
+
+        # one iteration is enough
         return (model, False)

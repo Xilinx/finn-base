@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -37,7 +37,7 @@ from finn.transformation.infer_shapes import InferShapes
 
 def test_infer_shapes():
     # load the onnx model
-    raw_m = get_data("finn.base-data", "onnx/mnist-conv/model.onnx")
+    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     graph = model.graph
 
@@ -60,7 +60,10 @@ def test_infer_shapes():
 
     # add multi-thresholding node and change Relu node
     mt_node = helper.make_node(
-        "MultiThreshold", ["mt_v0", "mt_thresh0"], [Relu_node.output[0]], domain="finn"
+        "MultiThreshold",
+        ["mt_v0", "mt_thresh0"],
+        [Relu_node.output[0]],
+        domain="finn.custom_op.general",
     )
     Relu_node.output[0] = "mt_v0"
 

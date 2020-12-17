@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -30,17 +30,18 @@ import onnx.shape_inference as si
 
 import finn.custom_op.registry as registry
 from finn.core.modelwrapper import ModelWrapper
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
+from finn.util.basic import is_finn_op
 
 
 def _make_shape_compatible_op(node, model):
     """Return a shape-compatible non-FINN op for a given FINN op. Used for
     shape inference with custom ops."""
-    assert node.domain == "finn", 'Node domain is not set to "finn".'
+    assert is_finn_op(node.domain), "Node domain is not set to finn.*"
     op_type = node.op_type
     try:
         # lookup op_type in registry of CustomOps
-        inst = registry.custom_op[op_type](node)
+        inst = registry.getCustomOp(node)
         return inst.make_shape_compatible_op(model)
     except KeyError:
         # exception if op_type is not supported
@@ -55,7 +56,7 @@ def _hide_finn_ops(model):
     node_ind = 0
     for node in model.graph.node:
         node_ind += 1
-        if node.domain == "finn":
+        if is_finn_op(node.domain):
             new_node = _make_shape_compatible_op(node, model)
             hidden_ops[str(new_node)] = node
             model.graph.node.insert(node_ind, new_node)

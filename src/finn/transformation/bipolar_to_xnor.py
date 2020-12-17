@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -33,7 +33,7 @@ from onnx import helper as oh
 
 from finn.core.datatype import DataType
 from finn.custom_op.registry import getCustomOp
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
@@ -103,7 +103,7 @@ class ConvertBipolarMatMulToXnorPopcount(Transformation):
                         model.set_tensor_datatype(mm_input, DataType.BINARY)
                     # change node type and domain
                     n.op_type = "XnorPopcountMatMul"
-                    n.domain = "finn"
+                    n.domain = "finn.custom_op.general"
                     # convert weights into binary (-1,+1) -> (0,1)
                     Wbin = (model.get_initializer(mm_weight) + 1) / 2
                     # extract vector length (common matrix dim)

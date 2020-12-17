@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -38,7 +38,11 @@ from finn.core.modelwrapper import ModelWrapper
 from finn.core.remote_exec import remote_exec
 from finn.core.rtlsim_exec import rtlsim_exec
 from finn.custom_op.registry import getCustomOp
-from finn.util.basic import get_sanitize_quant_tensors, sanitize_quant_values
+from finn.util.basic import (
+    get_sanitize_quant_tensors,
+    is_finn_op,
+    sanitize_quant_values,
+)
 
 
 def execute_node(node, context, graph, return_full_exec_context=False):
@@ -74,12 +78,9 @@ def execute_node(node, context, graph, return_full_exec_context=False):
                 if tname != model_oname:
                     context[node.name + "_" + tname] = ret[tname]
     else:
-        if node.domain == "finn":
-
+        if is_finn_op(node.domain):
             ex_cu_node.execute_custom_node(node, context, graph)
-
         else:
-
             # onnxruntime unfortunately does not implement run_node as defined by ONNX,
             # it can only execute entire models -- so we create a model which solely
             # consists of our current node.

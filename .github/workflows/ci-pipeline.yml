@@ -1,0 +1,39 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+  push:
+    branches: [ main, dev ]
+
+
+jobs:
+
+  test:
+    name: Test PR or Push to DEV
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build Docker
+        run: |
+          docker build -f docker/Dockerfile -t finn-base-gha \
+                       --build-arg GROUP=$(id -gn) \
+                       --build-arg GID=$(id -g) \
+                       --build-arg USER=$(id -un) \
+                       --build-arg UID=$(id -u) \
+                       .
+
+      - name: Run Tests
+        run: |
+          docker run --rm \
+                     -v $(pwd):/workspace/finn-base \
+                     finn-base-gha run_tests.sh
+
+      - name: Build Docs
+        run: |
+          docker run --rm \
+                     -v $(pwd):/workspace/finn-base \
+                     finn-base-gha build_docs.sh

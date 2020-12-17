@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -30,9 +30,11 @@ import numpy as np
 from onnx import TensorProto, helper
 
 import finn.core.execute_custom_node as ex_cu_node
+from finn.custom_op.registry import getCustomOp
 
 
 def test_execute_custom_node_multithreshold():
+
     inputs = np.ndarray(
         shape=(6, 3, 2, 2),
         buffer=np.array(
@@ -147,7 +149,7 @@ def test_execute_custom_node_multithreshold():
     out = helper.make_tensor_value_info("out", TensorProto.FLOAT, [6, 3, 2, 2])
 
     node_def = helper.make_node(
-        "MultiThreshold", ["v", "thresholds"], ["out"], domain="finn"
+        "MultiThreshold", ["v", "thresholds"], ["out"], domain="finn.custom_op.general"
     )
 
     graph_def = helper.make_graph([node_def], "test_model", [v, thresholds], [out])
@@ -245,7 +247,7 @@ def test_execute_custom_node_multithreshold():
         "MultiThreshold",
         ["v", "thresholds"],
         ["out"],
-        domain="finn",
+        domain="finn.custom_op.general",
         out_scale=2.0,
         out_bias=-1.0,
     )
@@ -260,7 +262,7 @@ def test_execute_custom_node_multithreshold():
         "MultiThreshold",
         ["v", "thresholds"],
         ["out"],
-        domain="finn",
+        domain="finn.custom_op.general",
         data_layout="NHWC",
     )
 
@@ -275,3 +277,20 @@ def test_execute_custom_node_multithreshold():
     )
     ex_cu_node.execute_custom_node(node_def, execution_context, graph_def)
     assert (execution_context["out"] == outputs_nhwc).all()
+    # check the set of allowed values
+    op_inst = getCustomOp(node_def)
+    assert op_inst.get_nodeattr_allowed_values("data_layout") == {"NCHW", "NHWC"}
+    # exercise the allowed value checks
+    # try to set attribute to non-allowed value, should raise an exception
+    try:
+        op_inst.set_nodeattr("data_layout", "xx")
+        assert False
+    except Exception:
+        assert True
+    # set a non-allowed value at the ONNX protobuf level
+    node_def.attribute[0].s = "xx".encode("utf-8")
+    try:
+        op_inst.get_nodeattr("data_layout")
+        assert False
+    except Exception:
+        assert True

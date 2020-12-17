@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -44,7 +44,7 @@ from finn.transformation.merge_onnx_models import MergeONNXModels
 
 def test_merge_onnx_models():
     # load pre model
-    raw_m = get_data("finn.base-data", "onnx/mnist-conv/model.onnx")
+    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model1 = ModelWrapper(raw_m)
     # the input for model1 comes from a uint8 vector so we set the finn datatype
     # of the input tensor to DataType.UINT8 to verify that the datatypes are correctly
@@ -91,7 +91,7 @@ def test_merge_onnx_models():
 
     # simulate the models before the merging and pass the output of model1 to model2
     # load one of the test vectors
-    raw_i = get_data("finn.base-data", "onnx/mnist-conv/test_data_set_0/input_0.pb")
+    raw_i = get_data("finn.data", "onnx/mnist-conv/test_data_set_0/input_0.pb")
     inp_values = onnx.load_tensor_from_string(raw_i)
     inp_values = np_helper.to_array(inp_values)
     idict = {model1.graph.input[0].name: inp_values}

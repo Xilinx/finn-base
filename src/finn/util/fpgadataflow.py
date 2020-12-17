@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -29,7 +29,13 @@
 import os
 import subprocess
 
-from finn.util.basic import get_by_name, get_rtlsim_trace_depth, make_build_dir
+from finn.util.basic import (
+    get_by_name,
+    get_rtlsim_trace_depth,
+    is_finn_op,
+    make_build_dir,
+    which,
+)
 
 try:
     from pyverilator import PyVerilator
@@ -58,6 +64,7 @@ class IPGenBuilder:
         """Builds the bash script with given parameters and saves it in given folder.
         To guarantee the generation in the correct folder the bash script contains a
         cd command."""
+        assert which("vivado_hls") is not None, "vivado_hls not found in PATH"
         self.code_gen_dir = code_gen_dir
         self.ipgen_script = str(self.code_gen_dir) + "/ipgen.sh"
         working_dir = os.environ["PWD"]
@@ -72,8 +79,13 @@ class IPGenBuilder:
         process_compile.communicate()
 
 
-def pyverilate_stitched_ip(model):
-    "Given a model with stitched IP, return a PyVerilator sim object."
+def pyverilate_stitched_ip(model, read_internal_signals=True):
+    """Given a model with stitched IP, return a PyVerilator sim object.
+    If read_internal_signals is True, it will be possible to examine the
+    internal (not only port) signals of the Verilog module, but this may
+    slow down compilation and emulation.
+    Trace depth is also controllable, see get_rtlsim_trace_depth()
+    """
     if PyVerilator is None:
         raise ImportError("Installation of PyVerilator is required.")
 
@@ -87,25 +99,45 @@ def pyverilate_stitched_ip(model):
     def file_to_basename(x):
         return os.path.basename(os.path.realpath(x))
 
-    all_verilog_dirs = list(map(file_to_dir, all_verilog_srcs))
-    all_verilog_files = list(
-        set(
-            filter(
-                lambda x: x.endswith(".v"),
-                list(map(file_to_basename, all_verilog_srcs)),
-            )
-        )
-    )
-    top_module_name = model.get_metadata_prop("wrapper_filename")
-    top_module_name = file_to_basename(top_module_name).strip(".v")
+    top_module_file_name = file_to_basename(model.get_metadata_prop("wrapper_filename"))
+    top_module_name = top_module_file_name.strip(".v")
     build_dir = make_build_dir("pyverilator_ipstitched_")
+
+    # dump all Verilog code to a single file
+    # this is because large models with many files require
+    # a verilator command line too long for bash on most systems
+    # NOTE: there are duplicates in this list, and some files
+    # are identical but in multiple directories (regslice_core.v)
+
+    # remove duplicates from list by doing list -> set -> list
+    all_verilog_files = list(set(filter(lambda x: x.endswith(".v"), all_verilog_srcs)))
+
+    # remove all but one instances of regslice_core.v
+    filtered_verilog_files = []
+    remove_entry = False
+    for vfile in all_verilog_files:
+        if "regslice_core" in vfile:
+            if not remove_entry:
+                filtered_verilog_files.append(vfile)
+            remove_entry = True
+        else:
+            filtered_verilog_files.append(vfile)
+
+    # concatenate all verilog code into a single file
+    with open(vivado_stitch_proj_dir + "/" + top_module_file_name, "w") as wf:
+        for vfile in filtered_verilog_files:
+            with open(vfile) as rf:
+                wf.write("//Added from " + vfile + "\n\n")
+                wf.write(rf.read())
+
     sim = PyVerilator.build(
-        all_verilog_files,
-        verilog_path=all_verilog_dirs,
+        top_module_file_name,
+        verilog_path=[vivado_stitch_proj_dir],
         build_dir=build_dir,
         trace_depth=get_rtlsim_trace_depth(),
         top_module_name=top_module_name,
         auto_eval=False,
+        read_internal_signals=read_internal_signals,
     )
     return sim
 
@@ -121,7 +153,7 @@ def is_fpgadataflow_node(node):
     """Returns True if given node is fpgadataflow node. Otherwise False."""
     is_node = False
     if node is not None:
-        if node.domain == "finn":
+        if is_finn_op(node.domain):
             n_backend = get_by_name(node.attribute, "backend")
             if n_backend is not None:
                 backend_value = n_backend.s.decode("UTF-8")
@@ -138,17 +170,19 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file=""):
     after a set number of cycles. Can handle multiple i/o streams. See function
     implementation for details on how the top-level signals should be named.
 
-    sim: the PyVerilator object for simulation
-    io_dict: a dict of dicts in the following format:
-            {"inputs" : {"in0" : <input_data>, "in1" : <input_data>},
-             "outputs" : {"out0" : [], "out1" : []} }
-            <input_data> is a list of Python arbitrary-precision ints indicating
-            what data to push into the simulation, and the output lists are
-            similarly filled when the simulation is complete
-    num_out_values: number of total values to be read from the simulation to
-                    finish the simulation and return.
+    Arguments:
 
-    returns: number of clock cycles elapsed for completion
+    * sim: the PyVerilator object for simulation
+    * io_dict: a dict of dicts in the following format:
+      {"inputs" : {"in0" : <input_data>, "in1" : <input_data>},
+      "outputs" : {"out0" : [], "out1" : []} }
+      <input_data> is a list of Python arbitrary-precision ints indicating
+      what data to push into the simulation, and the output lists are
+      similarly filled when the simulation is complete
+    * num_out_values: number of total values to be read from the simulation to
+      finish the simulation and return.
+
+    Returns: number of clock cycles elapsed for completion
 
     """
 

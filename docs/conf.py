@@ -36,6 +36,9 @@ except ImportError:
 
 output_dir = os.path.join(__location__, "api")
 module_dir = os.path.join(__location__, "../src/finn")
+template_dir = os.path.join(__location__, "_templates/apidoc")
+exclude_dir = os.path.join(__location__, "../src/finn/data")
+
 try:
     shutil.rmtree(output_dir)
 except FileNotFoundError:
@@ -45,8 +48,11 @@ try:
     import sphinx
     from pkg_resources import parse_version
 
-    cmd_line_template = "sphinx-apidoc -f -o {outputdir} {moduledir}"
-    cmd_line = cmd_line_template.format(outputdir=output_dir, moduledir=module_dir)
+    cmd_line_template = "sphinx-apidoc -f -e -d 2 --implicit-namespaces -t {templatedir} -o {outputdir} {moduledir} {excludedir}"
+    cmd_line = cmd_line_template.format(templatedir=template_dir,
+                                        outputdir=output_dir,
+                                        moduledir=module_dir,
+                                        excludedir=exclude_dir)
 
     args = cmd_line.split(" ")
     if parse_version(sphinx.__version__) >= parse_version('1.7'):
@@ -64,7 +70,7 @@ except Exception as e:
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo',
-              'sphinx.ext.autosummary', 'sphinx.ext.viewcode', 'sphinx.ext.coverage',
+              'sphinx.ext.autosummary', 'sphinx.ext.coverage', #'sphinx.ext.viewcode',
               'sphinx.ext.doctest', 'sphinx.ext.ifconfig', 'sphinx.ext.mathjax',
               'sphinx.ext.napoleon']
 
@@ -82,7 +88,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'finn-base'
-copyright = u'2020, Yaman Umuroglu'
+copyright = u'2020 Xilinx, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -122,7 +128,7 @@ exclude_patterns = ['_build']
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+# pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -130,20 +136,23 @@ pygments_style = 'sphinx'
 # If true, keep warnings as "system message" paragraphs in the built documents.
 # keep_warnings = False
 
+# Both the class’ and the __init__ method’s docstring are concatenated and inserted.
+autoclass_content = 'both'
+
 
 # -- Options for HTML output ---------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {
-    'sidebar_width': '300px',
-    'page_width': '1200px'
-}
+# html_theme_options = {
+#     'sidebar_width': '300px',
+#     'page_width': '1200px'
+# }
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -151,7 +160,7 @@ html_theme_options = {
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
 try:
-    from finn.finn_base import __version__ as version
+    from finn import __version__ as version
 except ImportError:
     pass
 else:
@@ -216,7 +225,7 @@ html_static_path = ['_static']
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'finn_base-doc'
+htmlhelp_basename = 'finn-base-doc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -234,10 +243,10 @@ latex_elements = {
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
-latex_documents = [
-  ('index', 'user_guide.tex', u'finn-base Documentation',
-   u'Yaman Umuroglu', 'manual'),
-]
+# latex_documents = [
+#   ('index', 'user_guide.tex', u'finn-base Documentation',
+#    u'Yaman Umuroglu', 'manual'),
+# ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
@@ -260,13 +269,13 @@ latex_documents = [
 # latex_domain_indices = True
 
 # -- External mapping ------------------------------------------------------------
-python_version = '.'.join(map(str, sys.version_info[0:2]))
-intersphinx_mapping = {
-    'sphinx': ('http://www.sphinx-doc.org/en/stable', None),
-    'python': ('https://docs.python.org/' + python_version, None),
-    'matplotlib': ('https://matplotlib.org', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
-    'sklearn': ('http://scikit-learn.org/stable', None),
-    'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
-}
+# python_version = '.'.join(map(str, sys.version_info[0:2]))
+# intersphinx_mapping = {
+#     'sphinx': ('http://www.sphinx-doc.org/en/stable', None),
+#     'python': ('https://docs.python.org/' + python_version, None),
+#     'matplotlib': ('https://matplotlib.org', None),
+#     'numpy': ('https://docs.scipy.org/doc/numpy', None),
+#     'sklearn': ('http://scikit-learn.org/stable', None),
+#     'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
+#     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+# }

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -26,18 +26,26 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import json
 import numpy as np
 import onnx
+import os
 from pkgutil import get_data
 
 import finn.core.onnx_exec as oxe
 from finn.core.modelwrapper import ModelWrapper
-from finn.transformation.general import GiveUniqueNodeNames, GiveUniqueParameterTensors
+from finn.custom_op.registry import getCustomOp
+from finn.transformation.general import (
+    ApplyConfig,
+    GiveUniqueNodeNames,
+    GiveUniqueParameterTensors,
+)
 from finn.transformation.infer_shapes import InferShapes
+from finn.transformation.lower_convs_to_matmul import LowerConvsToMatMul
 
 
 def test_give_unique_node_names():
-    raw_m = get_data("finn.base-data", "onnx/mnist-conv/model.onnx")
+    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     model = model.transform(GiveUniqueNodeNames())
     assert model.graph.node[0].name == "Reshape_0"
@@ -119,3 +127,23 @@ def test_give_unique_parameter_tensors():
             param_cnt += 1
 
     assert len(param_set) == param_cnt, " There are still parameters reused"
+
+
+def test_apply_config():
+
+    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
+    model = ModelWrapper(raw_m)
+    model = model.transform(GiveUniqueNodeNames())
+    model = model.transform(LowerConvsToMatMul())
+    model = model.transform(GiveUniqueNodeNames())
+    # set up a config in a dict, then dump it to JSON
+    config = {}
+    config["Defaults"] = {"kernel_size": [3, ["Im2Col"]]}
+    config["Im2Col_0"] = {"kernel_size": 7}
+    with open("config.json", "w") as f:
+        json.dump(config, f, indent=4)
+    model = model.transform(ApplyConfig("config.json"))
+    # check model
+    assert getCustomOp(model.graph.node[2]).get_nodeattr("kernel_size") == 7
+    assert getCustomOp(model.graph.node[9]).get_nodeattr("kernel_size") == 3
+    os.remove("config.json")

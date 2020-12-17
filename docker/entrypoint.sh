@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -27,7 +27,21 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-export SHELL=/bin/bash
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'  # No Color
 
-pip install --user -e /workspace/finn-base
+# Green echo
+gecho () {
+  echo -e "${GREEN}$1${NC}"
+}
+
+# Red echo
+recho () {
+  echo -e "${RED}$1${NC}"
+}
+
+gecho "Installing finn-base in develop mode"
+pip install --user --no-dependencies -e /workspace/finn-base
+
 exec $@

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -311,14 +311,26 @@ def rtlsim_output_to_npy(
 
 
 def finnpy_to_packed_bytearray(
-    ndarray, dtype, reverse_inner=False, reverse_endian=False
+    ndarray, dtype, reverse_inner=False, reverse_endian=False, fast_mode=False
 ):
     """Given a numpy ndarray with FINN DataType dtype, pack the innermost
     dimension and return the packed representation as an ndarray of uint8.
     The packed innermost dimension will be padded to the nearest multiple
     of 8 bits. The returned ndarray has the same number of dimensions as the
     input.
+
+    If fast_mode is enabled, will attempt to use shortcuts (casting) to save
+    on runtime for certain cases.
+    This mode is currently not well-tested, use at your own risk.
     """
+
+    # handle no-packing cases (if fast_mode) via casting to save on compute
+    if issubclass(type(ndarray), np.ndarray) and fast_mode:
+        inp_is_byte = ndarray.dtype in [np.uint8, np.int8]
+        out_is_byte = dtype.bitwidth() == 8
+        double_reverse = reverse_inner and reverse_endian
+        if inp_is_byte and out_is_byte and double_reverse:
+            return ndarray.view(np.uint8)
 
     if (not issubclass(type(ndarray), np.ndarray)) or ndarray.dtype != np.float32:
         # try to convert to a float numpy array (container dtype is float)
@@ -351,12 +363,19 @@ def packed_bytearray_to_finnpy(
     output_shape=None,
     reverse_inner=False,
     reverse_endian=False,
+    fast_mode=False,
 ):
     """Given a packed numpy uint8 ndarray, unpack it into a FINN array of
     given DataType.
 
     output_shape can be specified to remove padding from the
-    packed dimension, or set to None to be inferred from the input."""
+    packed dimension, or set to None to be inferred from the input.
+
+    If fast_mode is enabled, will attempt to use shortcuts (casting) to save
+    on runtime for certain cases.
+    This mode is currently not well-tested, use at your own risk.
+
+    """
 
     if (
         not issubclass(type(packed_bytearray), np.ndarray)
@@ -375,14 +394,14 @@ def packed_bytearray_to_finnpy(
         target_bits."""
         n_target_elems = packed_bits // target_bits
         output_shape = packed_bytearray.shape[:-1] + (n_target_elems,)
-    # if reverse_endian and target_bits > 8:
-    #     # revse the endianness of each element
-    #     orig_shape = packed_bytearray.shape
-    #     assert target_bits % 8 == 0, "target_bits are not a multiple of 8."
-    #     target_bytes = target_bits // 8
-    #     new_shape = orig_shape[:-1] + (-1, target_bytes)
-    #     packed_bytearray = np.flip(packed_bytearray.reshape(new_shape), axis=-1)
-    #     packed_bytearray = packed_bytearray.reshape(orig_shape)
+    # handle no-packing cases (if fast_mode) via casting to save on compute
+    out_is_byte = target_bits in [8, 16]
+    double_reverse = reverse_inner and reverse_endian
+    if out_is_byte and double_reverse and fast_mode:
+        no_unpad = np.prod(packed_bytearray.shape) == np.prod(output_shape)
+        if no_unpad:
+            as_np_type = packed_bytearray.view(dtype.to_numpy_dt())
+            return as_np_type.reshape(output_shape).astype(np.float32)
     if reverse_endian:
         packed_bytearray = np.flip(packed_bytearray, axis=-1)
     # convert innermost dim of byte array to hex strings

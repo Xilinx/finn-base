@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -39,7 +39,7 @@ from finn.transformation.infer_shapes import InferShapes
 
 def test_renaming():
     # load the onnx model
-    raw_m = get_data("finn.base-data", "onnx/mnist-conv/model.onnx")
+    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
     model = model.transform(InferShapes())
     model = model.transform(GiveUniqueNodeNames())
@@ -63,8 +63,8 @@ def test_renaming():
     assert model.graph.node[6].name == "Add_1"
     assert model.graph.node[6].input[1] == "Add_1_param0"
     # run renamed model to make sure we did not mess up the topology
-    raw_i = get_data("finn.base-data", "onnx/mnist-conv/test_data_set_0/input_0.pb")
-    raw_o = get_data("finn.base-data", "onnx/mnist-conv/test_data_set_0/output_0.pb")
+    raw_i = get_data("finn.data", "onnx/mnist-conv/test_data_set_0/input_0.pb")
+    raw_o = get_data("finn.data", "onnx/mnist-conv/test_data_set_0/output_0.pb")
     input_tensor = onnx.load_tensor_from_string(raw_i)
     output_tensor = onnx.load_tensor_from_string(raw_o)
     input_dict = {"global_in": np_helper.to_array(input_tensor)}

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -30,15 +30,15 @@ import warnings
 
 import finn.core.data_layout as DataLayout
 import finn.custom_op.registry as registry
-from finn.transformation import Transformation
-from finn.util.basic import get_by_name
+from finn.transformation.base import Transformation
+from finn.util.basic import get_by_name, is_finn_op
 
 
 def _dims_to_layout(model, node, ndims):
     if ndims == 2:
         return DataLayout.NC
     else:
-        if node.domain == "finn":
+        if is_finn_op(node.domain):
             if node.op_type == "MultiThreshold" or node.op_type == "QuantAvgPool2d":
                 mt_inst = registry.getCustomOp(node)
                 layout = mt_inst.get_nodeattr("data_layout")
@@ -63,7 +63,7 @@ def _infer_node_data_layout(model, node):
     """Infer output data layout annotation(s) for a particular node.
     Returns True if any changes were made."""
     old_layouts = list(map(lambda x: model.get_tensor_layout(x), node.output))
-    if node.domain == "finn":
+    if is_finn_op(node.domain):
         # try to guess based on number of output dims
         for o in node.output:
             ndims = len(model.get_tensor_shape(o))

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of FINN nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -28,7 +28,8 @@
 
 import finn.custom_op.registry as registry
 from finn.core.datatype import DataType
-from finn.transformation import Transformation
+from finn.transformation.base import Transformation
+from finn.util.basic import is_finn_op
 
 
 def _infer_node_datatype(model, node):
@@ -38,11 +39,11 @@ def _infer_node_datatype(model, node):
     idtypes = list(map(lambda x: model.get_tensor_datatype(x), node.input))
     odtypes = list(map(lambda x: model.get_tensor_datatype(x), node.output))
     op_type = node.op_type
-    if node.domain == "finn":
+    if is_finn_op(node.domain):
         # handle DataType inference for CustomOp
         try:
             # lookup op_type in registry of CustomOps
-            inst = registry.custom_op[op_type](node)
+            inst = registry.getCustomOp(node)
             inst.infer_node_datatype(model)
         except KeyError:
             # exception if op_type is not supported
@@ -51,7 +52,7 @@ def _infer_node_datatype(model, node):
         if node.op_type == "Sign":
             # always produces bipolar outputs
             model.set_tensor_datatype(node.output[0], DataType.BIPOLAR)
-        elif node.op_type == "MatMul":
+        elif node.op_type in ["MatMul", "Conv"]:
             if len(list(filter(lambda x: x == DataType.FLOAT32, idtypes))) != 0:
                 # node has at least one float input, output is also float
                 model.set_tensor_datatype(node.output[0], DataType.FLOAT32)

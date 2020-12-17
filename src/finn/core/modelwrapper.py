@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -31,6 +31,7 @@ import onnx
 import onnx.helper as oh
 import onnx.numpy_helper as np_helper
 import os
+import warnings
 from onnx import TensorProto
 
 import finn.util.basic as util
@@ -53,7 +54,7 @@ class ModelWrapper:
         onnx_model_proto can be either a ModelProto instance, or a string
         with the path to a stored .onnx file on disk, or serialized bytes.
 
-        - make_deepcopy : controls whether a deep copy of the ModelProto
+        make_deepcopy: controls whether a deep copy of the ModelProto
         is made internally.
         """
         if isinstance(onnx_model_proto, str):
@@ -66,6 +67,27 @@ class ModelWrapper:
                 self._model_proto = copy.deepcopy(onnx_model_proto)
             else:
                 self._model_proto = onnx_model_proto
+        self.temporary_fix_oldstyle_domain()
+
+    def temporary_fix_oldstyle_domain(self):
+        found_oldstyle = False
+        for n in self.graph.node:
+            if n.domain == "finn":
+                n_backend = util.get_by_name(n.attribute, "backend")
+                if n_backend is not None:
+                    backend_value = n_backend.s.decode("UTF-8")
+                    if backend_value == "fpgadataflow":
+                        n.domain = "finn.custom_op.fpgadataflow"
+                    else:
+                        warnings.warn("Can't fix domain for node " + str(n))
+                else:
+                    n.domain = "finn.custom_op.general"
+                found_oldstyle = True
+        if found_oldstyle:
+            warnings.warn(
+                """Some old-style domain attributes were automatically converted to new-style,
+                i.e. domain=finn to domain=finn.custom_op.<general|fpgadataflow|...>"""
+            )
 
     @property
     def graph(self):
@@ -469,12 +491,12 @@ class ModelWrapper:
         return list(filter(lambda x: x.op_type == op_type, self.graph.node))
 
     def get_finn_nodes(self):
-        """Returns a list of nodes where domain == 'finn'."""
-        return list(filter(lambda x: x.domain == "finn", self.graph.node))
+        """Returns a list of nodes where domain == 'finn.*'."""
+        return list(filter(lambda x: util.is_finn_op(x.domain), self.graph.node))
 
     def get_non_finn_nodes(self):
-        """Returns a list of nodes where domain != 'finn'."""
-        return list(filter(lambda x: x.domain != "finn", self.graph.node))
+        """Returns a list of nodes where domain != 'finn.*'."""
+        return list(filter(lambda x: not util.is_finn_op(x.domain), self.graph.node))
 
     def get_node_index(self, node):
         """Returns current index of given node."""

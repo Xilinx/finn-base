@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2020 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
-# * Neither the name of finn-base nor the names of its
+# * Neither the name of Xilinx nor the names of its
 #   contributors may be used to endorse or promote products derived from
 #   this software without specific prior written permission.
 #
@@ -31,6 +31,7 @@ import os
 import random
 import string
 import subprocess
+import sys
 import tempfile
 import warnings
 
@@ -64,6 +65,11 @@ alveo_default_platform["U50"] = "xilinx_u50_gen3x16_xdma_201920_3"
 alveo_default_platform["U200"] = "xilinx_u200_xdma_201830_2"
 alveo_default_platform["U250"] = "xilinx_u250_xdma_201830_2"
 alveo_default_platform["U280"] = "xilinx_u280_xdma_201920_3"
+
+
+def is_finn_op(op_type):
+    "Return whether given op_type string is a FINN custom op"
+    return op_type.startswith("finn")
 
 
 def get_rtlsim_trace_depth():
@@ -140,15 +146,17 @@ def get_sanitize_quant_tensors():
 
 
 def make_build_dir(prefix=""):
-    """Creates a temporary folder with given prefix to be used as a build dir.
+    """Creates a folder with given prefix to be used as a build dir.
     Use this function instead of tempfile.mkdtemp to ensure any generated files
     will survive on the host after the FINN Docker container exits."""
     try:
-        inst_prefix = os.environ["FINN_INST_NAME"] + "/"
-        return tempfile.mkdtemp(prefix=inst_prefix + prefix)
+        tmpdir = tempfile.mkdtemp(prefix=prefix)
+        newdir = tmpdir.replace("/tmp", os.environ["FINN_BUILD_DIR"])
+        os.makedirs(newdir)
+        return newdir
     except KeyError:
         raise Exception(
-            """Environment variable FINN_INST_NAME must be set
+            """Environment variable FINN_BUILD_DIR must be set
         correctly. Please ensure you have launched the Docker contaier correctly.
         """
         )
@@ -304,6 +312,8 @@ def gen_finn_dt_tensor(finn_dt, tensor_shape):
         tensor_values = np.random.randint(
             finn_dt.min(), high=finn_dt.max() + 1, size=tensor_shape
         )
+    elif finn_dt == DataType.FLOAT32:
+        tensor_values = np.random.randn(*tensor_shape)
     else:
         raise ValueError(
             "Datatype {} is not supported, no tensor could be generated".format(finn_dt)
@@ -439,3 +449,43 @@ class CppBuilder:
         bash_command = ["bash", self.compile_script]
         process_compile = subprocess.Popen(bash_command, stdout=subprocess.PIPE)
         process_compile.communicate()
+
+
+def launch_process_helper(args, proc_env=None, cwd=None):
+    """Helper function to launch a process in a way that facilitates logging
+    stdout/stderr with Python loggers.
+    Returns (cmd_out, cmd_err)."""
+    if proc_env is None:
+        proc_env = os.environ.copy()
+    with subprocess.Popen(
+        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=proc_env, cwd=cwd
+    ) as proc:
+        (cmd_out, cmd_err) = proc.communicate()
+    if cmd_out is not None:
+        cmd_out = cmd_out.decode("utf-8")
+        sys.stdout.write(cmd_out)
+    if cmd_err is not None:
+        cmd_err = cmd_err.decode("utf-8")
+        sys.stderr.write(cmd_err)
+    return (cmd_out, cmd_err)
+
+
+def which(program):
+    "Python equivalent of the shell cmd 'which'."
+
+    # source:
+    # https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
