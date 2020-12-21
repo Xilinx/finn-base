@@ -146,12 +146,8 @@ class Im2Col(CustomOp):
         for i in range(0, len(ishape)):
             ishape[i] = int(ishape[i])
 
-        if len(k) == 1:  # Assume square kernel
-            k_H = k[0]
-            k_W = k[0]
-        else:
-            k_H = k[0]
-            k_W = k[1]
+        k_H = k[0]
+        k_W = k[1]
 
         # extract all necessary information and determine output dimensions
         ifm_ch = ishape[-1]
