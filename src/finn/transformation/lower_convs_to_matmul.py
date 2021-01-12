@@ -244,5 +244,6 @@ class LowerConvsToMatMul(Transformation):
                     graph.node.insert(node_ind + 2, out_trans_node)
                 # remove old nodes
                 graph.node.remove(n)
+
         model = model.transform(InferShapes())
         return (model, graph_modified)
