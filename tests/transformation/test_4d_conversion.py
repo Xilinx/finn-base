@@ -358,15 +358,6 @@ def test_4d_conversion_invalid_nodes():
 
     model = model.transform(Change3DTo4DTensors())
 
-    for k, v in input_dict.items():
-        old_in_name = k
-        old_shape = np.shape(v)
-        new_in_name = model.graph.input[0].name
-        new_shape = old_shape + (1,)
-    new_in_val = np.reshape(v, new_shape)
-    del input_dict[old_in_name]
-    input_dict[new_in_name] = new_in_val
-
     output_node_name = model.graph.output[0].name
     output_dict = oxe.execute_onnx(model, input_dict, return_full_exec_context=True)
     expected_modified = output_dict[output_node_name]

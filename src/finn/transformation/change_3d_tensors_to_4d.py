@@ -26,6 +26,8 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import warnings
+
 from finn.transformation.base import Transformation
 from finn.transformation.general import (
     GiveReadableTensorNames,
@@ -57,14 +59,8 @@ def find_invalid_nodes(model):
             continue
         else:
             invalid_nodes.append(node_op_type)
-    if not invalid_nodes:  # if there are no invalid nodes
-        return True
-    else:
-        raise Exception(
-            "Nodes: {} are not supported in the 3D to 4D transformation".format(
-                invalid_nodes
-            )
-        )
+
+    return invalid_nodes
 
 
 class Change3DTo4DTensors(Transformation):
@@ -77,7 +73,11 @@ class Change3DTo4DTensors(Transformation):
     def apply(self, model):
         graph_modified = False
 
-        assert find_invalid_nodes(model)
+        invalid_nodes = find_invalid_nodes(model)
+        if invalid_nodes:
+            warnings.warn("Found invalid nodes in the graph: {}".format(invalid_nodes))
+            return (model, graph_modified)
+
         # Infer the shapes of each tensor, remove unused tensors
         # and give each tensor a readable name
         model = model.transform(InferShapes())
