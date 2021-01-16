@@ -71,12 +71,8 @@ class LowerConvsToMatMul(Transformation):
                 odt = model.get_tensor_datatype(cnv_output)
                 # extract conv parameters
                 k = get_by_name(n.attribute, "kernel_shape").ints
-                if len(k) == 1:  # assume square kernel
-                    k_H = k[0]
-                    k_W = k[0]
-                else:
-                    k_H = k[0]
-                    k_W = k[1]
+                k_H = k[0]
+                k_W = k[1]
                 stride = get_by_name(n.attribute, "strides").ints[-1]
                 group = get_by_name(n.attribute, "group").i
                 weight_name = n.input[1]

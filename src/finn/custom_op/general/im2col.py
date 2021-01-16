@@ -129,6 +129,8 @@ class Im2Col(CustomOp):
 
     def make_shape_compatible_op(self, model):
         k = self.get_nodeattr("kernel_size")  # Assumption: Height x Width
+        k_H = k[0]
+        k_W = k[1]
         stride = self.get_nodeattr("stride")
         ishape = self.get_nodeattr("input_shape")
         dilation = self.get_nodeattr("dilations")
@@ -145,13 +147,6 @@ class Im2Col(CustomOp):
         ishape = ishape.split(",")
         for i in range(0, len(ishape)):
             ishape[i] = int(ishape[i])
-
-        if len(k) == 1:  # Assume square kernel
-            k_H = k[0]
-            k_W = k[0]
-        else:
-            k_H = k[0]
-            k_W = k[1]
 
         # extract all necessary information and determine output dimensions
         ifm_ch = ishape[-1]
@@ -200,13 +195,8 @@ class Im2Col(CustomOp):
     def execute_node(self, context, graph):
         node = self.onnx_node
         k = self.get_nodeattr("kernel_size")  # Assumption: Height x Width
-
-        if len(k) == 1:  # Assume square kernel
-            k_H = k[0]
-            k_W = k[0]
-        else:
-            k_H = k[0]
-            k_W = k[1]
+        k_H = k[0]
+        k_W = k[1]
 
         stride = self.get_nodeattr("stride")
         pad = self.get_nodeattr("pad_amount")  # pad: [H_begin, W_begin, H_end, W_end]
