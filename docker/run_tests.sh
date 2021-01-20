@@ -28,4 +28,4 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 cd /workspace/finn-base
-python setup.py test
+python setup.py test --addopts "-n auto"
