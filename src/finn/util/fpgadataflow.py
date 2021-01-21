@@ -34,6 +34,7 @@ from finn.util.basic import (
     get_rtlsim_trace_depth,
     is_finn_op,
     make_build_dir,
+    which,
 )
 
 try:
@@ -63,6 +64,7 @@ class IPGenBuilder:
         """Builds the bash script with given parameters and saves it in given folder.
         To guarantee the generation in the correct folder the bash script contains a
         cd command."""
+        assert which("vivado_hls") is not None, "vivado_hls not found in PATH"
         self.code_gen_dir = code_gen_dir
         self.ipgen_script = str(self.code_gen_dir) + "/ipgen.sh"
         working_dir = os.environ["PWD"]

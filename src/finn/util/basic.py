@@ -31,6 +31,7 @@ import os
 import random
 import string
 import subprocess
+import sys
 import tempfile
 import warnings
 
@@ -448,3 +449,43 @@ class CppBuilder:
         bash_command = ["bash", self.compile_script]
         process_compile = subprocess.Popen(bash_command, stdout=subprocess.PIPE)
         process_compile.communicate()
+
+
+def launch_process_helper(args, proc_env=None, cwd=None):
+    """Helper function to launch a process in a way that facilitates logging
+    stdout/stderr with Python loggers.
+    Returns (cmd_out, cmd_err)."""
+    if proc_env is None:
+        proc_env = os.environ.copy()
+    with subprocess.Popen(
+        args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=proc_env, cwd=cwd
+    ) as proc:
+        (cmd_out, cmd_err) = proc.communicate()
+    if cmd_out is not None:
+        cmd_out = cmd_out.decode("utf-8")
+        sys.stdout.write(cmd_out)
+    if cmd_err is not None:
+        cmd_err = cmd_err.decode("utf-8")
+        sys.stderr.write(cmd_err)
+    return (cmd_out, cmd_err)
+
+
+def which(program):
+    "Python equivalent of the shell cmd 'which'."
+
+    # source:
+    # https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
