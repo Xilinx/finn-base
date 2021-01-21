@@ -23,17 +23,17 @@ def check_two_dict_for_equality(dict1, dict2):
 
 
 def execution_im2col(
-    x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt=0, pad_val=0
+    x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt=0, pad_val=0
 ):
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_H = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_W = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     # set up onnx model
     inp = helper.make_tensor_value_info(
-        "inp", TensorProto.FLOAT, [1, ifm_dim_H, ifm_dim_W, ifm_ch]
+        "inp", TensorProto.FLOAT, [1, ifm_dim_h, ifm_dim_w, ifm_ch]
     )
     outp = helper.make_tensor_value_info(
-        "outp", TensorProto.FLOAT, [1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch]
+        "outp", TensorProto.FLOAT, [1, ofm_dim_H, ofm_dim_W, k_h * k_w * ifm_ch]
     )
 
     Im2Col_node = helper.make_node(
@@ -42,10 +42,10 @@ def execution_im2col(
         ["outp"],
         domain="finn.custom_op.general",
         stride=stride,
-        kernel_size=[k_H, k_W],
+        kernel_size=[k_h, k_w],
         pad_amount=pad_amt,
         pad_value=pad_val,
-        input_shape="(1,{},{},{})".format(ifm_dim_H, ifm_dim_W, ifm_ch),
+        input_shape="(1,{},{},{})".format(ifm_dim_h, ifm_dim_w, ifm_ch),
     )
 
     graph = helper.make_graph(
@@ -63,7 +63,7 @@ def execution_im2col(
         1,
         ofm_dim_H,
         ofm_dim_W,
-        k_H * k_W * ifm_ch,
+        k_h * k_w * ifm_ch,
     ]
 
     # test datatype inference
@@ -97,17 +97,17 @@ def test_im2col():
     case_id = 0
     # bipolar inputs with following im2col parameters
     idt = DataType.BIPOLAR
-    k_H = 2
-    k_W = 2
+    k_h = 2
+    k_w = 2
     stride = 1
     ifm_ch = 1
-    ifm_dim_H = 4
-    ifm_dim_W = 4
+    ifm_dim_h = 4
+    ifm_dim_w = 4
     pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -129,7 +129,7 @@ def test_im2col():
             1.0,
         ],
         dtype=np.float32,
-    ).reshape(1, ifm_dim_H, ifm_dim_W, ifm_ch)
+    ).reshape(1, ifm_dim_h, ifm_dim_w, ifm_ch)
 
     expected = np.asarray(
         [
@@ -171,10 +171,10 @@ def test_im2col():
             1.0,
         ],
         dtype=np.float32,
-    ).reshape(1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch)
+    ).reshape(1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch)
 
     produced = execution_im2col(
-        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -182,17 +182,17 @@ def test_im2col():
 
     case_id = 1
     idt = DataType.INT8
-    k_H = 2
-    k_W = 2
+    k_h = 2
+    k_w = 2
     stride = 1
     ifm_ch = 2
-    ifm_dim_H = 4
-    ifm_dim_W = 4
+    ifm_dim_h = 4
+    ifm_dim_w = 4
     pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -230,7 +230,7 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -238,17 +238,17 @@ def test_im2col():
 
     case_id = 2
     idt = DataType.INT8
-    k_H = 2
-    k_W = 2
+    k_h = 2
+    k_w = 2
     stride = 1
     ifm_ch = 2
-    ifm_dim_H = 4
-    ifm_dim_W = 4
+    ifm_dim_h = 4
+    ifm_dim_w = 4
     pad_amt = 1
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -306,7 +306,7 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -314,17 +314,17 @@ def test_im2col():
 
     case_id = 3
     idt = DataType.INT8
-    k_H = 2
-    k_W = 2
+    k_h = 2
+    k_w = 2
     stride = 1
     ifm_ch = 2
-    ifm_dim_H = 4
-    ifm_dim_W = 5
+    ifm_dim_h = 4
+    ifm_dim_w = 5
     pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -365,7 +365,7 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -373,17 +373,17 @@ def test_im2col():
 
     case_id = 4
     idt = DataType.INT8
-    k_H = 3
-    k_W = 2
+    k_h = 3
+    k_w = 2
     stride = 1
     ifm_ch = 2
-    ifm_dim_H = 4
-    ifm_dim_W = 5
+    ifm_dim_h = 4
+    ifm_dim_w = 5
     pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -418,7 +418,7 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -426,17 +426,17 @@ def test_im2col():
 
     case_id = 5
     idt = DataType.INT8
-    k_H = 3
-    k_W = 2
+    k_h = 3
+    k_w = 2
     stride = 1
     ifm_ch = 2
-    ifm_dim_H = 4
-    ifm_dim_W = 5
+    ifm_dim_h = 4
+    ifm_dim_w = 5
     pad_amt = 1
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -491,7 +491,7 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -499,17 +499,17 @@ def test_im2col():
 
     case_id = 6
     idt = DataType.INT8
-    k_H = 3
-    k_W = 1
+    k_h = 3
+    k_w = 1
     stride = 1
     ifm_ch = 2
-    ifm_dim_H = 5
-    ifm_dim_W = 1
+    ifm_dim_h = 5
+    ifm_dim_w = 1
     pad_amt = 0
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -522,7 +522,7 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -530,17 +530,17 @@ def test_im2col():
 
     case_id = 7
     idt = DataType.INT8
-    k_H = 3
-    k_W = 1
+    k_h = 3
+    k_w = 1
     stride = 1
     ifm_ch = 2
-    ifm_dim_H = 5
-    ifm_dim_W = 1
+    ifm_dim_h = 5
+    ifm_dim_w = 1
     pad_amt = 1
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -561,7 +561,7 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -569,17 +569,17 @@ def test_im2col():
 
     case_id = 8
     idt = DataType.INT8
-    k_H = 3
-    k_W = 1
+    k_h = 3
+    k_w = 1
     stride = 2
     ifm_ch = 2
-    ifm_dim_H = 5
-    ifm_dim_W = 1
+    ifm_dim_h = 5
+    ifm_dim_w = 1
     pad_amt = 1
     pad_val = 0
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -592,7 +592,7 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_H, k_W, stride, ifm_ch, ifm_dim_H, ifm_dim_W, pad_amt, pad_val
+        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -601,23 +601,23 @@ def test_im2col():
 
 def test_im2col_infer_shapes():
     idt = DataType.BIPOLAR
-    k_H = 2
-    k_W = 2
+    k_h = 2
+    k_w = 2
     stride = 1
     ifm_ch = 1
-    ifm_dim_H = 4
-    ifm_dim_W = 4
+    ifm_dim_h = 4
+    ifm_dim_w = 4
     pad_amt = 0  # default
 
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     # set up onnx model
     inp = helper.make_tensor_value_info(
-        "inp", TensorProto.FLOAT, [1, ifm_dim_H, ifm_dim_W, ifm_ch]
+        "inp", TensorProto.FLOAT, [1, ifm_dim_h, ifm_dim_w, ifm_ch]
     )
     outp = helper.make_tensor_value_info(
-        "outp", TensorProto.FLOAT, [1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch]
+        "outp", TensorProto.FLOAT, [1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch]
     )
 
     abs_node = helper.make_node("Abs", inputs=["inp"], outputs=["abs"])
@@ -628,8 +628,8 @@ def test_im2col_infer_shapes():
         ["im2col"],
         domain="finn.custom_op.general",
         stride=stride,
-        kernel_size=[k_H, k_W],
-        input_shape="(1,{},{},{})".format(ifm_dim_H, ifm_dim_W, ifm_ch),
+        kernel_size=[k_h, k_w],
+        input_shape="(1,{},{},{})".format(ifm_dim_h, ifm_dim_w, ifm_ch),
     )
 
     abs1_node = helper.make_node("Abs", inputs=["im2col"], outputs=["outp"])
@@ -641,12 +641,12 @@ def test_im2col_infer_shapes():
         outputs=[outp],
         value_info=[
             helper.make_tensor_value_info(
-                "abs", TensorProto.FLOAT, [1, ifm_dim_H, ifm_dim_W, ifm_ch]
+                "abs", TensorProto.FLOAT, [1, ifm_dim_h, ifm_dim_w, ifm_ch]
             ),
             helper.make_tensor_value_info(
                 "im2col",
                 TensorProto.FLOAT,
-                [1, ofm_dim_H, ofm_dim_W, k_H * k_W * ifm_ch],
+                [1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch],
             ),
         ],
     )
@@ -660,7 +660,7 @@ def test_im2col_infer_shapes():
     model.transform(InferShapes())
     assert model.get_tensor_shape("im2col") == [
         1,
-        ofm_dim_H,
-        ofm_dim_W,
-        k_H * k_W * ifm_ch,
+        ofm_dim_h,
+        ofm_dim_w,
+        k_h * k_w * ifm_ch,
     ]
