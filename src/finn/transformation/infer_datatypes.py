@@ -52,7 +52,7 @@ def _infer_node_datatype(model, node):
         if node.op_type == "Sign":
             # always produces bipolar outputs
             model.set_tensor_datatype(node.output[0], DataType.BIPOLAR)
-        elif node.op_type == "MatMul":
+        elif node.op_type in ["MatMul", "Conv"]:
             if len(list(filter(lambda x: x == DataType.FLOAT32, idtypes))) != 0:
                 # node has at least one float input, output is also float
                 model.set_tensor_datatype(node.output[0], DataType.FLOAT32)
