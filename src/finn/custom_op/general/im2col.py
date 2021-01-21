@@ -9,7 +9,6 @@ from finn.custom_op.base import CustomOp
 # utilities to generate a patch matrix from a multichannel image
 # of shape (batches, channels, height, width)
 
-
 def compute_conv_output_dim(ifm_dim, k, stride, pad=0, dilation=1, non_equal=False):
     """Returns spatial output dimension size for convolution with given params.
     Pad is either 0 or 1"""

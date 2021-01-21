@@ -26,6 +26,8 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import numpy as np
+
 from finn.core.datatype import DataType
 
 
@@ -44,10 +46,13 @@ def test_datatypes():
     assert DataType.UINT4.allowed(150) is False
     assert DataType.UINT8.allowed(150)
     assert DataType.UINT8.allowed(777) is False
+    assert DataType.UINT8.to_numpy_dt() == np.uint8
     assert DataType.UINT16.allowed(14500)
+    assert DataType.UINT16.to_numpy_dt() == np.uint16
     assert DataType.UINT16.allowed(-1) is False
     assert DataType.UINT32.allowed(2 ** 10)
     assert DataType.UINT32.allowed(-1) is False
+    assert DataType.UINT32.to_numpy_dt() == np.uint32
     assert DataType.INT2.allowed(-1)
     assert DataType.INT2.allowed(-10) is False
     assert DataType.INT3.allowed(5) is False
@@ -56,11 +61,14 @@ def test_datatypes():
     assert DataType.INT4.allowed(-5)
     assert DataType.INT8.allowed(150) is False
     assert DataType.INT8.allowed(-127)
+    assert DataType.INT8.to_numpy_dt() == np.int8
     assert DataType.INT16.allowed(-1.04) is False
     assert DataType.INT16.allowed(-7777)
+    assert DataType.INT16.to_numpy_dt() == np.int16
     assert DataType.INT32.allowed(7.77) is False
     assert DataType.INT32.allowed(-5)
     assert DataType.INT32.allowed(5)
+    assert DataType.INT32.to_numpy_dt() == np.int32
     assert DataType.BINARY.signed() is False
     assert DataType.FLOAT32.signed()
     assert DataType.BIPOLAR.signed()
