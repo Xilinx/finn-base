@@ -8,3 +8,4 @@ Contributors
 * Lucian Petrica (@quetric)
 * Tobias Alonso (@Tobi-Alonso)
 * Hendrik Borras (@HenniOVP)
+* Mirza Mrahorovic (@mmrahorovic)
