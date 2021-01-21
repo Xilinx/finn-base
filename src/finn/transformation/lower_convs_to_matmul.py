@@ -178,7 +178,7 @@ class LowerConvsToMatMul(Transformation):
                         [im2col_out],
                         domain="finn.custom_op.general",
                         stride=stride,
-                        kernel_size=k,
+                        kernel_size=[k, k],
                         pad_amount=pad,
                         input_shape="(1,{},{},{})".format(ifm_dim, ifm_dim, ifm_ch),
                         depthwise=dw,
