@@ -180,12 +180,24 @@ def test_non_equal_padding(
 def test_dws_reg_conv_lowering(
     idt, k_H, k_W, ifm_dim_H, ifm_dim_W, ifm_ch, stride, padding, dw
 ):
+    if k_H > ifm_dim_H:
+        pytest.skip("Kernel height must be smaller than image height")
+    if k_W > ifm_dim_W:
+        pytest.skip("Kernel width must be smaller than image height")
+    # Ensure the right padding parameters are set
+    if ifm_dim_H == 1:
+        padding[0] = 0
+        padding[2] = 0
+    if ifm_dim_W == 1:
+        padding[1] = 0
+        padding[3] = 0
 
     wdt = idt
     odt = DataType.INT32
     ofm_ch = ifm_ch
     pad_H = padding[0] + padding[2]
     pad_W = padding[1] + padding[3]
+
     ofm_dim_H = compute_conv_output_dim(ifm_dim_H, k_H, stride, pad_H, non_equal=True)
     ofm_dim_W = compute_conv_output_dim(ifm_dim_W, k_W, stride, pad_W, non_equal=True)
 
