@@ -23,20 +23,22 @@ def check_two_dict_for_equality(dict1, dict2):
 
 
 def execution_im2col(
-    x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt=0, pad_val=0
+    x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val=0
 ):
-    ofm_dim_H = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_W = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
+    pad_amt_h = pad_amt[0] + pad_amt[2]
+    pad_amt_w = pad_amt[1] + pad_amt[3]
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt_h)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt_w)
 
     # set up onnx model
     inp = helper.make_tensor_value_info(
         "inp", TensorProto.FLOAT, [1, ifm_dim_h, ifm_dim_w, ifm_ch]
     )
     outp = helper.make_tensor_value_info(
-        "outp", TensorProto.FLOAT, [1, ofm_dim_H, ofm_dim_W, k_h * k_w * ifm_ch]
+        "outp", TensorProto.FLOAT, [1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch]
     )
 
-    Im2Col_node = helper.make_node(
+    im2col_node = helper.make_node(
         "Im2Col",
         ["inp"],
         ["outp"],
@@ -49,7 +51,7 @@ def execution_im2col(
     )
 
     graph = helper.make_graph(
-        nodes=[Im2Col_node], name="im2col_graph", inputs=[inp], outputs=[outp]
+        nodes=[im2col_node], name="im2col_graph", inputs=[inp], outputs=[outp]
     )
 
     model = helper.make_model(graph, producer_name="im2col-model")
@@ -61,8 +63,8 @@ def execution_im2col(
     model.transform(InferShapes())
     assert model.get_tensor_shape("outp") == [
         1,
-        ofm_dim_H,
-        ofm_dim_W,
+        ofm_dim_h,
+        ofm_dim_w,
         k_h * k_w * ifm_ch,
     ]
 
@@ -103,11 +105,13 @@ def test_im2col():
     ifm_ch = 1
     ifm_dim_h = 4
     ifm_dim_w = 4
-    pad_amt = 0
+    pad_amt = [0, 0, 0, 0]
+    pad_amt_h = pad_amt[0] + pad_amt[2]
+    pad_amt_w = pad_amt[1] + pad_amt[3]
     pad_val = 0
 
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt_h)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt_w)
 
     x = np.asarray(
         [
@@ -188,11 +192,8 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 4
-    pad_amt = 0
+    pad_amt = [0, 0, 0, 0]
     pad_val = 0
-
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -244,11 +245,8 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 4
-    pad_amt = 1
+    pad_amt = [1, 1, 1, 1]
     pad_val = 0
-
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -320,11 +318,8 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 5
-    pad_amt = 0
+    pad_amt = [0, 0, 0, 0]
     pad_val = 0
-
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -379,11 +374,8 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 5
-    pad_amt = 0
+    pad_amt = [0, 0, 0, 0]
     pad_val = 0
-
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -432,11 +424,8 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 5
-    pad_amt = 1
+    pad_amt = [1, 1, 1, 1]
     pad_val = 0
-
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [
@@ -505,11 +494,8 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_h = 5
     ifm_dim_w = 1
-    pad_amt = 0
+    pad_amt = [0, 0, 0, 0]
     pad_val = 0
-
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -536,11 +522,8 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_h = 5
     ifm_dim_w = 1
-    pad_amt = 1
+    pad_amt = [1, 0, 1, 0]
     pad_val = 0
-
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -575,11 +558,8 @@ def test_im2col():
     ifm_ch = 2
     ifm_dim_h = 5
     ifm_dim_w = 1
-    pad_amt = 1
+    pad_amt = [1, 0, 1, 0]
     pad_val = 0
-
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -607,10 +587,12 @@ def test_im2col_infer_shapes():
     ifm_ch = 1
     ifm_dim_h = 4
     ifm_dim_w = 4
-    pad_amt = 0  # default
+    pad_amt = [0, 0, 0, 0]  # default
+    pad_amt_h = pad_amt[0] + pad_amt[2]
+    pad_amt_w = pad_amt[1] + pad_amt[3]
 
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt_h)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt_w)
 
     # set up onnx model
     inp = helper.make_tensor_value_info(

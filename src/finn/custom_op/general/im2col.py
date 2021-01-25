@@ -12,13 +12,16 @@ from finn.custom_op.base import CustomOp
 # a dummy dimension (e.g. 1D convs represented as 2D)
 
 
-def compute_conv_output_dim(ifm_dim, k, stride, pad=0):
-    """Returns spatial output dimension size for convolution with given params."""
+def compute_conv_output_dim(ifm_dim, k, stride, total_pad=0):
+    """Returns spatial output dimension size for convolution with given params.
+    total_pad gives the total amount of padding along the entire axis
+    (both sides included).
+    """
     if ifm_dim == 1:
         # indicates dummy dimension, keep as-is
         out_dim = 1
     else:
-        out_dim = int(((ifm_dim + 2 * pad - k) / stride) + 1)
+        out_dim = int(((ifm_dim + total_pad - k) / stride) + 1)
     return out_dim
 
 
@@ -27,19 +30,21 @@ def get_im2col_indices_nchw(
 ):
     """Returns im2col indices."""
     # First figure out what the size of the output should be
-    N, C, H, W = x_shape
-    out_height = compute_conv_output_dim(H, field_height, stride_y, padding)
-    out_width = compute_conv_output_dim(W, field_width, stride_x, padding)
+    n, c, h, w = x_shape
+    pad_h = padding[0] + padding[2]
+    pad_w = padding[1] + padding[3]
+    out_height = compute_conv_output_dim(h, field_height, stride_y, pad_h)
+    out_width = compute_conv_output_dim(w, field_width, stride_x, pad_w)
 
     i0 = np.repeat(np.arange(field_height), field_width)
-    i0 = np.tile(i0, C)
+    i0 = np.tile(i0, c)
     i1 = stride_y * np.repeat(np.arange(out_height), out_width)
-    j0 = np.tile(np.arange(field_width), field_height * C)
+    j0 = np.tile(np.arange(field_width), field_height * c)
     j1 = stride_x * np.tile(np.arange(out_width), out_height)
     i = i0.reshape(-1, 1) + i1.reshape(1, -1)
     j = j0.reshape(-1, 1) + j1.reshape(1, -1)
 
-    k = np.repeat(np.arange(C), field_height * field_width).reshape(-1, 1)
+    k = np.repeat(np.arange(c), field_height * field_width).reshape(-1, 1)
 
     return (k, i, j)
 
@@ -50,7 +55,7 @@ def im2col_indices_nchw(
     ifm_w,
     field_height,
     field_width,
-    padding=0,
+    padding=[0, 0, 0, 0],
     stride_y=1,
     stride_x=1,
     pad_val=0,
@@ -64,26 +69,26 @@ def im2col_indices_nchw(
     if ifm_h == 1:  # Shape of input image is: (1, C, 1, W)
         x_padded = np.pad(
             x,
-            ((0, 0), (0, 0), (0, 0), (p, p)),
+            ((0, 0), (0, 0), (0, 0), (p[1], p[3])),
             mode="constant",
             constant_values=pad_val,
         )
     elif ifm_w == 1:  # Shape of input image is: (1, C, H, 1)
         x_padded = np.pad(
             x,
-            ((0, 0), (0, 0), (p, p), (0, 0)),
+            ((0, 0), (0, 0), (p[0], p[2]), (0, 0)),
             mode="constant",
             constant_values=pad_val,
         )
     elif ifm_h > 1 and ifm_w > 1:  # Shape of input image is: (1, C, H, W)
         x_padded = np.pad(
             x,
-            ((0, 0), (0, 0), (p, p), (p, p)),
+            ((0, 0), (0, 0), (p[0], p[2]), (p[1], p[3])),
             mode="constant",
             constant_values=pad_val,
         )
     else:
-        raise Exception("Unknown ifm_h/ifm_w combination in im2col_indices_nchw")
+        raise Exception("Unknown combination of spatial sizes in im2col_indices_nchw")
 
     k, i, j = get_im2col_indices_nchw(
         x.shape, field_height, field_width, padding, stride_y, stride_x
@@ -121,7 +126,8 @@ class Im2Col(CustomOp):
             # input tensor shape
             "input_shape": ("s", True, ""),
             # amount of padding to be inserted before/after each non-dummy spatial dim
-            "pad_amount": ("i", False, 0),
+            # i.e. [H_begin, W_begin, H_end, W_end]
+            "pad_amount": ("ints", False, [0, 0, 0, 0]),  # default: no padding
             # value of padding pixels to be inserted
             "pad_value": ("i", False, 0),
             # depthwise: if 1, infer ConvolutionInputGenerator with depthwise == 1
@@ -134,7 +140,11 @@ class Im2Col(CustomOp):
         k_w = k[1]
         stride = self.get_nodeattr("stride")
         ishape = self.get_nodeattr("input_shape")
-        pad = self.get_nodeattr("pad_amount")
+        pad = self.get_nodeattr(
+            "pad_amount"
+        )  # padding: [H_begin, W_begin, H_end, W_end]
+        pad_h = pad[0] + pad[2]
+        pad_w = pad[1] + pad[3]
 
         # convert string into list of integers
         ishape = ishape.strip("(")
@@ -146,9 +156,8 @@ class Im2Col(CustomOp):
         # extract all necessary information and determine output dimensions
         ifm_ch = ishape[-1]
         assert len(ishape) == 4, "Unexpected input shape for Im2Col"
-        ifm_dim_h = ishape[
-            1
-        ]  # NHWC (FINN always converts to NHWC during conv lowering)
+        # NHWC (FINN always converts to NHWC during conv lowering)
+        ifm_dim_h = ishape[1]
         ifm_dim_w = ishape[2]
 
         # check that kernel tensor also respects any existing dummy dimensions
@@ -161,8 +170,8 @@ class Im2Col(CustomOp):
                 k_w == 1
             ), "Unexpected kernel shape for input image of dimensions (N, H, 1, C)"
 
-        ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad)
-        ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad)
+        ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_h)
+        ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_w)
 
         # implement tensor with correct shape
         values = np.random.randn(1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch).astype(
@@ -194,6 +203,8 @@ class Im2Col(CustomOp):
 
         stride = self.get_nodeattr("stride")
         pad = self.get_nodeattr("pad_amount")
+        pad_h = pad[0] + pad[2]
+        pad_w = pad[1] + pad[3]
         pad_val = self.get_nodeattr("pad_value")
         iname = node.input[0]
         x = context[iname]
@@ -201,8 +212,9 @@ class Im2Col(CustomOp):
         ret = util.get_by_name(qnt_annotations, iname, "tensor_name")
         ret = util.get_by_name(ret.quant_parameter_tensor_names, "finn_datatype", "key")
         idt = DataType[ret.value]
-        if pad != 0:
-            assert idt.allowed(pad_val), "Im2Col dtype must allow pad_val"
+        for val in pad:
+            if val != 0:
+                assert idt.allowed(val), "Im2Col dtype must allow pad_val"
         # check that input is NHWC
         assert x.ndim == 4, "Unexpected number of input dims for Im2Col"
         n, h, w, c = x.shape
@@ -216,8 +228,8 @@ class Im2Col(CustomOp):
                 k_w == 1
             ), "Unexpected kernel shape for input image of dimensions (N, H, 1, C)"
 
-        out_dim_H = compute_conv_output_dim(h, k_h, stride, pad)
-        out_dim_W = compute_conv_output_dim(w, k_w, stride, pad)
+        out_dim_h = compute_conv_output_dim(h, k_h, stride, pad_h)
+        out_dim_w = compute_conv_output_dim(w, k_w, stride, pad_w)
         # internally convert input to NCHW
         x = x.transpose(0, 3, 1, 2)
         # call NCHW im2col implementation
@@ -225,10 +237,10 @@ class Im2Col(CustomOp):
             x, h, w, k_h, k_w, pad, stride, stride, pad_val=pad_val
         )
         # result shape is (k_H*k_W*N, out_dim_H*out_dim_W), convert to NCHW
-        ret = ret.reshape(n, c, k_h, k_w, out_dim_H, out_dim_W)
+        ret = ret.reshape(n, c, k_h, k_w, out_dim_h, out_dim_w)
         # (N=0,C=1,kh=2,kw=3,H=4,W=5) -> (N=0,H=4,W=5,kh=2,kw=3,C=1)
         ret = ret.transpose(0, 4, 5, 2, 3, 1)
-        ret = ret.reshape(n, out_dim_H, out_dim_W, k_h * k_w * c)
+        ret = ret.reshape(n, out_dim_h, out_dim_w, k_h * k_w * c)
 
         # ret = ret.reshape(N, k * k * C, out_dim, out_dim)
         # convert output back to NHWC

@@ -34,16 +34,21 @@ from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
 
 
-def _auto_pad_to_explicit_padding(autopad_str, idim, k, stride, n_dims):
-    pad_total = (stride - 1) * idim - stride + k
-    pad_half_small = int((pad_total / 2))
-    pad_half_large = pad_total - pad_half_small
+def _auto_pad_to_explicit_padding(
+    autopad_str, idim_h, idim_w, k_h, k_w, stride, n_dims
+):
+    pad_total_h = (stride - 1) * idim_h - stride + k_h
+    pad_total_w = (stride - 1) * idim_w - stride + k_w
+    pad_half_small_h = int((pad_total_h / 2))
+    pad_half_small_w = int((pad_total_w / 2))
+    pad_half_large_h = pad_total_h - pad_half_small_h
+    pad_half_large_w = pad_total_w - pad_half_small_w
     if autopad_str == "VALID":
         return [0 for i in range(2 * n_dims)]
     elif autopad_str == "SAME_UPPER":
-        return [pad_half_small, pad_half_large] * n_dims
+        return [pad_half_small_h, pad_half_small_w, pad_half_large_h, pad_half_large_w]
     elif autopad_str == "SAME_LOWER":
-        return [pad_half_large, pad_half_small] * n_dims
+        return [pad_half_large_h, pad_half_large_w, pad_half_small_h, pad_half_small_w]
     else:
         raise Exception("Unsupported auto_pad: " + autopad_str)
 
@@ -65,15 +70,19 @@ class LowerConvsToMatMul(Transformation):
                 idt = model.get_tensor_datatype(cnv_input)
                 odt = model.get_tensor_datatype(cnv_output)
                 # extract conv parameters
-                k = get_by_name(n.attribute, "kernel_shape").ints[-1]
+                k = get_by_name(n.attribute, "kernel_shape").ints
+                k_h = k[0]
+                k_w = k[1]
                 stride = get_by_name(n.attribute, "strides").ints[-1]
                 group = get_by_name(n.attribute, "group").i
                 weight_name = n.input[1]
                 W_conv = model.get_initializer(weight_name)
                 ifm_ch = model.get_tensor_shape(n.input[0])[1]  # assume NCHW
                 ofm_ch = model.get_tensor_shape(n.output[0])[1]  # assume NCHW
-                ifm_dim = model.get_tensor_shape(n.input[0])[-1]  # assume NCHW
-                ofm_dim = model.get_tensor_shape(n.output[0])[-1]  # assume NCHW
+                ifm_dim_h = model.get_tensor_shape(n.input[0])[2]  # assume NCHW
+                ifm_dim_w = model.get_tensor_shape(n.input[0])[3]
+                ofm_dim_h = model.get_tensor_shape(n.output[0])[2]  # assume NCHW
+                ofm_dim_w = model.get_tensor_shape(n.output[0])[3]
                 # handle both auto_pad and explicit padding
                 auto_pad = get_by_name(n.attribute, "auto_pad")
                 if auto_pad is not None:
@@ -85,34 +94,50 @@ class LowerConvsToMatMul(Transformation):
                     else:
                         pad = _auto_pad_to_explicit_padding(
                             auto_pad,
-                            ifm_dim,
-                            k,
+                            ifm_dim_h,
+                            ifm_dim_w,
+                            k_h,
+                            k_w,
                             stride,
                             len(model.get_tensor_shape(n.input[0])) - 2,
                         )
                 else:
                     # use specified padding
                     pad = get_by_name(n.attribute, "pads").ints
-                # ensure all pads are equal for now
-                assert (
-                    len(set(pad)) <= 1
-                ), "Only all-equal padding supported for now: " + str(pad)
-                pad = pad[-1]
+
+                # If len(pad) == 2, assume no padding for other dimension
+                if len(pad) == 2:  # only one dimension should be padded
+                    assert (
+                        ifm_dim_h == 1 or ifm_dim_w == 1
+                    ), "Padding is assumed to be 1D, image is 2D"
+                    if ifm_dim_h == 1:  # Assumption: dim H is not padded
+                        pad_2D = [0, 0, 0, 0]
+                        pad_2D[1] = pad[0]
+                        pad_2D[3] = pad[1]
+                    elif ifm_dim_w == 1:  # Assumption: dim W is not padded
+                        pad_2D = [0, 0, 0, 0]
+                        pad_2D[0] = pad[0]
+                        pad_2D[2] = pad[1]
+                    pad = pad_2D
 
                 # if depthwise conv create sparse matrix and variable "dw"
                 # to store as attribute in Im2Col that indicates that the created
                 # Im2Col node belongs to a depthwise convolution
                 dw = False
                 if group == ifm_ch and ofm_ch == ifm_ch:
-                    W_sparse = np.zeros((ofm_ch, ifm_ch, k, k))
+                    W_sparse = np.zeros(
+                        (ofm_ch, ifm_ch, k_h, k_w)
+                    )  # (OFM, IFM, k_H, k_W)
                     for ch in range(ifm_ch):
-                        W_sparse[ch][ch] = W_conv[ch][0]
+                        W_sparse[ch][ch] = W_conv[ch][
+                            0
+                        ]  # W_conv = [OFM, IFM, k_H, k_W]
                     W_conv = W_sparse.astype(np.float32)
                     # we need to store information of the
                     # sparsity of the weight matrix. For this
                     # we use the sparsity annotation of the
                     # weight tensor
-                    sparsity = {"dw": {"kernel_shape": k}}
+                    sparsity = {"dw": {"kernel_shape": k_h}}
                     model.set_tensor_sparsity(weight_name, sparsity)
                     # additionally create variable "dw" to store
                     # as attribute in Im2Col that indicates that the created
@@ -123,9 +148,9 @@ class LowerConvsToMatMul(Transformation):
                 # conv weights are [OFM][IFM][k][k]
                 # first convert to [OFM][k][k][IFM] (to remain compatible with
                 # finn-hlslib and how it does im2col/sliding window)
-                W_matmul = W_conv.transpose(0, 2, 3, 1)
+                W_matmul = W_conv.transpose(0, 2, 3, 1)  # W_conv = [OFM, IFM, k_H, k_W]
                 # reshape into [OFM][k*k*IFM] matrix
-                W_matmul = W_matmul.reshape(ofm_ch, ifm_ch * k * k)
+                W_matmul = W_matmul.reshape(ofm_ch, ifm_ch * k_h * k_w)
                 # transpose to get ONNX-compatible [k*k*IFM][OFM] matrix
                 W_matmul = W_matmul.T
                 model.set_initializer(weight_name, W_matmul)
@@ -134,21 +159,25 @@ class LowerConvsToMatMul(Transformation):
                 inp_trans_out = helper.make_tensor_value_info(
                     model.make_new_valueinfo_name(),
                     TensorProto.FLOAT,
-                    (1, ifm_dim, ifm_dim, ifm_ch),  # NHWC
+                    (1, ifm_dim_h, ifm_dim_w, ifm_ch),  # NHWC
                 )
                 graph.value_info.append(inp_trans_out)
                 inp_trans_out = inp_trans_out.name
                 model.set_tensor_datatype(inp_trans_out, idt)
 
                 need_im2col = True
-                if k == 1 and pad == 0 and stride == 1:
+                if all(p == 0 for p in pad):
+                    padding = 0
+
+                # k_h=k_w==1: pointwise convolution, thus no im2col needed
+                if k_h == 1 and k_w == 1 and padding == 0 and stride == 1:
                     need_im2col = False
 
                 if need_im2col:
                     im2col_out = helper.make_tensor_value_info(
                         model.make_new_valueinfo_name(),
                         TensorProto.FLOAT,
-                        (1, ofm_dim, ofm_dim, ifm_ch * k * k),
+                        (1, ofm_dim_h, ofm_dim_w, ifm_ch * k_h * k_w),
                     )
                     graph.value_info.append(im2col_out)
                     im2col_out = im2col_out.name
@@ -157,7 +186,7 @@ class LowerConvsToMatMul(Transformation):
                 matmul_out = helper.make_tensor_value_info(
                     model.make_new_valueinfo_name(),
                     TensorProto.FLOAT,
-                    (1, ofm_dim, ofm_dim, ofm_ch),
+                    (1, ofm_dim_h, ofm_dim_w, ofm_ch),
                 )
                 graph.value_info.append(matmul_out)
                 matmul_out = matmul_out.name
@@ -178,9 +207,9 @@ class LowerConvsToMatMul(Transformation):
                         [im2col_out],
                         domain="finn.custom_op.general",
                         stride=stride,
-                        kernel_size=[k, k],
+                        kernel_size=[k_h, k_w],
                         pad_amount=pad,
-                        input_shape="(1,{},{},{})".format(ifm_dim, ifm_dim, ifm_ch),
+                        input_shape="(1,{},{},{})".format(ifm_dim_h, ifm_dim_w, ifm_ch),
                         depthwise=dw,
                     )
 
