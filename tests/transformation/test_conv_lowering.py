@@ -72,6 +72,126 @@ def test_conv_lowering_convmnist():
 # input datatype
 @pytest.mark.parametrize("idt", [DataType.INT2, DataType.INT4])
 # kernel size
+@pytest.mark.parametrize("k_h", [2, 3])
+@pytest.mark.parametrize("k_w", [2, 3, 1])
+# input dimension
+@pytest.mark.parametrize("ifm_dim_h", [9, 11])
+@pytest.mark.parametrize("ifm_dim_w", [9, 11, 1])
+# input channels
+@pytest.mark.parametrize("ifm_ch", [2, 3])
+# stride
+@pytest.mark.parametrize("stride", [1, 2])
+# padding
+@pytest.mark.parametrize("padding", [[0, 0, 0, 0], [1, 1, 1, 1]])
+# dilations
+@pytest.mark.parametrize("dilations", [[1, 1], [2, 2], [3, 3]])
+# depthwise or channelwise
+@pytest.mark.parametrize("dw", [True, False])
+def test_dws_reg_conv_lowering(
+    idt, k_h, k_w, ifm_dim_h, ifm_dim_w, ifm_ch, stride, padding, dilations, dw
+):
+    if k_h > ifm_dim_h:
+        pytest.skip("Kernel height must be smaller than image height")
+    if k_w > ifm_dim_w:
+        pytest.skip("Kernel width must be smaller than image height")
+    # Ensure the right padding parameters are set
+    if ifm_dim_h == 1:
+        padding[0] = 0
+        padding[2] = 0
+    if ifm_dim_w == 1:
+        padding[1] = 0
+        padding[3] = 0
+
+    wdt = idt
+    odt = DataType.INT32
+    ofm_ch = ifm_ch
+    pad_h = padding[0] + padding[2]
+    pad_w = padding[1] + padding[3]
+
+    ofm_dim_h = compute_conv_output_dim(
+        ifm_dim_h,
+        k_h,
+        stride,
+        pad_h,
+        dilations[0],
+    )
+    ofm_dim_w = compute_conv_output_dim(
+        ifm_dim_w,
+        k_w,
+        stride,
+        pad_w,
+        dilations[0],
+    )
+
+    # set up onnx model
+    inp = oh.make_tensor_value_info(
+        "inp", TensorProto.FLOAT, [1, ifm_ch, ifm_dim_h, ifm_dim_w]
+    )
+    outp = oh.make_tensor_value_info(
+        "outp", TensorProto.FLOAT, [1, ofm_ch, ofm_dim_h, ofm_dim_w]
+    )
+
+    if dw is True:
+        W = oh.make_tensor_value_info("W", TensorProto.FLOAT, [ofm_ch, 1, k_h, k_w])
+        group = ifm_ch
+    else:
+        W = oh.make_tensor_value_info(
+            "W", TensorProto.FLOAT, [ofm_ch, ifm_ch, k_h, k_w]
+        )
+        group = 1
+
+    dw_cnv = oh.make_node(
+        "Conv",
+        inputs=["inp", "W"],
+        outputs=["outp"],
+        kernel_shape=[k_h, k_w],
+        pads=padding,
+        strides=[stride, stride],
+        group=group,
+        dilations=dilations,
+    )
+    graph = oh.make_graph(
+        nodes=[dw_cnv],
+        name="dw_cnv_graph",
+        inputs=[inp],
+        outputs=[outp],
+        value_info=[W],
+    )
+
+    model = oh.make_model(graph, producer_name="test_dws_reg_cnv-model")
+    model = ModelWrapper(model)
+    model.set_tensor_datatype("inp", idt)
+    model.set_tensor_datatype("outp", odt)
+    model.set_tensor_datatype("W", wdt)
+
+    if dw is True:
+        w_tensor = gen_finn_dt_tensor(wdt, [ofm_ch, 1, k_h, k_w])
+    else:
+        w_tensor = gen_finn_dt_tensor(wdt, [ofm_ch, ifm_ch, k_h, k_w])
+
+    model.set_initializer("W", w_tensor)
+    model = model.transform(InferShapes())
+
+    input_tensor = gen_finn_dt_tensor(idt, [1, ifm_ch, ifm_dim_h, ifm_dim_w])
+    input_dict = {"inp": input_tensor}
+    output_dict = oxe.execute_onnx(model, input_dict)
+    expected = output_dict["outp"]
+
+    model = model.transform(LowerConvsToMatMul())
+    output_dict = oxe.execute_onnx(model, input_dict)
+    produced = output_dict["outp"]
+    assert (produced == expected).all()
+
+    if dw is True:
+        # check if created nodes have attributes that indicate depthwise conv
+        assert model.get_tensor_sparsity("W") is not None
+        im2col_node = getCustomOp(model.graph.node[1])
+        assert im2col_node.get_nodeattr("depthwise") == 1
+
+
+# input datatype
+@pytest.mark.parametrize("idt", [DataType.INT2, DataType.INT4])
+# kernel size
 @pytest.mark.parametrize("k_h", [2])
 @pytest.mark.parametrize("k_w", [2])
 # input dimension
@@ -111,8 +231,19 @@ def test_non_equal_padding(
     ofm_ch = ifm_ch
     pad_h = padding[0] + padding[2]
     pad_w = padding[1] + padding[3]
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_h)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_w)
+
+    ofm_dim_h = compute_conv_output_dim(
+        ifm_dim_h,
+        k_h,
+        stride,
+        pad_h,
+    )
+    ofm_dim_w = compute_conv_output_dim(
+        ifm_dim_w,
+        k_w,
+        stride,
+        pad_w,
+    )
 
     # set up onnx model
     inp = oh.make_tensor_value_info(
@@ -159,111 +290,6 @@ def test_non_equal_padding(
     output_dict = oxe.execute_onnx(model, input_dict)
     produced = output_dict["outp"]
     assert (produced == expected).all()
-
-
-# input datatype
-@pytest.mark.parametrize("idt", [DataType.INT2, DataType.INT4])
-# kernel size
-@pytest.mark.parametrize("k_h", [2, 4])
-@pytest.mark.parametrize("k_w", [2, 4, 1])
-# input dimension
-@pytest.mark.parametrize("ifm_dim_h", [4, 6])
-@pytest.mark.parametrize("ifm_dim_w", [4, 6, 1])
-# input channels
-@pytest.mark.parametrize("ifm_ch", [2, 3])
-# stride
-@pytest.mark.parametrize("stride", [1, 2])
-# padding
-@pytest.mark.parametrize("padding", [[0, 0, 0, 0], [1, 1, 1, 1]])
-# depthwise or channelwise
-@pytest.mark.parametrize("dw", [True, False])
-def test_dws_reg_conv_lowering(
-    idt, k_h, k_w, ifm_dim_h, ifm_dim_w, ifm_ch, stride, padding, dw
-):
-    if k_h > ifm_dim_h:
-        pytest.skip("Kernel height must be smaller than image height")
-    if k_w > ifm_dim_w:
-        pytest.skip("Kernel width must be smaller than image height")
-    # Ensure the right padding parameters are set
-    if ifm_dim_h == 1:
-        padding[0] = 0
-        padding[2] = 0
-    if ifm_dim_w == 1:
-        padding[1] = 0
-        padding[3] = 0
-
-    wdt = idt
-    odt = DataType.INT32
-    ofm_ch = ifm_ch
-    pad_h = padding[0] + padding[2]
-    pad_w = padding[1] + padding[3]
-
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_h)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_w)
-
-    # set up onnx model
-    inp = oh.make_tensor_value_info(
-        "inp", TensorProto.FLOAT, [1, ifm_ch, ifm_dim_h, ifm_dim_w]
-    )
-    outp = oh.make_tensor_value_info(
-        "outp", TensorProto.FLOAT, [1, ofm_ch, ofm_dim_h, ofm_dim_w]
-    )
-
-    if dw is True:
-        W = oh.make_tensor_value_info("W", TensorProto.FLOAT, [ofm_ch, 1, k_h, k_w])
-        group = ifm_ch
-    else:
-        W = oh.make_tensor_value_info(
-            "W", TensorProto.FLOAT, [ofm_ch, ifm_ch, k_h, k_w]
-        )
-        group = 1
-
-    dw_cnv = oh.make_node(
-        "Conv",
-        inputs=["inp", "W"],
-        outputs=["outp"],
-        kernel_shape=[k_h, k_w],
-        pads=padding,
-        strides=[stride, stride],
-        group=group,
-    )
-    graph = oh.make_graph(
-        nodes=[dw_cnv],
-        name="dw_cnv_graph",
-        inputs=[inp],
-        outputs=[outp],
-        value_info=[W],
-    )
-
-    model = oh.make_model(graph, producer_name="test_dws_reg_cnv-model")
-    model = ModelWrapper(model)
-    model.set_tensor_datatype("inp", idt)
-    model.set_tensor_datatype("outp", odt)
-    model.set_tensor_datatype("W", wdt)
-
-    if dw is True:
-        w_tensor = gen_finn_dt_tensor(wdt, [ofm_ch, 1, k_h, k_w])
-    else:
-        w_tensor = gen_finn_dt_tensor(wdt, [ofm_ch, ifm_ch, k_h, k_w])
-
-    model.set_initializer("W", w_tensor)
-    model = model.transform(InferShapes())
-
-    input_tensor = gen_finn_dt_tensor(idt, [1, ifm_ch, ifm_dim_h, ifm_dim_w])
-    input_dict = {"inp": input_tensor}
-    output_dict = oxe.execute_onnx(model, input_dict)
-    expected = output_dict["outp"]
-
-    model = model.transform(LowerConvsToMatMul())
-    output_dict = oxe.execute_onnx(model, input_dict)
-    produced = output_dict["outp"]
-    assert (produced == expected).all()
-
-    if dw is True:
-        # check if created nodes have attributes that indicate depthwise conv
-        assert model.get_tensor_sparsity("W") is not None
-        im2col_node = getCustomOp(model.graph.node[1])
-        assert im2col_node.get_nodeattr("depthwise") == 1
 
 
 def test_conv_lowering_conv_1x1():
