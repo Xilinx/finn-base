@@ -12,7 +12,7 @@ from finn.custom_op.base import CustomOp
 # a dummy dimension (e.g. 1D convs represented as 2D)
 
 
-def compute_conv_output_dim(ifm_dim, k, stride, total_pad=0):
+def compute_conv_output_dim(ifm_dim, k, stride, total_pad=0, dilation=1):
     """Returns spatial output dimension size for convolution with given params.
     total_pad gives the total amount of padding along the entire axis
     (both sides included).
@@ -21,25 +21,25 @@ def compute_conv_output_dim(ifm_dim, k, stride, total_pad=0):
         # indicates dummy dimension, keep as-is
         out_dim = 1
     else:
-        out_dim = int(((ifm_dim + total_pad - k) / stride) + 1)
+        out_dim = int(((ifm_dim + total_pad - dilation * (k - 1) - 1) / stride) + 1)
     return out_dim
 
 
 def get_im2col_indices_nchw(
-    x_shape, field_height, field_width, padding=0, stride_y=1, stride_x=1
+    x_shape, field_height, field_width, padding=0, stride_y=1, stride_x=1, dilation=1
 ):
     """Returns im2col indices."""
     # First figure out what the size of the output should be
     n, c, h, w = x_shape
     pad_h = padding[0] + padding[2]
     pad_w = padding[1] + padding[3]
-    out_height = compute_conv_output_dim(h, field_height, stride_y, pad_h)
-    out_width = compute_conv_output_dim(w, field_width, stride_x, pad_w)
+    out_height = compute_conv_output_dim(h, field_height, stride_y, pad_h, dilation)
+    out_width = compute_conv_output_dim(w, field_width, stride_x, pad_w, dilation)
 
-    i0 = np.repeat(np.arange(field_height), field_width)
+    i0 = dilation * np.repeat(np.arange(field_height), field_width)
     i0 = np.tile(i0, c)
     i1 = stride_y * np.repeat(np.arange(out_height), out_width)
-    j0 = np.tile(np.arange(field_width), field_height * c)
+    j0 = dilation * np.tile(np.arange(field_width), field_height * c)
     j1 = stride_x * np.tile(np.arange(out_width), out_height)
     i = i0.reshape(-1, 1) + i1.reshape(1, -1)
     j = j0.reshape(-1, 1) + j1.reshape(1, -1)
@@ -59,6 +59,7 @@ def im2col_indices_nchw(
     stride_y=1,
     stride_x=1,
     pad_val=0,
+    dilation=1,
 ):
     """Performs im2col on image (2D tensor, possibly with 1-length dummy dimensions) x with
     given field height and width, as well as values for padding and stride size.
@@ -91,7 +92,7 @@ def im2col_indices_nchw(
         raise Exception("Unknown combination of spatial sizes in im2col_indices_nchw")
 
     k, i, j = get_im2col_indices_nchw(
-        x.shape, field_height, field_width, padding, stride_y, stride_x
+        x.shape, field_height, field_width, padding, stride_y, stride_x, dilation
     )
 
     cols = x_padded[:, k, i, j]
@@ -132,6 +133,8 @@ class Im2Col(CustomOp):
             "pad_value": ("i", False, 0),
             # depthwise: if 1, infer ConvolutionInputGenerator with depthwise == 1
             "depthwise": ("i", False, 0, {0, 1}),
+            # dilation factor applied to the conv kernel
+            "dilations": ("i", False, 1),
         }
 
     def make_shape_compatible_op(self, model):
@@ -140,6 +143,7 @@ class Im2Col(CustomOp):
         k_w = k[1]
         stride = self.get_nodeattr("stride")
         ishape = self.get_nodeattr("input_shape")
+        dilation = self.get_nodeattr("dilations")
         pad = self.get_nodeattr(
             "pad_amount"
         )  # padding: [H_begin, W_begin, H_end, W_end]
@@ -170,8 +174,8 @@ class Im2Col(CustomOp):
                 k_w == 1
             ), "Unexpected kernel shape for input image of dimensions (N, H, 1, C)"
 
-        ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_h)
-        ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_w)
+        ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_h, dilation)
+        ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_w, dilation)
 
         # implement tensor with correct shape
         values = np.random.randn(1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch).astype(
@@ -206,6 +210,8 @@ class Im2Col(CustomOp):
         pad_h = pad[0] + pad[2]
         pad_w = pad[1] + pad[3]
         pad_val = self.get_nodeattr("pad_value")
+        dilation = self.get_nodeattr("dilations")
+
         iname = node.input[0]
         x = context[iname]
         qnt_annotations = graph.quantization_annotation
@@ -228,13 +234,13 @@ class Im2Col(CustomOp):
                 k_w == 1
             ), "Unexpected kernel shape for input image of dimensions (N, H, 1, C)"
 
-        out_dim_h = compute_conv_output_dim(h, k_h, stride, pad_h)
-        out_dim_w = compute_conv_output_dim(w, k_w, stride, pad_w)
+        out_dim_h = compute_conv_output_dim(h, k_h, stride, pad_h, dilation)
+        out_dim_w = compute_conv_output_dim(w, k_w, stride, pad_w, dilation)
         # internally convert input to NCHW
         x = x.transpose(0, 3, 1, 2)
         # call NCHW im2col implementation
         ret = im2col_indices_nchw(
-            x, h, w, k_h, k_w, pad, stride, stride, pad_val=pad_val
+            x, h, w, k_h, k_w, pad, stride, stride, pad_val=pad_val, dilation=dilation
         )
         # result shape is (k_H*k_W*N, out_dim_H*out_dim_W), convert to NCHW
         ret = ret.reshape(n, c, k_h, k_w, out_dim_h, out_dim_w)

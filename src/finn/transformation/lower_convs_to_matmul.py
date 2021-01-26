@@ -83,6 +83,15 @@ class LowerConvsToMatMul(Transformation):
                 ifm_dim_w = model.get_tensor_shape(n.input[0])[3]
                 ofm_dim_h = model.get_tensor_shape(n.output[0])[2]  # assume NCHW
                 ofm_dim_w = model.get_tensor_shape(n.output[0])[3]
+                dilation_attr = get_by_name(n.attribute, "dilations")
+                if dilation_attr is not None:
+                    dilation = dilation_attr.ints
+                    assert (
+                        len(set(dilation)) <= 1
+                    ), "Only equal dilation value along each spatial axis is supported"
+                    dilation = dilation[0]
+                else:
+                    dilation = 1  # default value
                 # handle both auto_pad and explicit padding
                 auto_pad = get_by_name(n.attribute, "auto_pad")
                 if auto_pad is not None:
@@ -211,6 +220,7 @@ class LowerConvsToMatMul(Transformation):
                         pad_amount=pad,
                         input_shape="(1,{},{},{})".format(ifm_dim_h, ifm_dim_w, ifm_ch),
                         depthwise=dw,
+                        dilations=dilation,
                     )
 
                 # do matmul
