@@ -36,270 +36,157 @@ def set_all_initializers(model):
 def create_arbitrary_model(invalid=False):
     """
     Creates arbitrary model for testing the 3D to 4D transform.
-    This model is based on a sub part of QuartzNet.
+    This model is based on a subpart of QuartzNet.
     """
-    if invalid is False:
-        Mul1_node = onnx.helper.make_node(
-            "Mul",
-            inputs=["in1_mul1", "in2_mul1"],  # inputs
-            outputs=["out1_mul1"],  # outputs
-            name="Mul1",  # name
-        )
 
-        Conv1_node = onnx.helper.make_node(
-            "Conv",
-            inputs=["out1_mul1", "in2_conv1"],
-            outputs=["out1_conv1"],
-            name="Conv1",
-            dilations=[1],
-            group=1,
-            kernel_shape=[1],
-            pads=[0, 0],
-            strides=[1],
-        )
+    Mul1_node = onnx.helper.make_node(
+        "Mul",
+        inputs=["in1_mul1", "in2_mul1"],  # inputs
+        outputs=["out1_mul1"],  # outputs
+        name="Mul1",  # name
+    )
 
+    Conv1_node = onnx.helper.make_node(
+        "Conv",
+        inputs=["out1_mul1", "in2_conv1"],
+        outputs=["out1_conv1"],
+        name="Conv1",
+        dilations=[1],
+        group=1,
+        kernel_shape=[1],
+        pads=[0, 0],
+        strides=[1],
+    )
+
+    if (
+        invalid is True
+    ):  # To make the graph invalid, a ReLU node is added after the Conv node
+        Relu1_node = onnx.helper.make_node(
+            "Relu", inputs=["out1_conv1"], outputs=["out1_relu1"], name="Relu1"
+        )
+        Add1_node = onnx.helper.make_node(
+            "Add", inputs=["out1_relu1", "in2_add1"], outputs=["out1_add1"], name="Add1"
+        )
+    else:
         Add1_node = onnx.helper.make_node(
             "Add", inputs=["out1_conv1", "in2_add1"], outputs=["out1_add1"], name="Add1"
         )
 
-        Mul2_node = onnx.helper.make_node(
-            "Mul", inputs=["out1_add1", "in2_mul2"], outputs=["out1_mul2"], name="Mul2"
-        )
+    Mul2_node = onnx.helper.make_node(
+        "Mul", inputs=["out1_add1", "in2_mul2"], outputs=["out1_mul2"], name="Mul2"
+    )
 
-        Transpose1_node = onnx.helper.make_node(
-            "Transpose",
-            inputs=["out1_mul2"],
-            outputs=["out1_transpose1"],
-            name="Transpose1",
-            perm=[0, 2, 1],
-        )
+    Transpose1_node = onnx.helper.make_node(
+        "Transpose",
+        inputs=["out1_mul2"],
+        outputs=["out1_transpose1"],
+        name="Transpose1",
+        perm=[0, 2, 1],
+    )
 
-        LogSoftmax1_node = onnx.helper.make_node(
-            "LogSoftmax",
-            inputs=["out1_transpose1"],
-            outputs=["out1_logsoftmax1"],
-            name="LogSoftmax1",
-            axis=2,
-        )
+    LogSoftmax1_node = onnx.helper.make_node(
+        "LogSoftmax",
+        inputs=["out1_transpose1"],
+        outputs=["out1_logsoftmax1"],
+        name="LogSoftmax1",
+        axis=2,
+    )
 
-        ArgMax1_node = onnx.helper.make_node(
-            "ArgMax",
-            inputs=["out1_logsoftmax1"],
-            outputs=["out1_argmax1"],
-            name="ArgMax1",
-            axis=-1,
-            keepdims=0,
-        )
+    ArgMax1_node = onnx.helper.make_node(
+        "ArgMax",
+        inputs=["out1_logsoftmax1"],
+        outputs=["out1_argmax1"],
+        name="ArgMax1",
+        axis=-1,
+        keepdims=0,
+    )
 
-        # Inputs and outputs
-        in1_mul1 = onnx.helper.make_tensor_value_info(
-            "in1_mul1", onnx.TensorProto.FLOAT, [1, 1024, 128]
-        )
-        out1_argmax1 = onnx.helper.make_tensor_value_info(
-            "out1_argmax1", onnx.TensorProto.INT64, [1, 128]
-        )
+    # Inputs and outputs
+    in1_mul1 = onnx.helper.make_tensor_value_info(
+        "in1_mul1", onnx.TensorProto.FLOAT, [1, 1024, 128]
+    )
+    out1_argmax1 = onnx.helper.make_tensor_value_info(
+        "out1_argmax1", onnx.TensorProto.INT64, [1, 128]
+    )
 
-        # Value infos
-        out1_mul1 = onnx.helper.make_tensor_value_info(
-            "out1_mul1", onnx.TensorProto.FLOAT, [1, 1024, 128]
-        )
-        out1_conv1 = onnx.helper.make_tensor_value_info(
-            "out1_conv1", onnx.TensorProto.FLOAT, [1, 29, 128]
-        )
-        out1_add1 = onnx.helper.make_tensor_value_info(
-            "out1_add1", onnx.TensorProto.FLOAT, [1, 29, 128]
-        )
-        out1_mul2 = onnx.helper.make_tensor_value_info(
-            "out1_mul2", onnx.TensorProto.FLOAT, [1, 29, 128]
-        )
-        out1_transpose1 = onnx.helper.make_tensor_value_info(
-            "out1_transpose1", onnx.TensorProto.FLOAT, [1, 128, 29]
-        )
-        out1_logsoftmax1 = onnx.helper.make_tensor_value_info(
-            "out1_logsoftmax1", onnx.TensorProto.FLOAT, [1, 128, 29]
-        )
+    # Value infos
+    out1_mul1 = onnx.helper.make_tensor_value_info(
+        "out1_mul1", onnx.TensorProto.FLOAT, [1, 1024, 128]
+    )
+    out1_conv1 = onnx.helper.make_tensor_value_info(
+        "out1_conv1", onnx.TensorProto.FLOAT, [1, 29, 128]
+    )
 
-        # Initializers
-        in2_mul1 = onnx.helper.make_tensor_value_info(
-            "in2_mul1", onnx.TensorProto.FLOAT, [1]
-        )
-        in2_conv1 = onnx.helper.make_tensor_value_info(
-            "in2_conv1", onnx.TensorProto.FLOAT, [29, 1024, 1]
-        )
-        in2_add1 = onnx.helper.make_tensor_value_info(
-            "in2_add1", onnx.TensorProto.FLOAT, [1, 29, 1]
-        )
-        in2_mul2 = onnx.helper.make_tensor_value_info(
-            "in2_mul2", onnx.TensorProto.FLOAT, [1]
-        )
-
-        graph = onnx.helper.make_graph(
-            nodes=[
-                Mul1_node,
-                Conv1_node,
-                Add1_node,
-                Mul2_node,
-                Transpose1_node,
-                LogSoftmax1_node,
-                ArgMax1_node,
-            ],
-            name="4d_conversion_test_graph",
-            inputs=[in1_mul1],
-            outputs=[out1_argmax1],
-            value_info=[
-                out1_mul1,
-                out1_conv1,
-                out1_add1,
-                out1_mul2,
-                out1_transpose1,
-                out1_logsoftmax1,
-                in2_mul1,
-                in2_conv1,
-                in2_add1,
-                in2_mul2,
-            ],
-        )
-        onnx_model = onnx.helper.make_model(
-            graph, producer_name="4d_conversion_test-model"
-        )
-        model = ModelWrapper(onnx_model)
-        return model
-
-    else:  # In this scenario, a Relu node is added after the Conv node
-        Mul1_node = onnx.helper.make_node(
-            "Mul",
-            inputs=["in1_mul1", "in2_mul1"],  # inputs
-            outputs=["out1_mul1"],  # outputs
-            name="Mul1",  # name
-        )
-
-        Conv1_node = onnx.helper.make_node(
-            "Conv",
-            inputs=["out1_mul1", "in2_conv1"],
-            outputs=["out1_conv1"],
-            name="Conv1",
-            dilations=[1],
-            group=1,
-            kernel_shape=[1],
-            pads=[0, 0],
-            strides=[1],
-        )
-
-        Relu1_node = onnx.helper.make_node(
-            "Relu", inputs=["out1_conv1"], outputs=["out1_relu1"], name="Relu1"
-        )
-
-        Add1_node = onnx.helper.make_node(
-            "Add", inputs=["out1_relu1", "in2_add1"], outputs=["out1_add1"], name="Add1"
-        )
-
-        Mul2_node = onnx.helper.make_node(
-            "Mul", inputs=["out1_add1", "in2_mul2"], outputs=["out1_mul2"], name="Mul2"
-        )
-
-        Transpose1_node = onnx.helper.make_node(
-            "Transpose",
-            inputs=["out1_mul2"],
-            outputs=["out1_transpose1"],
-            name="Transpose1",
-            perm=[0, 2, 1],
-        )
-
-        LogSoftmax1_node = onnx.helper.make_node(
-            "LogSoftmax",
-            inputs=["out1_transpose1"],
-            outputs=["out1_logsoftmax1"],
-            name="LogSoftmax1",
-            axis=2,
-        )
-
-        ArgMax1_node = onnx.helper.make_node(
-            "ArgMax",
-            inputs=["out1_logsoftmax1"],
-            outputs=["out1_argmax1"],
-            name="ArgMax1",
-            axis=-1,
-            keepdims=0,
-        )
-
-        # Inputs and outputs
-        in1_mul1 = onnx.helper.make_tensor_value_info(
-            "in1_mul1", onnx.TensorProto.FLOAT, [1, 1024, 128]
-        )
-        out1_argmax1 = onnx.helper.make_tensor_value_info(
-            "out1_argmax1", onnx.TensorProto.INT64, [1, 128]
-        )
-
-        # Value infos
-        out1_mul1 = onnx.helper.make_tensor_value_info(
-            "out1_mul1", onnx.TensorProto.FLOAT, [1, 1024, 128]
-        )
-        out1_conv1 = onnx.helper.make_tensor_value_info(
-            "out1_conv1", onnx.TensorProto.FLOAT, [1, 29, 128]
-        )
+    if invalid is True:
         out1_relu1 = onnx.helper.make_tensor_value_info(
             "out1_relu1", onnx.TensorProto.FLOAT, [1, 29, 128]
         )
-        out1_add1 = onnx.helper.make_tensor_value_info(
-            "out1_add1", onnx.TensorProto.FLOAT, [1, 29, 128]
-        )
-        out1_mul2 = onnx.helper.make_tensor_value_info(
-            "out1_mul2", onnx.TensorProto.FLOAT, [1, 29, 128]
-        )
-        out1_transpose1 = onnx.helper.make_tensor_value_info(
-            "out1_transpose1", onnx.TensorProto.FLOAT, [1, 128, 29]
-        )
-        out1_logsoftmax1 = onnx.helper.make_tensor_value_info(
-            "out1_logsoftmax1", onnx.TensorProto.FLOAT, [1, 128, 29]
-        )
 
-        # Initializers
-        in2_mul1 = onnx.helper.make_tensor_value_info(
-            "in2_mul1", onnx.TensorProto.FLOAT, [1]
-        )
-        in2_conv1 = onnx.helper.make_tensor_value_info(
-            "in2_conv1", onnx.TensorProto.FLOAT, [29, 1024, 1]
-        )
-        in2_add1 = onnx.helper.make_tensor_value_info(
-            "in2_add1", onnx.TensorProto.FLOAT, [1, 29, 1]
-        )
-        in2_mul2 = onnx.helper.make_tensor_value_info(
-            "in2_mul2", onnx.TensorProto.FLOAT, [1]
-        )
+    out1_add1 = onnx.helper.make_tensor_value_info(
+        "out1_add1", onnx.TensorProto.FLOAT, [1, 29, 128]
+    )
 
-        graph = onnx.helper.make_graph(
-            nodes=[
-                Mul1_node,
-                Conv1_node,
-                Relu1_node,
-                Add1_node,
-                Mul2_node,
-                Transpose1_node,
-                LogSoftmax1_node,
-                ArgMax1_node,
-            ],
-            name="4d_conversion_test_graph",
-            inputs=[in1_mul1],
-            outputs=[out1_argmax1],
-            value_info=[
-                out1_mul1,
-                out1_conv1,
-                out1_relu1,
-                out1_add1,
-                out1_mul2,
-                out1_transpose1,
-                out1_logsoftmax1,
-                in2_mul1,
-                in2_conv1,
-                in2_add1,
-                in2_mul2,
-            ],
-        )
-        onnx_model = onnx.helper.make_model(
-            graph, producer_name="4d_conversion_test-model"
-        )
-        model = ModelWrapper(onnx_model)
-        return model
+    out1_mul2 = onnx.helper.make_tensor_value_info(
+        "out1_mul2", onnx.TensorProto.FLOAT, [1, 29, 128]
+    )
+    out1_transpose1 = onnx.helper.make_tensor_value_info(
+        "out1_transpose1", onnx.TensorProto.FLOAT, [1, 128, 29]
+    )
+    out1_logsoftmax1 = onnx.helper.make_tensor_value_info(
+        "out1_logsoftmax1", onnx.TensorProto.FLOAT, [1, 128, 29]
+    )
+
+    # Initializers
+    in2_mul1 = onnx.helper.make_tensor_value_info(
+        "in2_mul1", onnx.TensorProto.FLOAT, [1]
+    )
+    in2_conv1 = onnx.helper.make_tensor_value_info(
+        "in2_conv1", onnx.TensorProto.FLOAT, [29, 1024, 1]
+    )
+    in2_add1 = onnx.helper.make_tensor_value_info(
+        "in2_add1", onnx.TensorProto.FLOAT, [1, 29, 1]
+    )
+    in2_mul2 = onnx.helper.make_tensor_value_info(
+        "in2_mul2", onnx.TensorProto.FLOAT, [1]
+    )
+
+    list_of_nodes = [
+        Mul1_node,
+        Conv1_node,
+        Add1_node,
+        Mul2_node,
+        Transpose1_node,
+        LogSoftmax1_node,
+        ArgMax1_node,
+    ]
+    list_of_value_infos = [
+        out1_mul1,
+        out1_conv1,
+        out1_add1,
+        out1_mul2,
+        out1_transpose1,
+        out1_logsoftmax1,
+        in2_mul1,
+        in2_conv1,
+        in2_add1,
+        in2_mul2,
+    ]
+
+    if invalid is True:
+        list_of_nodes.insert(2, Relu1_node)
+        list_of_value_infos.append(out1_relu1)
+
+    graph = onnx.helper.make_graph(
+        nodes=list_of_nodes,
+        name="4d_conversion_test_graph",
+        inputs=[in1_mul1],
+        outputs=[out1_argmax1],
+        value_info=list_of_value_infos,
+    )
+    onnx_model = onnx.helper.make_model(graph, producer_name="4d_conversion_test-model")
+    model = ModelWrapper(onnx_model)
+
+    return model
 
 
 def test_4d_conversion():
@@ -341,7 +228,7 @@ def test_4d_conversion():
 
 def test_4d_conversion_invalid_nodes():
     """
-    Test for the 3D to 4D transformation when invalid graph is supplied.
+    Test for the 3D to 4D transformation with an invalid graph.
     """
     model = create_arbitrary_model(invalid=True)
 

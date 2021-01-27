@@ -40,7 +40,8 @@ from finn.util.basic import get_by_name
 
 def find_invalid_nodes(model):
     """
-    Verifies whether the graph contains valid nodes.
+    Verifies whether the graph consists of valid nodes. If not, a warning is raised
+    and the transformation is not applied.
     """
     valid_nodes = [
         "Add",
@@ -65,9 +66,9 @@ def find_invalid_nodes(model):
 
 class Change3DTo4DTensors(Transformation):
     """
-    Replaces 3D tensors to 4D tensors assuming the following format:
+    Replaces 3D tensors with 4D tensors assuming the following format:
     [N, C, H] -> [N, C, H, 1].
-    The attributes of a certain set of supported nodes are changed accordingly.
+    The attributes of a (specific) set of supported nodes are changed accordingly.
     """
 
     def apply(self, model):
@@ -75,7 +76,12 @@ class Change3DTo4DTensors(Transformation):
 
         invalid_nodes = find_invalid_nodes(model)
         if invalid_nodes:
-            warnings.warn("Found invalid nodes in the graph: {}".format(invalid_nodes))
+            warnings.warn(
+                "Transformation is not applied,\
+                 found invalid nodes in the graph: {}.".format(
+                    invalid_nodes
+                )
+            )
             return (model, graph_modified)
 
         # Infer the shapes of each tensor, remove unused tensors
@@ -85,7 +91,8 @@ class Change3DTo4DTensors(Transformation):
         model = model.transform(GiveUniqueNodeNames())
         model = model.transform(GiveReadableTensorNames())
 
-        # Converts 3D tensors (input, value_info, output) to 4D tensors
+        # Converts 3D tensors representing the input, a value_info, or the output
+        # to 4D tensors
         # Inputs
         tensor_names = {}
         for t in model.graph.input:
@@ -118,8 +125,6 @@ class Change3DTo4DTensors(Transformation):
                     init_dtype = i.data_type
                     initializers[init_name] = [init_dtype]
                     initializers[init_name].append(init_dim)
-            else:
-                continue
 
         # Value infos
         for t in model.graph.value_info:
@@ -178,28 +183,26 @@ class Change3DTo4DTensors(Transformation):
                 ):  # pads = [x1_begin, x1_end] --> [x1_begin, x2_begin, x1_end, x2_end]
                     pads.insert(1, 0)
                     pads.append(0)
-                if len(strides) == 1:  # strides = [stride_H, stride_W]
+                if len(strides) == 1:  # strides = [stride_h, stride_w]
                     strides.append(1)
 
-        # Change format of each value_info + input + output tensors
+        # Change format of each input/value_info/output tensor
         for k, v in tensor_names.items():
             tensor_type = v[0]
             shape = v[1]
-            # Add extra dimension for tensors that:
-            # 1) Have 3 dimensions (NCH -> NCH1)
+            # Add extra dimension for tensors that either:
+            # 1) Have 3 dimensions ( (N,C,H) -> (N,C,H,1) )
             # 2) Come after operations that reduce their dimension: e.g. {Argmax, ...}
             if len(shape) == 3 or k in tensors_reduced_dimension:
                 shape.append(1)
                 model.set_tensor_shape(k, shape, tensor_type)
-            else:
-                continue
 
         # Conv, Mul and Add nodes are made compatible with 4D input tensors
         for k, v in initializers.items():
             init_dtype = v[0]
             init_shape = v[1]
             if len(init_shape) == 3:
-                # Change shape NCH -> NCH1
+                # Change shape (N,C,H) -> (N,C,H,1)
                 init_shape.append(1)
                 model.set_tensor_shape(k, init_shape, init_dtype)
 
