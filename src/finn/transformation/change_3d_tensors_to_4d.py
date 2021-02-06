@@ -37,11 +37,19 @@ from finn.transformation.general import (
 from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
 
+# FINN currently handles convolutions (when e.g lowering them
+# to matmuls) with the assumption that they operate on 4D tensors
+# shaped as (N,C,H,W). H/W can be 1 for convolutions on 1D data.
+# This transformation converts a graph with 3D tensors to the expected
+# 4D format. Note: the transformation only works for certain node types;
+# see _find_invalid_nodes below.
 
-def find_invalid_nodes(model):
+
+def _find_invalid_nodes(model):
     """
-    Verifies whether the graph consists of valid nodes. If not, a warning is raised
-    and the transformation is not applied.
+    Check whether the graph contains any node types that are not supported by the
+    Change3Dto4DTensors transformation.
+
     """
     valid_nodes = [
         "Add",
@@ -69,16 +77,18 @@ class Change3DTo4DTensors(Transformation):
     Replaces 3D tensors with 4D tensors assuming the following format:
     [N, C, H] -> [N, C, H, 1].
     The attributes of a (specific) set of supported nodes are changed accordingly.
+    If the graph contains unsupported nodes, a warning is raised and the transformation
+    is not applied.
     """
 
     def apply(self, model):
         graph_modified = False
 
-        invalid_nodes = find_invalid_nodes(model)
+        invalid_nodes = _find_invalid_nodes(model)
         if invalid_nodes:
             warnings.warn(
                 "Transformation is not applied,\
-                 found invalid nodes in the graph: {}.".format(
+                 found unsupported nodes in the graph: {}.".format(
                     invalid_nodes
                 )
             )
