@@ -85,7 +85,7 @@ class Change3DTo4DTensors(Transformation):
         graph_modified = False
 
         invalid_nodes = _find_invalid_nodes(model)
-        if invalid_nodes:
+        if len(invalid_nodes) > 0:
             warnings.warn(
                 "Transformation is not applied,\
                  found unsupported nodes in the graph: {}.".format(
