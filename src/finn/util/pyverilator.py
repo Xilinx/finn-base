@@ -43,7 +43,7 @@ def pyverilate_get_liveness_threshold_cycles():
     return int(os.getenv("LIVENESS_THRESHOLD", 10000))
 
 
-def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file=""):
+def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
     """Runs the pyverilator simulation by passing the input values to the simulation,
     toggle the clock and observing the execution time. Function contains also an
     observation loop that can abort the simulation if no output value is produced
@@ -61,6 +61,8 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file=""):
       similarly filled when the simulation is complete
     * num_out_values: number of total values to be read from the simulation to
       finish the simulation and return.
+    * trace_file: vcd dump filename, empty string (no vcd dump) by default
+    * sname: signal naming for streams, "_V_V_" by default, vitis_hls uses "_V_"
 
     Returns: number of clock cycles elapsed for completion
 
@@ -70,7 +72,7 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file=""):
         sim.start_vcd_trace(trace_file)
 
     for outp in io_dict["outputs"]:
-        sim.io[outp + "_V_V_TREADY"] = 1
+        sim.io[outp + sname + "TREADY"] = 1
 
     # observe if output is completely calculated
     # total_cycle_count will contain the number of cycles the calculation ran
@@ -87,16 +89,22 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file=""):
     while not (output_done):
         for inp in io_dict["inputs"]:
             inputs = io_dict["inputs"][inp]
-            sim.io[inp + "_V_V_TVALID"] = 1 if len(inputs) > 0 else 0
-            sim.io[inp + "_V_V_TDATA"] = inputs[0] if len(inputs) > 0 else 0
-            if sim.io[inp + "_V_V_TREADY"] == 1 and sim.io[inp + "_V_V_TVALID"] == 1:
+            sim.io[inp + sname + "TVALID"] = 1 if len(inputs) > 0 else 0
+            sim.io[inp + sname + "TDATA"] = inputs[0] if len(inputs) > 0 else 0
+            if (
+                sim.io[inp + sname + "TREADY"] == 1
+                and sim.io[inp + sname + "TVALID"] == 1
+            ):
                 inputs = inputs[1:]
             io_dict["inputs"][inp] = inputs
 
         for outp in io_dict["outputs"]:
             outputs = io_dict["outputs"][outp]
-            if sim.io[outp + "_V_V_TVALID"] == 1 and sim.io[outp + "_V_V_TREADY"] == 1:
-                outputs = outputs + [sim.io[outp + "_V_V_TDATA"]]
+            if (
+                sim.io[outp + sname + "TVALID"] == 1
+                and sim.io[outp + sname + "TREADY"] == 1
+            ):
+                outputs = outputs + [sim.io[outp + sname + "TDATA"]]
                 output_count += 1
             io_dict["outputs"][outp] = outputs
 
