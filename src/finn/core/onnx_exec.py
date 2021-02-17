@@ -51,9 +51,9 @@ def execute_node(node, context, graph, return_full_exec_context=False):
 
     Input/output provided via context."""
 
-    if node.op_type == "StreamingDataflowPartition":
-        sdp_node = getCustomOp(node)
-        model = ModelWrapper(sdp_node.get_nodeattr("model"))
+    if node.op_type in ["GenericPartition", "StreamingDataflowPartition"]:
+        partition_node = getCustomOp(node)
+        model = ModelWrapper(partition_node.get_nodeattr("model"))
         inp_ctx = dict(filter(lambda x: x[0] in node.input, context.items()))
         # input may have been renamed in partition
         assert len(inp_ctx) == 1
@@ -63,10 +63,14 @@ def execute_node(node, context, graph, return_full_exec_context=False):
             inp_ctx[new_iname] = inp_ctx[old_iname]
             del inp_ctx[old_iname]
         ret = execute_onnx(model, inp_ctx, return_full_exec_context)
+
+        # only for StreamingDataflowPartition:
         # if the model was in ip-stitched rtlsim mode, may get annotation
-        # for numbet of elapsed cycles, save again
-        if model.get_metadata_prop("exec_mode") == "rtlsim":
-            model.save(sdp_node.get_nodeattr("model"))
+        # for number of elapsed cycles, save again
+        if node.op_type == "StreamingDataflowPartition":
+            if model.get_metadata_prop("exec_mode") == "rtlsim":
+                model.save(partition_node.get_nodeattr("model"))
+
         # output may have been renamed in partition
         assert len(model.graph.output) == 1
         node_oname = node.output[0]
