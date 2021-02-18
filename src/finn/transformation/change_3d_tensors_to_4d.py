@@ -29,11 +29,7 @@
 import warnings
 
 from finn.transformation.base import Transformation
-from finn.transformation.general import (
-    GiveReadableTensorNames,
-    GiveUniqueNodeNames,
-    RemoveUnusedTensors,
-)
+from finn.transformation.general import RemoveUnusedTensors
 from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
 
@@ -98,63 +94,52 @@ class Change3DTo4DTensors(Transformation):
         # and give each tensor a readable name
         model = model.transform(InferShapes())
         model = model.transform(RemoveUnusedTensors())
-        model = model.transform(GiveUniqueNodeNames())
-        model = model.transform(GiveReadableTensorNames())
 
-        # Converts 3D tensors representing the input, a value_info, or the output
-        # to 4D tensors
-        # Inputs
-        tensor_names = {}
-        for t in model.graph.input:
-            tensor_name = t.name
-            tensor_type = t.type.tensor_type.elem_type
-            tensor_shape = model.get_tensor_shape(tensor_name)
-            tensor_names[tensor_name] = [tensor_type]
-            tensor_names[tensor_name].append(tensor_shape)
+        # This list contains all nodes with initializers that need to be converted
+        nodes_with_initializers = ["Mul", "Conv", "Add"]
+        # Obtain a list of initializer names (used to filter out only value infos)
+        initializers_names = [x.name for x in model.graph.initializer]
 
-        # Initializers
-        initializer_names = []  # list with all initializers
-        initializers = {}  # list with initializers from Conv, Mul, and Add nodes
-        for i in model.graph.initializer:
-            init_name = i.name
-            initializer_names.append(init_name)
-            if "Conv" in init_name:
-                init_dim = i.dims
-                init_dtype = i.data_type
-                initializers[init_name] = [init_dtype]
-                initializers[init_name].append(init_dim)
-            elif init_name[0:4] == "Mul_":
-                init_dim = i.dims
-                if len(i.dims) == 3:
-                    init_dtype = i.data_type
-                    initializers[init_name] = [init_dtype]
-                    initializers[init_name].append(init_dim)
-            elif "Add" in init_name:
-                init_dim = i.dims
-                if len(i.dims) == 3:
-                    init_dtype = i.data_type
-                    initializers[init_name] = [init_dtype]
-                    initializers[init_name].append(init_dim)
+        all_tensors = {}
+        # Extract the inputs
+        all_tensors = {
+            **all_tensors,
+            **{
+                x.name: [x.type.tensor_type.elem_type, model.get_tensor_shape(x.name)]
+                for x in model.graph.input
+            },
+        }
+        # Extract only the output tensors
+        all_tensors = {
+            **all_tensors,
+            **{
+                x.name: [x.type.tensor_type.elem_type, model.get_tensor_shape(x.name)]
+                for x in model.graph.value_info
+                if x.name not in initializers_names
+            },
+        }
+        # Extract only initializers from Conv, Mul and Add nodes (which are the
+        # only ones relevant for conversion)
+        all_tensors = {
+            **all_tensors,
+            **{
+                x.name: [x.data_type, x.dims]
+                for x in model.graph.initializer
+                if model.find_consumers(x.name)[0].op_type in nodes_with_initializers
+            },
+        }
+        # Extract the outputs
+        all_tensors = {
+            **all_tensors,
+            **{
+                x.name: [x.type.tensor_type.elem_type, model.get_tensor_shape(x.name)]
+                for x in model.graph.output
+            },
+        }
 
-        # Value infos
-        for t in model.graph.value_info:
-            tensor_name = t.name
-            if tensor_name in initializer_names:
-                continue
-            else:
-                tensor_type = t.type.tensor_type.elem_type
-                tensor_shape = model.get_tensor_shape(tensor_name)
-                tensor_names[tensor_name] = [tensor_type]
-                tensor_names[tensor_name].append(tensor_shape)
-
-        # Outputs
-        for t in model.graph.output:
-            tensor_name = t.name
-            tensor_type = t.type.tensor_type.elem_type
-            tensor_shape = model.get_tensor_shape(tensor_name)
-            tensor_names[tensor_name] = [tensor_type]
-            tensor_names[tensor_name].append(tensor_shape)
-
+        # The list below contains tensor names that are the output of nodes that
+        # reduce the tensor's dimension. The shape of these tensors also needs
+        # to be extended
         tensors_reduced_dimension = []
         for n in model.graph.node:
             node_op_type = n.op_type
@@ -197,7 +182,7 @@ class Change3DTo4DTensors(Transformation):
                     strides.append(1)
 
         # Change format of each input/value_info/output tensor
-        for k, v in tensor_names.items():
+        for k, v in all_tensors.items():
             tensor_type = v[0]
             shape = v[1]
             # Add extra dimension for tensors that either:
@@ -206,14 +191,5 @@ class Change3DTo4DTensors(Transformation):
             if len(shape) == 3 or k in tensors_reduced_dimension:
                 shape.append(1)
                 model.set_tensor_shape(k, shape, tensor_type)
-
-        # Conv, Mul and Add nodes are made compatible with 4D input tensors
-        for k, v in initializers.items():
-            init_dtype = v[0]
-            init_shape = v[1]
-            if len(init_shape) == 3:
-                # Change shape (N,C,H) -> (N,C,H,1)
-                init_shape.append(1)
-                model.set_tensor_shape(k, init_shape, init_dtype)
 
         return (model, graph_modified)
