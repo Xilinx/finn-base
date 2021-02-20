@@ -32,6 +32,7 @@ from onnx import helper as oh
 
 from finn.transformation.base import Transformation
 from finn.transformation.infer_shapes import InferShapes
+from finn.util.basic import get_by_name
 
 
 class BatchNormToAffine(Transformation):
@@ -52,7 +53,8 @@ class BatchNormToAffine(Transformation):
                 bias = model.get_initializer(n.input[2])
                 mean = model.get_initializer(n.input[3])
                 variance = model.get_initializer(n.input[4])
-                epsilon = 1e-5
+                epsilon = get_by_name(n.attribute, "epsilon")
+                epsilon = getattr(epsilon, "f", 1e-5)
                 # find A and B to compute batchnorm as affine transpose Ax+B
                 # TODO is a division by moving avg factor needed for variance?
                 A = scale / np.sqrt(epsilon + variance)
