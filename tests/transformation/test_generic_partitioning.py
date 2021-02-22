@@ -26,13 +26,12 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pytest
 
-import onnx
-import onnx.numpy_helper as np_helper
-from pkgutil import get_data
+import numpy as np
+from onnx import TensorProto, helper
 
 import finn.core.onnx_exec as oxe
-from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 from finn.custom_op.registry import getCustomOp
 from finn.transformation.create_generic_partitions import PartitionFromDict
@@ -40,50 +39,73 @@ from finn.transformation.general import GiveReadableTensorNames, GiveUniqueNodeN
 from finn.transformation.infer_shapes import InferShapes
 
 
-def test_generic_partitioning():
-    # load pre model
-    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
-    model = ModelWrapper(raw_m)
-    # the input for model1 comes from a uint8 vector so we set the finn datatype
-    # of the input tensor to DataType.UINT8 to verify that the datatypes are correctly
-    # preserved in the transformed model
-    model.set_tensor_datatype(model.graph.input[0].name, DataType.UINT8)
+# select example partitioning
+@pytest.mark.parametrize("p", [0, 1, 2, 3])
+def test_generic_partitioning(p):
+    partitionings = [
+        {0: range(0, 4)},
+        {0: [0], 1: [3]},
+        {0: [1, 2]},
+        {"first": [0, 1], "last": [2, 3]},
+    ]
+    partitioning = partitionings[p]
+
+    # set up model
+    shape = [1, 10]
+    inp = helper.make_tensor_value_info("inp", TensorProto.FLOAT, shape)
+    a0 = helper.make_tensor_value_info("a0", TensorProto.FLOAT, [])
+    a1 = helper.make_tensor_value_info("a1", TensorProto.FLOAT, [])
+    a2 = helper.make_tensor_value_info("a2", TensorProto.FLOAT, [])
+    outp = helper.make_tensor_value_info("outp", TensorProto.FLOAT, shape)
+
+    mul_node = helper.make_node("Mul", ["inp", "a0"], ["mul_out"])
+    div_node = helper.make_node("Div", ["mul_out", "a1"], ["div_out"])
+    sub_node = helper.make_node("Sub", ["div_out", "a2"], ["sub_out"])
+    add_node = helper.make_node("Add", ["sub_out", "mul_out"], ["outp"])
+
+    graph = helper.make_graph(
+        nodes=[mul_node, div_node, sub_node, add_node],
+        name="model-graph",
+        inputs=[inp],
+        outputs=[outp],
+        value_info=[a0, a1, a2],
+    )
+
+    model = helper.make_model(graph, producer_name="model")
+    model = ModelWrapper(model)
+    # initialize model
+    a0_value = np.random.uniform(low=0, high=1, size=(1)).astype(np.float32)
+    model.set_initializer("a0", a0_value)
+    a1_value = np.random.uniform(low=0.1, high=1, size=(1)).astype(np.float32)
+    model.set_initializer("a1", a1_value)
+    a2_value = np.random.uniform(low=0.1, high=1, size=(1)).astype(np.float32)
+    model.set_initializer("a2", a2_value)
+
     model = model.transform(InferShapes())
     model = model.transform(GiveUniqueNodeNames())
     model = model.transform(GiveReadableTensorNames())
 
     # apply partitioning
-    partitioning = {0: [1, 2, 3], 1: range(6, 9), 10: [5]}
     model_parent = model.transform(PartitionFromDict(partitioning))
 
-    # examine created partitions
-    p_node = model_parent.get_nodes_by_op_type("GenericPartition")[0]
-    p_node = getCustomOp(p_node)
-    partition_model_filename = p_node.get_nodeattr("model")
-    model_child_1 = ModelWrapper(partition_model_filename)
-
-    p_node = model_parent.get_nodes_by_op_type("GenericPartition")[1]
-    p_node = getCustomOp(p_node)
-    partition_model_filename = p_node.get_nodeattr("model")
-    model_child_2 = ModelWrapper(partition_model_filename)
-
-    p_node = model_parent.get_nodes_by_op_type("GenericPartition")[2]
-    p_node = getCustomOp(p_node)
-    partition_model_filename = p_node.get_nodeattr("model")
-    model_child_3 = ModelWrapper(partition_model_filename)
-
-    # load one of the test vectors
-    raw_i = get_data("finn.data", "onnx/mnist-conv/test_data_set_0/input_0.pb")
-    inp_values = onnx.load_tensor_from_string(raw_i)
-    inp_values = np_helper.to_array(inp_values)
+    # random input data
+    inp_values = np.random.random_sample(shape).astype(np.float32)
     idict = {model.graph.input[0].name: inp_values}
 
     # test transformed model
     assert oxe.compare_execution(model, model_parent, idict)
 
+    # examine created partitions
+    num_nodes_expected = len(model.graph.node)
+    for p_node in model_parent.get_nodes_by_op_type("GenericPartition"):
+        p_node = getCustomOp(p_node)
+        p_model_filename = p_node.get_nodeattr("model")
+        model_child = ModelWrapper(p_model_filename)
+        num_nodes_expected -= len(model_child.graph.node) - 1
+
+    # count number of partitions
+    assert len(model_parent.get_nodes_by_op_type("GenericPartition")) == len(
+        partitioning
+    )
     # count number of nodes
-    assert len(model_parent.graph.node) == len(model.graph.node) - (
-        len(model_child_1.graph.node) - 1
-    ) - (len(model_child_2.graph.node) - 1) - (len(model_child_3.graph.node) - 1)
-    # check if finn datatype of graph.input[0] is still set to UINT8
-    assert model_parent.get_tensor_datatype("global_in") == DataType.UINT8
+    assert len(model_parent.graph.node) == num_nodes_expected

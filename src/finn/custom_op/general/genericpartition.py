@@ -46,8 +46,6 @@ class GenericPartition(CustomOp):
         pass
 
     def execute_node(self, context, graph):
-        # TODO add RPC execution with synthesized bitfile?
-        # whole-design rtlsim with PyVerilator may also be an alternative
         pass
 
     def verify_node(self):
@@ -74,11 +72,5 @@ class GenericPartition(CustomOp):
                 GenericPartition needs the following attribute(s):
                 model"""
             )
-
-        # verify the number of inputs
-        if len(self.onnx_node.input) >= 1:
-            info_messages.append("The number of inputs is correct")
-        else:
-            info_messages.append("GenericPartition needs 1 data input")
 
         return info_messages
