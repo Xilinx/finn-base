@@ -41,12 +41,16 @@ export_onnx_path = "test_truthtable.onnx"
 
 def test_truthtable():
 
-    inputs = helper.make_tensor_value_info("inputs", TensorProto.FLOAT, [10]) #Input bitwidth 10
-    results = helper.make_tensor_value_info("results", TensorProto.FLOAT, [5]) #5 results are 1 among all possible combinations
+    inputs = helper.make_tensor_value_info(
+        "inputs", TensorProto.FLOAT, [10]
+    )  # Input bitwidth 10
+    results = helper.make_tensor_value_info(
+        "results", TensorProto.FLOAT, [5]
+    )  # 5 results are 1 among all possible combinations
     output = helper.make_tensor_value_info("output", TensorProto.FLOAT, [1])
 
     node_def = helper.make_node(
-        "TruthTable", ["inputs", "results"], ["output"], domain = "finn.custom_op.general"
+        "TruthTable", ["inputs", "results"], ["output"], domain="finn.custom_op.general"
     )
     modelproto = helper.make_model(
         helper.make_graph([node_def], "test_model", [inputs, results], [output])
@@ -55,31 +59,25 @@ def test_truthtable():
     model = ModelWrapper(modelproto)
     model.set_tensor_datatype("inputs", DataType.BINARY)
     model.set_tensor_datatype("results", DataType.UINT32)
-    #test output shape
+    # test output shape
     model = model.transform(InferShapes())
     assert model.get_tensor_shape("output") == [1]
-    #test output type
+    # test output type
     assert model.get_tensor_datatype("output") is DataType.FLOAT32
     model = model.transform(InferDataTypes())
     assert model.get_tensor_datatype("output") is DataType.BINARY
-    #perform execution
-    input_data = np.asarray([1,0,0,1,1,0,0,0,1,1], dtype=np.float32)
-    results_data = np.asarray([5,8,14,198,611], dtype=np.float32)
+    # perform execution
+    input_data = np.asarray([1, 0, 0, 1, 1, 0, 0, 0, 1, 1], dtype=np.float32)
+    results_data = np.asarray([5, 8, 14, 198, 611], dtype=np.float32)
     in_dict = {"inputs": input_data, "results": results_data}
     out_dict = oxe.execute_onnx(model, in_dict)
 
-    #calculate result here for comparison with the custom op
+    # calculate result here for comparison with the custom op
     input_data = input_data[::-1]
     out_idx = 0
     for idx, val in enumerate(input_data):
-        out_idx += ((1<<idx) * val)
+        out_idx += (1 << idx) * val
     entry = 1 if out_idx in results_data else 0
 
-    #compare outputs
+    # compare outputs
     assert entry == out_dict["output"]
-
-
-
-    
-
-
