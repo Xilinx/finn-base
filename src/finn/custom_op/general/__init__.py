@@ -32,7 +32,6 @@ from finn.custom_op.general.im2col import Im2Col
 from finn.custom_op.general.maxpoolnhwc import MaxPoolNHWC
 from finn.custom_op.general.multithreshold import MultiThreshold
 from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
-from finn.custom_op.general.streamingdataflowpartition import StreamingDataflowPartition
 from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
 
 custom_op = dict()
@@ -41,7 +40,6 @@ custom_op["DebugMarker"] = DebugMarker
 custom_op["QuantAvgPool2d"] = QuantAvgPool2d
 custom_op["MaxPoolNHWC"] = MaxPoolNHWC
 custom_op["GenericPartition"] = GenericPartition
-custom_op["StreamingDataflowPartition"] = StreamingDataflowPartition
 custom_op["MultiThreshold"] = MultiThreshold
 custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
 custom_op["Im2Col"] = Im2Col
