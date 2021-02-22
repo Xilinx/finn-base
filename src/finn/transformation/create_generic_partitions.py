@@ -180,13 +180,12 @@ class PartitionFromDict(Transformation):
     attribute indicating the path to the subordinate onnx file.
     Cleanup and InferShapes() transformations should be applied first.
 
-    Provides a more convenient dictionary interface around PartitionFromLambda()
+    This transformation builds on PartitionFromLambda() and takes a dictionary that
+    defines partitions based on node indices.
 
     Argument 0: partitioning
     * Dictionary with the following format:  { partition_id : node_index_list }
-    * Example:
-       {0 : [3,4,5],
-        1 : range(10, 15)}
+    * Example: {0 : [3,4,5], 1 : range(10, 15)}
 
     Argument 1 (optional): partition_dir
     * Manually define where to save the partition models
