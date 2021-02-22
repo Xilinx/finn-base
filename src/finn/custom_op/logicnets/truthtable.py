@@ -1,4 +1,3 @@
-import numpy as np
 import onnx.helper as helper
 
 from finn.core.datatype import DataType
@@ -7,9 +6,9 @@ from finn.custom_op.base import CustomOp
 
 def truthtable(inputs, results):
     """Returns the output to a combination of x-bit input value. The results array
-    reflect the 1 values in the truth table result. If 5 is provided in the result vector,
-    the result to fifth combination of inputs 101 is 1. The input is a vector size x, representing
-    x-bits binary input. An example is presented:
+    reflect the 1 values in the truth table result. If 5 is provided in the result
+    vector, the result to fifth combination of inputs 101 is 1. The input is a
+    vector size x, representing x-bits binary input. An example is presented:
 
     inputs = [1, 0, 1]
     results = [1, 2]
@@ -24,54 +23,57 @@ def truthtable(inputs, results):
                                 1   0   1   |   0
                                 1   1   0   |   0
                                 1   1   1   |   0
-                                
+
     """
-    inputs = inputs[::-1] #reverse input array for C style indexing
-    
-    in_int = 0 #integer representation of the binary input
+    inputs = inputs[::-1]  # reverse input array for C style indexing
 
-    for idx,in_val in enumerate(inputs):
-        in_int += ((1<<idx) * in_val) #calculate integer value of binary input
+    in_int = 0  # integer representation of the binary input
 
-    output = 1 if in_int in results else 0 #return 1 if the result entry for that value is 1
+    for idx, in_val in enumerate(inputs):
+        in_int += (1 << idx) * in_val  # calculate integer value of binary input
+
+    output = (
+        1 if in_int in results else 0
+    )  # return 1 if the result entry for that value is 1
 
     return output
+
 
 class TruthTable(CustomOp):
     """The class corresponing to the TruthTable function. """
 
     def get_nodeattr_types(self):
         return {}
-    
-    def make_shape_compatible_op(self,model):
+
+    def make_shape_compatible_op(self, model):
         node = self.onnx_node
         return helper.make_node(
-            "TruthTable", [node.input[0],node.input[1]], [node.output[0]]
+            "TruthTable", [node.input[0], node.input[1]], [node.output[0]]
         )
 
     def infer_node_datatype(self, model):
         node = self.onnx_node
-        #check that the input[0] is binary
-        assert(
+        # check that the input[0] is binary
+        assert (
             model.get_tensor_datatype(node.input[0]) == DataType["BINARY"]
         ), """ The input vector DataType is not BINARY."""
-        #check that the input[0] is UINT32
-        assert(
+        # check that the input[0] is UINT32
+        assert (
             model.get_tensor_datatype(node.input[1]) == DataType["UINT32"]
         ), """ The input vector DataType is not UINT32."""
         model.set_tensor_datatype(node.output[0], DataType["BINARY"])
 
     def execute_node(self, context, graph):
         node = self.onnx_node
-        #load inputs
+        # load inputs
         input_entry = context[node.input[0]]
         results = context[node.input[1]]
-        #calculate output
+        # calculate output
         output = truthtable(input_entry, results)
-        #store output
+        # store output
         context[node.output[0]] = output
 
-    def verify_node(self): #taken from "xnorpopcount.py"
+    def verify_node(self):  # taken from "xnorpopcount.py"
         info_messages = []
 
         # verify number of attributes
