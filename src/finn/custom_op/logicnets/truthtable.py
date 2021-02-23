@@ -1,4 +1,5 @@
-import onnx.helper as helper
+import numpy as np
+from onnx import TensorProto, helper
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
@@ -43,12 +44,31 @@ class TruthTable(CustomOp):
     """The class corresponing to the TruthTable function. """
 
     def get_nodeattr_types(self):
-        return {}
+        return {
+            # The number used for the Don't care entries
+            "dont_care": ("i", False, 0),
+            # Number of intput bits, 2 by default
+            "in_bits": ("i", True, 2),
+            # Code generation mode
+            "code_mode": ("s", False, "Verilog"),
+        }
 
     def make_shape_compatible_op(self, model):
         node = self.onnx_node
+        iname = node.input[0]
+        ishape = model.get_tensor_shape(iname)
+        input_bits = self.get_nodeattr("in_bits")
+        assert input_bits == ishape[0]
         return helper.make_node(
-            "TruthTable", [node.input[0], node.input[1]], [node.output[0]]
+            "Constant",
+            inputs=[],
+            outputs=[self.onnx_node.output[0]],
+            value=helper.make_tensor(
+                name="const_tensor",
+                data_type=TensorProto.BINARY,
+                dims=1,
+                vals=np.random.randint(2),
+            ),
         )
 
     def infer_node_datatype(self, model):
