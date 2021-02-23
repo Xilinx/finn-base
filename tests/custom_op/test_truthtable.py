@@ -41,6 +41,9 @@ export_onnx_path = "test_truthtable.onnx"
 
 def test_truthtable():
 
+    input_data = np.asarray([1, 0, 0, 1, 1, 0, 0, 0, 1, 1], dtype=np.float32)
+    results_data = np.asarray([5, 8, 14, 198, 611], dtype=np.float32)
+
     inputs = helper.make_tensor_value_info(
         "inputs", TensorProto.FLOAT, [10]
     )  # Input bitwidth 10
@@ -50,7 +53,11 @@ def test_truthtable():
     output = helper.make_tensor_value_info("output", TensorProto.FLOAT, [1])
 
     node_def = helper.make_node(
-        "TruthTable", ["inputs", "results"], ["output"], domain="finn.custom_op.general"
+        "TruthTable",
+        ["inputs", "results"],
+        ["output"],
+        domain="finn.custom_op.general",
+        in_bits=input_data.size,
     )
     modelproto = helper.make_model(
         helper.make_graph([node_def], "test_model", [inputs, results], [output])
@@ -67,8 +74,6 @@ def test_truthtable():
     model = model.transform(InferDataTypes())
     assert model.get_tensor_datatype("output") is DataType.BINARY
     # perform execution
-    input_data = np.asarray([1, 0, 0, 1, 1, 0, 0, 0, 1, 1], dtype=np.float32)
-    results_data = np.asarray([5, 8, 14, 198, 611], dtype=np.float32)
     in_dict = {"inputs": input_data, "results": results_data}
     out_dict = oxe.execute_onnx(model, in_dict)
 
