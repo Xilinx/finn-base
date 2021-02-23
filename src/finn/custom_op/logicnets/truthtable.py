@@ -1,5 +1,4 @@
-import numpy as np
-from onnx import TensorProto, helper
+from onnx import helper
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
@@ -60,15 +59,7 @@ class TruthTable(CustomOp):
         input_bits = self.get_nodeattr("in_bits")
         assert input_bits == ishape[0]
         return helper.make_node(
-            "Constant",
-            inputs=[],
-            outputs=[self.onnx_node.output[0]],
-            value=helper.make_tensor(
-                name="const_tensor",
-                data_type=TensorProto.BINARY,
-                dims=1,
-                vals=np.random.randint(2),
-            ),
+            "TruthTable", [node.input[0], node.input[1]], [node.output[0]]
         )
 
     def infer_node_datatype(self, model):
