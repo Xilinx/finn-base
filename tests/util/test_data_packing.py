@@ -29,6 +29,7 @@
 import numpy as np
 
 from finn.core.datatype import DataType
+from finn.util.basic import gen_finn_dt_tensor
 from finn.util.data_packing import (
     array2hexstring,
     finnpy_to_packed_bytearray,
@@ -84,6 +85,23 @@ def test_finnpy_to_packed_bytearray():
         dtype=np.uint8,
     )
     assert (finnpy_to_packed_bytearray(E, DataType.INT32) == eE).all()
+
+
+def test_finnpy_to_packed_bytearray_fastmode_binary():
+    def test_fast_vs_slow_random(idt, ishape):
+        iarr = gen_finn_dt_tensor(idt, ishape)
+        ret_slow = finnpy_to_packed_bytearray(
+            iarr, idt, reverse_endian=True, reverse_inner=True, fast_mode=False
+        )
+        ret_fast = finnpy_to_packed_bytearray(
+            iarr, idt, reverse_endian=True, reverse_inner=True, fast_mode=True
+        )
+        assert (ret_fast == ret_slow).all()
+
+    for i in range(5):
+        test_fast_vs_slow_random(DataType.BIPOLAR, (1, 8))
+        test_fast_vs_slow_random(DataType.BINARY, (1, 16))
+        test_fast_vs_slow_random(DataType.BIPOLAR, (10, 600))
 
 
 def test_packed_bytearray_to_finnpy():
