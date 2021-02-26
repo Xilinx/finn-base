@@ -1,17 +1,21 @@
+import numpy as np
 from onnx import helper
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
 
 
-def truthtable(inputs, results):
-    """Returns the output to a combination of x-bit input value. The results array
-    reflect the 1 values in the truth table result. If 5 is provided in the result
-    vector, the result to fifth combination of inputs 101 is 1. The input is a
-    vector size x, representing x-bits binary input. An example is presented:
+def truthtable(inputs, result_one, result_zero, node):
+    """Returns the output to a combination of x-bit input value. The result_one array
+    reflect the 1 values in the truth table results. The result_zero vector represents
+    the 0 values in the truth table results. The rest of the results are imcomplete
+    table entries. If 5 is provided in the result vector, the result to fifth
+    combination of inputs 101 is 1. The input is a vector size x, representing
+    x-bits binary input. An example is presented:
 
     inputs = [1, 0, 1]
-    results = [1, 2]
+    result_one = [1, 2]
+    result_zero = [0, 3, 5]
 
     Possible combinations:      A   B   C   |   Results
                                 -------------------
@@ -19,22 +23,29 @@ def truthtable(inputs, results):
                                 0   0   1   |   1
                                 0   1   0   |   1
                                 0   1   1   |   0
-                                1   0   0   |   0
+                                1   0   0   |   X
                                 1   0   1   |   0
-                                1   1   0   |   0
-                                1   1   1   |   0
+                                1   1   0   |   X
+                                1   1   1   |   X
 
     """
+    # check if any of the values overlaps
+    assert np.any(np.in1d(result_one, result_zero)) == 0
+
     inputs = inputs[::-1]  # reverse input array for C style indexing
 
     in_int = 0  # integer representation of the binary input
+
+    dont_care = node.get_nodeattr("dont_care")  # get the dont care value
 
     for idx, in_val in enumerate(inputs):
         in_int += (1 << idx) * in_val  # calculate integer value of binary input
 
     output = (
-        1 if in_int in results else 0
-    )  # return 1 if the result entry for that value is 1
+        1 if in_int in result_one else (0 if in_int in result_zero else dont_care)
+    )  # return 1 if the input is in result_one
+    # return 0 if the input is in result_zero
+    # return dont_care if the input is incomplete
 
     return output
 
@@ -50,14 +61,16 @@ class TruthTable(CustomOp):
             "in_bits": ("i", True, 2),
             # Code generation mode
             "code_mode": ("s", False, "Verilog"),
+            # Output code directory
+            "code_dir": ("s", False, ""),
         }
 
     def make_shape_compatible_op(self, model):
         node = self.onnx_node
-        iname = node.input[0]
-        ishape = model.get_tensor_shape(iname)
-        input_bits = self.get_nodeattr("in_bits")
-        assert input_bits == ishape[0]
+        # iname = node.input[0]
+        # ishape = model.get_tensor_shape(iname)
+        # input_bits = self.get_nodeattr("in_bits")
+        # assert input_bits == ishape[0]
         return helper.make_node(
             "TruthTable", [node.input[0], node.input[1]], [node.output[0]]
         )
@@ -68,19 +81,25 @@ class TruthTable(CustomOp):
         assert (
             model.get_tensor_datatype(node.input[0]) == DataType["BINARY"]
         ), """ The input vector DataType is not BINARY."""
-        # check that the input[0] is UINT32
+        # check that the input[1] is UINT32
         assert (
             model.get_tensor_datatype(node.input[1]) == DataType["UINT32"]
         ), """ The input vector DataType is not UINT32."""
-        model.set_tensor_datatype(node.output[0], DataType["BINARY"])
+        # check that the input[2] is UINT32
+        assert (
+            model.get_tensor_datatype(node.input[2]) == DataType["UINT32"]
+        ), """ The input vector DataType is not UINT32."""
+        # set output to UINT32
+        model.set_tensor_datatype(node.output[0], DataType["UINT32"])
 
     def execute_node(self, context, graph):
         node = self.onnx_node
         # load inputs
         input_entry = context[node.input[0]]
-        results = context[node.input[1]]
+        result_one = context[node.input[1]]
+        result_zero = context[node.input[2]]
         # calculate output
-        output = truthtable(input_entry, results)
+        output = truthtable(input_entry, result_one, result_zero, self)
         # store output
         context[node.output[0]] = output
 
