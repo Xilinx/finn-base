@@ -33,9 +33,11 @@ from onnx import TensorProto
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
-from finn.transformation.gen_verilog_truth import GenVerilogTruthTable
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
+from finn.transformation.logicnets.gen_bintruthtable_verilog import (
+    GenBinaryTruthTableVerilog,
+)
 
 export_onnx_path = "test_truthtable.onnx"
 
@@ -43,40 +45,31 @@ export_onnx_path = "test_truthtable.onnx"
 def test_truthtable():
 
     input_data = np.asarray([1, 0, 0, 1, 1, 0, 0, 0, 1, 1], dtype=np.float32)
-    result_one_data = np.asarray([58, 15, 89, 695, 6485], dtype=np.float32)
-    result_zero_data = np.asarray([52, 65, 1908, 6101], dtype=np.float32)
-    dont_care = 0
+    care_set_data = np.asarray([1, 58, 15, 89, 695, 6485], dtype=np.float32)
     in_bits = 16
 
     inputs = helper.make_tensor_value_info(
         "inputs", TensorProto.FLOAT, [input_data.size]
     )
-    result_one = helper.make_tensor_value_info(
-        "result_one", TensorProto.FLOAT, [result_one_data.size]
-    )
-    result_zero = helper.make_tensor_value_info(
-        "result_zero", TensorProto.FLOAT, [result_zero_data.size]
+    care_set = helper.make_tensor_value_info(
+        "care_set", TensorProto.FLOAT, [care_set_data.size]
     )
     output = helper.make_tensor_value_info("output", TensorProto.FLOAT, [1])
 
     node_def = helper.make_node(
-        "TruthTable",
-        ["inputs", "result_one", "result_zero"],
+        "BinaryTruthTable",
+        ["inputs", "care_set"],
         ["output"],
         domain="finn.custom_op.general",
         in_bits=in_bits,
-        dont_care=dont_care,
     )
     modelproto = helper.make_model(
-        helper.make_graph(
-            [node_def], "test_model", [inputs, result_one, result_zero], [output]
-        )
+        helper.make_graph([node_def], "test_model", [inputs, care_set], [output])
     )
 
     model = ModelWrapper(modelproto)
     model.set_tensor_datatype("inputs", DataType.BINARY)
-    model.set_tensor_datatype("result_one", DataType.UINT32)
-    model.set_tensor_datatype("result_zero", DataType.UINT32)
+    model.set_tensor_datatype("care_set", DataType.UINT32)
 
     # test output shape
     model = model.transform(InferShapes())
@@ -84,12 +77,11 @@ def test_truthtable():
     # test output type
     assert model.get_tensor_datatype("output") is DataType.FLOAT32
     model = model.transform(InferDataTypes())
-    assert model.get_tensor_datatype("output") is DataType.UINT32
+    assert model.get_tensor_datatype("output") is DataType.BINARY
     # perform execution
     in_dict = {
         "inputs": input_data,
-        "result_one": result_one_data,
-        "result_zero": result_zero_data,
+        "care_set": care_set_data,
     }
     out_dict = oxe.execute_onnx(model, in_dict)
 
@@ -98,17 +90,11 @@ def test_truthtable():
     out_idx = 0
     for idx, val in enumerate(input_data):
         out_idx += (1 << idx) * val
-    entry = (
-        1
-        if out_idx in result_one_data
-        else (0 if out_idx in result_zero_data else dont_care)
-    )
+    entry = 1 if out_idx in care_set_data else 0
 
     # compare outputs
     assert entry == out_dict["output"]
     # test transformation to generate verilog
     model = model.transform(
-        GenVerilogTruthTable(
-            num_workers=None, result_one=result_one_data, result_zero=result_zero_data
-        )
+        GenBinaryTruthTableVerilog(num_workers=None, care_set=care_set_data)
     )
