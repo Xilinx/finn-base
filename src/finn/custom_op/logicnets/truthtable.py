@@ -1,21 +1,20 @@
 import numpy as np
+import onnx
 from onnx import helper
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
 
 
-def truthtable(inputs, result_one, result_zero, node):
-    """Returns the output to a combination of x-bit input value. The result_one array
-    reflect the 1 values in the truth table results. The result_zero vector represents
-    the 0 values in the truth table results. The rest of the results are imcomplete
-    table entries. If 5 is provided in the result vector, the result to fifth
+def truthtable_binary(inputs, care_set, node):
+    """Returns the output to a combination of x-bit input value. The care_set array
+    reflects the true values in the truth table results. The rest of the entries are
+    just zero or dont-cares. If 5 is provided in the care-set, the result to fifth
     combination of inputs 101 is 1. The input is a vector size x, representing
     x-bits binary input. An example is presented:
 
     inputs = [1, 0, 1]
-    result_one = [1, 2]
-    result_zero = [0, 3, 5]
+    care_set = [1, 2]
 
     Possible combinations:      A   B   C   |   Results
                                 -------------------
@@ -23,40 +22,30 @@ def truthtable(inputs, result_one, result_zero, node):
                                 0   0   1   |   1
                                 0   1   0   |   1
                                 0   1   1   |   0
-                                1   0   0   |   X
+                                1   0   0   |   0
                                 1   0   1   |   0
-                                1   1   0   |   X
-                                1   1   1   |   X
+                                1   1   0   |   0
+                                1   1   1   |   0
 
     """
-    # check if any of the values overlaps
-    assert np.any(np.in1d(result_one, result_zero)) == 0
 
     inputs = inputs[::-1]  # reverse input array for C style indexing
 
-    in_int = 0  # integer representation of the binary input
-
-    dont_care = node.get_nodeattr("dont_care")  # get the dont care value
+    in_int = 0  # initialize integer representation of the binary input array
 
     for idx, in_val in enumerate(inputs):
         in_int += (1 << idx) * in_val  # calculate integer value of binary input
 
-    output = (
-        1 if in_int in result_one else (0 if in_int in result_zero else dont_care)
-    )  # return 1 if the input is in result_one
-    # return 0 if the input is in result_zero
-    # return dont_care if the input is incomplete
+    output = 1 if in_int in care_set else 0  # return 1 if the input is in result_one
 
     return output
 
 
-class TruthTable(CustomOp):
+class BinaryTruthTable(CustomOp):
     """The class corresponing to the TruthTable function. """
 
     def get_nodeattr_types(self):
         return {
-            # The number used for the Don't care entries
-            "dont_care": ("i", False, 0),
             # Number of intput bits, 2 by default
             "in_bits": ("i", True, 2),
             # Code generation mode
@@ -67,13 +56,19 @@ class TruthTable(CustomOp):
 
     def make_shape_compatible_op(self, model):
         node = self.onnx_node
-        # iname = node.input[0]
-        # ishape = model.get_tensor_shape(iname)
-        # input_bits = self.get_nodeattr("in_bits")
-        # assert input_bits == ishape[0]
-        return helper.make_node(
-            "TruthTable", [node.input[0], node.input[1]], [node.output[0]]
+        val = np.random.randn(1).astype(np.bool)
+        node = helper.make_node(
+            "Constant",
+            inputs=[],
+            outputs=["val"],
+            value=helper.make_tensor(
+                name="const_tensor",
+                data_type=onnx.TensorProto.BOOL,
+                dims=val.shape,
+                vals=val.flatten().astype(bool),
+            ),
         )
+        return node
 
     def infer_node_datatype(self, model):
         node = self.onnx_node
@@ -86,20 +81,15 @@ class TruthTable(CustomOp):
             model.get_tensor_datatype(node.input[1]) == DataType["UINT32"]
         ), """ The input vector DataType is not UINT32."""
         # check that the input[2] is UINT32
-        assert (
-            model.get_tensor_datatype(node.input[2]) == DataType["UINT32"]
-        ), """ The input vector DataType is not UINT32."""
-        # set output to UINT32
-        model.set_tensor_datatype(node.output[0], DataType["UINT32"])
+        model.set_tensor_datatype(node.output[0], DataType["BINARY"])
 
     def execute_node(self, context, graph):
         node = self.onnx_node
         # load inputs
         input_entry = context[node.input[0]]
-        result_one = context[node.input[1]]
-        result_zero = context[node.input[2]]
+        care_set = context[node.input[1]]
         # calculate output
-        output = truthtable(input_entry, result_one, result_zero, self)
+        output = truthtable_binary(input_entry, care_set, self)
         # store output
         context[node.output[0]] = output
 
@@ -128,3 +118,32 @@ class TruthTable(CustomOp):
             info_messages.append("TruthTable needs 2 data inputs")
 
         return info_messages
+
+    def generate_verilog(self, care_set):
+
+        input_bits = self.get_nodeattr("in_bits")
+        # the module name is kept constant to "incomplete_table"
+        # the input name is kept constant to "in"
+        # the output is kept constant to "result"
+        verilog_string = "module incomplete_table (\n"
+        verilog_string += "\tinput [%d:0] in,\n" % (input_bits - 1)
+        verilog_string += "\t output reg result\n"
+        verilog_string += ");\n\n"
+        verilog_string += "\talways @(in) begin\n"
+        verilog_string += "\t\tcase(in)\n"
+
+        # fill the one entries
+        for val in care_set:
+            val = int(val)
+            verilog_string += "\t\t\t%d'b" % (input_bits)
+            verilog_string += bin(val)[2:].zfill(input_bits)
+            verilog_string += " : result = 1'b1;\n"
+
+        # fill the rest of the combinations with 0
+        verilog_string += "\t\t\tdefault: result = 1'b0;\n"
+        # close the module
+        verilog_string += "\t\tendcase\n\tend\nendmodule\n"
+        # open file, write string and close file
+        verilog_file = open("my_truthtable.v", "w")
+        verilog_file.write(verilog_string)
+        verilog_file.close()

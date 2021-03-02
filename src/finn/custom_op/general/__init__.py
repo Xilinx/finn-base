@@ -33,7 +33,7 @@ from finn.custom_op.general.multithreshold import MultiThreshold
 from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
 from finn.custom_op.general.streamingdataflowpartition import StreamingDataflowPartition
 from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
-from finn.custom_op.logicnets.truthtable import TruthTable
+from finn.custom_op.logicnets.truthtable import BinaryTruthTable
 
 custom_op = dict()
 
@@ -44,4 +44,4 @@ custom_op["StreamingDataflowPartition"] = StreamingDataflowPartition
 custom_op["MultiThreshold"] = MultiThreshold
 custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
 custom_op["Im2Col"] = Im2Col
-custom_op["TruthTable"] = TruthTable
+custom_op["BinaryTruthTable"] = BinaryTruthTable

@@ -30,56 +30,29 @@ import finn.custom_op.registry as registry
 from finn.transformation.base import NodeLocalTransformation
 
 
-def _generate_verilog(myOp, result_one, result_zero):
-    input_bits = myOp.get_nodeattr("in_bits")
-    dont_care_entry = myOp.get_nodeattr("dont_care")
-    # the module name is kept constant to "inconsistent_table"
-    # the input name is kept constant to "in"
-    # the output is kept constant to "result"
-    verilog_string = "module inconsistent_table (\n"
-    verilog_string += "\tinput [%d:0] in,\n" % (input_bits - 1)
-    verilog_string += "\t output reg result\n"
-    verilog_string += ");\n\n"
-    verilog_string += "\talways @(in) begin\n"
-    verilog_string += "\t\tcase(in)\n"
+def _genbintruthtable_verilog(node, care_set):
+    """Calls Verilog generation helper function inside the customOp class"""
+    op_type = node.op_type
+    try:
+        myOp = registry.getCustomOp(node)
+        myOp.generate_verilog(care_set)
 
-    # fill the one entries
-    for val in result_one:
-        val = int(val)
-        verilog_string += "\t\t\t%d'b" % (input_bits)
-        verilog_string += bin(val)[2:].zfill(input_bits)
-        print(val)
-        verilog_string += " : result = 1'b1;\n"
-    # fill the zero entries
-    for val in result_zero:
-        val = int(val)
-        verilog_string += "\t\t\t%d'b" % (input_bits)
-        verilog_string += bin(val)[2:].zfill(input_bits)
-        verilog_string += " : result = 1'b0;\n"
-    # fill the default case for dont_care or inconsistent entries
-    verilog_string += "\t\t\tdefault: result = 1'b%d;\n" % (dont_care_entry)
-    # close the module
-    verilog_string += "\t\tendcase\n\tend\nendmodule\n"
-    # open file, write string and close file
-    verilog_file = open("my_truthtable.v", "w")
-    verilog_file.write(verilog_string)
-    verilog_file.close()
+    except KeyError:
+        # exception if op_type is not supported
+        raise Exception("Custom op_type %s is currently not supported." % op_type)
 
 
-class GenVerilogTruthTable(NodeLocalTransformation):
+class GenBinaryTruthTableVerilog(NodeLocalTransformation):
     """Generate a Verilog file for every node in the Graph using the
     TruthTable custom operation"""
 
-    def __init__(self, num_workers, result_one, result_zero):
+    def __init__(self, num_workers, care_set):
         super().__init__(num_workers=num_workers)
-        self.result_one = result_one
-        self.result_zero = result_zero
+        self.care_set = care_set
 
     def applyNodeLocal(self, node):
         op_type = node.op_type
-        if op_type == "TruthTable":
-            myOp = registry.getCustomOp(node)
-            print(self.result_one)
-            _generate_verilog(myOp, self.result_one, self.result_zero)
+        if op_type == "BinaryTruthTable":
+            _genbintruthtable_verilog(node, self.care_set)
 
         return (node, False)
