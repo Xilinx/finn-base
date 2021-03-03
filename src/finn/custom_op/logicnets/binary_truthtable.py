@@ -28,6 +28,7 @@
 
 import numpy as np
 import onnx
+import os
 from onnx import helper
 
 from finn.core.datatype import DataType
@@ -79,7 +80,7 @@ class BinaryTruthTable(CustomOp):
             # Code generation mode
             "code_mode": ("s", False, "Verilog"),
             # Output code directory
-            "code_dir": ("s", False, ""),
+            "code_dir": ("s", False, "src/finn/data/verilog/truthtable/"),
         }
 
     def make_shape_compatible_op(self, model):
@@ -172,6 +173,12 @@ class BinaryTruthTable(CustomOp):
         # close the module
         verilog_string += "\t\tendcase\n\tend\nendmodule\n"
         # open file, write string and close file
-        verilog_file = open("my_truthtable.v", "w")
+
+        dir = self.get_nodeattr("code_dir")
+
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
+        verilog_file = open(dir + "binary_truthtable.v", "w")
         verilog_file.write(verilog_string)
         verilog_file.close()
