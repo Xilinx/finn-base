@@ -6,7 +6,7 @@ from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
 
 
-def truthtable_binary(inputs, care_set, node):
+def binary_truthtable(inputs, care_set, node):
     """Returns the output to a combination of x-bit input value. The care_set array
     reflects the true values in the truth table results. The rest of the entries are
     just zero or dont-cares. If 5 is provided in the care-set, the result to fifth
@@ -89,7 +89,7 @@ class BinaryTruthTable(CustomOp):
         input_entry = context[node.input[0]]
         care_set = context[node.input[1]]
         # calculate output
-        output = truthtable_binary(input_entry, care_set, self)
+        output = binary_truthtable(input_entry, care_set, self)
         # store output
         context[node.output[0]] = output
 

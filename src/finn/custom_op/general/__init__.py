@@ -33,7 +33,7 @@ from finn.custom_op.general.maxpoolnhwc import MaxPoolNHWC
 from finn.custom_op.general.multithreshold import MultiThreshold
 from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
 from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
-from finn.custom_op.logicnets.truthtable import BinaryTruthTable
+from finn.custom_op.logicnets.binary_truthtable import BinaryTruthTable
 
 custom_op = dict()
 
