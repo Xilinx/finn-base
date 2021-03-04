@@ -179,6 +179,6 @@ class BinaryTruthTable(CustomOp):
         if not os.path.exists(dir):
             os.makedirs(dir)
 
-        verilog_file = open(dir + "binary_truthtable.v", "w")
+        verilog_file = open(dir + "incomplete_table.v", "w")
         verilog_file.write(verilog_string)
         verilog_file.close()
