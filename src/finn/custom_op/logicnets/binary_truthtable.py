@@ -30,9 +30,11 @@ import numpy as np
 import onnx
 import os
 from onnx import helper
+from pyverilator import PyVerilator
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
+from finn.util.data_packing import npy_to_rtlsim_input
 
 
 def binary_truthtable(inputs, care_set, node):
@@ -80,7 +82,13 @@ class BinaryTruthTable(CustomOp):
             # Code generation mode
             "code_mode": ("s", False, "Verilog"),
             # Output code directory
-            "code_dir": ("s", False, "src/finn/data/verilog/truthtable/"),
+            "code_dir": (
+                "s",
+                False,
+                "/workspace/finn-base/src/finn/data/verilog/truthtable/",
+            ),
+            # Execution mode, "pyhton" by default
+            "exec_mode": ("s", True, "python"),
         }
 
     def make_shape_compatible_op(self, model):
@@ -101,28 +109,52 @@ class BinaryTruthTable(CustomOp):
 
     def infer_node_datatype(self, model):
         node = self.onnx_node
-        # check that the input[0] is binary
+        # Check that the input[0] is binary
         assert (
             model.get_tensor_datatype(node.input[0]) == DataType["BINARY"]
         ), """ The input vector DataType is not BINARY."""
-        # check that the input[1] is UINT32
+        # Check that the input[1] is UINT32
         assert (
             model.get_tensor_datatype(node.input[1]) == DataType["UINT32"]
         ), """ The input vector DataType is not UINT32."""
-        # check that the input[2] is UINT32
+        # Check that the input[2] is UINT32
         model.set_tensor_datatype(node.output[0], DataType["BINARY"])
 
     def execute_node(self, context, graph):
         node = self.onnx_node
-        # load inputs
+        # Load inputs
         input_entry = context[node.input[0]]
         care_set = context[node.input[1]]
-        # calculate output
-        output = binary_truthtable(input_entry, care_set, self)
-        # store output
+        # Load execution mode
+        mode = self.get_nodeattr("exec_mode")
+        if mode == "python":
+            # Calculate output in Python mode
+            output = binary_truthtable(input_entry, care_set, self)
+        elif mode == "rtlsim":
+            # Generate PyVerilator object if Verilog file exits,
+            # otherwise generate Verilog and proceed
+            verilog_dir = self.get_nodeattr("code_dir") + "incomplete_table.v"
+            if not os.path.exists(verilog_dir):
+                self.generate_verilog(care_set)
+            sim = PyVerilator.build(verilog_dir)
+            bits = self.get_nodeattr("in_bits")
+            # Convert input binary float array into an integer
+            value = npy_to_rtlsim_input(input_entry, DataType.BINARY, bits, False)[0]
+            # Set value into the Verilog module
+            sim.io["in"] = value
+            # Read result value
+            output = sim.io["result"]
+        else:
+            raise Exception(
+                """Invalid value for attribute exec_mode! Is currently set to: {}
+            has to be set to one of the following value ("python", "rtlsim")""".format(
+                    mode
+                )
+            )
+        # Return output
         context[node.output[0]] = output
 
-    def verify_node(self):  # taken from "xnorpopcount.py"
+    def verify_node(self):
         info_messages = []
 
         # verify number of attributes
