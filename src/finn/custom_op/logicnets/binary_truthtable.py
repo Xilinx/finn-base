@@ -38,37 +38,39 @@ from finn.util.basic import make_build_dir
 from finn.util.data_packing import npy_to_rtlsim_input
 
 
-def binary_truthtable(inputs, care_set, node):
+def binary_truthtable(input, care_set, bits):
     """Returns the output to a combination of x-bit input value. The care_set array
     reflects the true values in the truth table results. The rest of the entries are
-    just zero or dont-cares. If 5 is provided in the care-set, the result to fifth
-    combination of inputs 101 is 1. The input is a vector size x, representing
-    x-bits binary input. An example is presented:
+    just zero or dont-cares. If 2 is provided in the care-set, the result to fifth
+    combination of inputs 010 is 1. The input is a vector size x, representing
+    x-bits binary input.
 
-    inputs = [1, 0, 1]
+    **************************************************************************
+    The MSB in the input numpy array represents the LSB in the LUT.
+    **************************************************************************
+
+    An example is presented:
+
+    inputs[0:2] = [1, 0, 1]
     care_set = [1, 2]
 
-    Possible combinations:      A   B   C   |   Results
-                                -------------------
-                                0   0   0   |   0
-                                0   0   1   |   1
-                                0   1   0   |   1
-                                0   1   1   |   0
-                                1   0   0   |   0
-                                1   0   1   |   0
-                                1   1   0   |   0
-                                1   1   1   |   0
+    Possible combinations[2:0]:      A   B   C  | Results
+                                    ---------------------
+                                    0   0   0   |    0
+                                    0   0   1   |    1
+                                    0   1   0   |    1
+                                    0   1   1   |    0
+                                    1   0   0   |    0
+                                    1   0   1   |    0
+                                    1   1   0   |    0
+                                    1   1   1   |    0
 
     """
 
-    inputs = inputs[::-1]  # reverse input array for C style indexing
-
-    in_int = 0  # initialize integer representation of the binary input array
-
-    for idx, in_val in enumerate(inputs):
-        in_int += (1 << idx) * in_val  # calculate integer value of binary input
-
-    output = 1 if in_int in care_set else 0  # return 1 if the input is in result_one
+    # calculate integer value of binary input
+    in_int = npy_to_rtlsim_input(input, DataType.BINARY, bits, False)[0]
+    # return 1 if the input is in result_one
+    output = 1 if in_int in care_set else 0
 
     return output
 
@@ -126,7 +128,9 @@ class BinaryTruthTable(CustomOp):
         mode = self.get_nodeattr("exec_mode")
         if mode == "python":
             # calculate output in Python mode
-            output = binary_truthtable(input_entry, care_set, self)
+            output = binary_truthtable(
+                input_entry, care_set, self.get_nodeattr("in_bits")
+            )
         elif mode == "rtlsim":
             # check the code directory is not empty
             verilog_dir = self.get_nodeattr("code_dir") + "/incomplete_table.v"

@@ -39,6 +39,7 @@ from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.logicnets.gen_bintruthtable_verilog import (
     GenBinaryTruthTableVerilog,
 )
+from finn.util.data_packing import npy_to_rtlsim_input
 
 export_onnx_path = "test_truthtable.onnx"
 
@@ -109,11 +110,11 @@ def test_binarytruthtable():
             }
             # Perform execution
             out_dict = oxe.execute_onnx(model, in_dict)
-            # Calculate result here locally for comparison with the CustomOp result
-            input_data = input_data[::-1]
-            out_idx = 0
-            for idx, val in enumerate(input_data):
-                out_idx += (1 << idx) * val
+
+            out_idx = npy_to_rtlsim_input(input_data, DataType.BINARY, in_bits, False)[
+                0
+            ]
+
             entry = 1 if out_idx in care_set_data else 0
             # compare outputs
             assert entry == out_dict["output"]
