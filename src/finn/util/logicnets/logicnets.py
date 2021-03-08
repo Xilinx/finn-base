@@ -27,7 +27,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-import os
 from random import randint
 
 
@@ -50,46 +49,3 @@ def random_care_set(n_bits, n_entries):
             care_set = np.append(care_set, value)
         care_set = np.unique(care_set)
     return care_set
-
-
-def gen_verilog(n_bits, care_set, dir):
-    """The function generated a verilog module based on the n_bit input values and the
-    care_set. The result for every value in the care_set is 1. The module creates a
-    LUT based on a n_bits:1 mapping"""
-
-    # the module name is kept constant to "incomplete_table"
-    # the input name is kept constant to "in"
-    # the output is kept constant to "result"
-    verilog_string = "module incomplete_table (\n"
-    verilog_string += "\tinput [%d:0] in,\n" % (n_bits - 1)
-    verilog_string += "\t output reg result\n"
-    verilog_string += ");\n\n"
-    verilog_string += "\talways @(in) begin\n"
-    verilog_string += "\t\tcase(in)\n"
-
-    # fill the one entries
-    for val in care_set:
-        val = int(val)
-        verilog_string += "\t\t\t%d'b" % (n_bits)
-        verilog_string += bin(val)[2:].zfill(n_bits)
-        verilog_string += " : result = 1'b1;\n"
-
-    # fill the rest of the combinations with 0
-    verilog_string += "\t\t\tdefault: result = 1'b0;\n"
-    # close the module
-    verilog_string += "\t\tendcase\n\tend\nendmodule\n"
-    # open file, write string and close file
-
-    if not os.path.exists(dir):
-        os.makedirs(dir)
-
-    verilog_file = open(dir + "incomplete_table.v", "w")
-    verilog_file.write(verilog_string)
-    verilog_file.close()
-
-
-def random_lut_verilog(n_bits, n_entries, dir):
-    """This function generates random care set and the verilog representation
-    of the LUT based on the care_set."""
-    care_set = random_care_set(n_bits, n_entries)
-    gen_verilog(n_bits, care_set, dir)
