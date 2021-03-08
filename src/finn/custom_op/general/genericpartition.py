@@ -29,22 +29,14 @@
 from finn.custom_op.base import CustomOp
 
 
-class StreamingDataflowPartition(CustomOp):
-    """Class that corresponds to the meta/container node StreamingDataflowPartition
-    which is a placeholder for a group of fpgadataflow nodes that have been separated
-    out into a FINN-ONNX model of its own. Note that is does not produce any HLS or
-    bitfile by itself."""
+class GenericPartition(CustomOp):
+    """Class that corresponds to the meta/container node GenericPartition
+    which is a placeholder for a group of nodes that have been separated
+    out into a FINN-ONNX model of its own."""
 
     def get_nodeattr_types(self):
         return {
             "model": ("s", True, ""),
-            "res_estimate": ("s", False, ""),
-            "res_hls": ("s", False, ""),
-            "res_synth": ("s", False, ""),
-            "slr": ("i", False, -1),
-            "partition_id": ("i", False, 0),
-            "device_id": ("i", False, 0),
-            "mem_port": ("s", False, ""),
         }
 
     def make_shape_compatible_op(self, model):
@@ -54,8 +46,6 @@ class StreamingDataflowPartition(CustomOp):
         pass
 
     def execute_node(self, context, graph):
-        # TODO add RPC execution with synthesized bitfile?
-        # whole-design rtlsim with PyVerilator may also be an alternative
         pass
 
     def verify_node(self):
@@ -79,14 +69,8 @@ class StreamingDataflowPartition(CustomOp):
         except Exception:
             info_messages.append(
                 """The necessary attributes do not exist.
-                StreamingDataflowPartition needs the following attribute(s):
+                GenericPartition needs the following attribute(s):
                 model"""
             )
-
-        # verify the number of inputs
-        if len(self.onnx_node.input) >= 1:
-            info_messages.append("The number of inputs is correct")
-        else:
-            info_messages.append("StreamingDataflowPartition needs 1 data input")
 
         return info_messages

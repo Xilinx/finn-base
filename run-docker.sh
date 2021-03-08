@@ -52,6 +52,11 @@ SCRIPT=$(readlink -f "$0")
 # Absolute path of dir this script is in.
 SCRIPTPATH=$(dirname "${SCRIPT}")
 
+# Take build dir from environment variable, otherwise use this default
+: ${FINN_HOST_BUILD_DIR="/tmp/finn-base_dev"}
+# Ensure build dir exists locally
+mkdir -p $FINN_HOST_BUILD_DIR
+
 DOCKER_INTERACTIVE=""
 
 if [ "$1" = "tests" ]; then
@@ -70,6 +75,8 @@ else
         exit -1
 fi
 
+gecho "Mounting $FINN_HOST_BUILD_DIR into $FINN_HOST_BUILD_DIR"
+
 # Build the finn-base docker image
 docker build -f docker/Dockerfile -t ${DOCKER_TAG} \
             --build-arg GROUP=${DOCKER_GROUP} \
@@ -81,4 +88,6 @@ docker build -f docker/Dockerfile -t ${DOCKER_TAG} \
 # Launch container with current directory mounted
 docker run -t --rm ${DOCKER_INTERACTIVE} \
            -v ${SCRIPTPATH}:/workspace/finn-base \
+           -v $FINN_HOST_BUILD_DIR:$FINN_HOST_BUILD_DIR \
+           -e FINN_BUILD_DIR=$FINN_HOST_BUILD_DIR \
            ${DOCKER_TAG} ${DOCKER_CMD}
