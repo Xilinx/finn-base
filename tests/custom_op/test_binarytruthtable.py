@@ -92,8 +92,14 @@ def test_binarytruthtable():
     assert model.get_tensor_datatype("output") is DataType.FLOAT32
     model = model.transform(InferDataTypes())
     assert model.get_tensor_datatype("output") is DataType.BINARY
+
+    # Generate verilog
+    model = model.transform(
+        GenBinaryTruthTableVerilog(num_workers=None, care_set=care_set_data)
+    )
+
     # Loop over "python" and "rtlsim" execution modes
-    for x in range(2):
+    for _ in range(2):
         # Loop over different input combinations
         for input_data in input_data_vector:
             # Create input dictionary
@@ -114,8 +120,3 @@ def test_binarytruthtable():
         # Change execution mode into "rtlsim" for simulation with PyVerilator
         myOp = getCustomOp(model.graph.node[0])
         myOp.set_nodeattr("exec_mode", "rtlsim")
-
-    # test transformation to generate verilog
-    model = model.transform(
-        GenBinaryTruthTableVerilog(num_workers=None, care_set=care_set_data)
-    )

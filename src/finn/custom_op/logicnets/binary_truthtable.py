@@ -34,6 +34,7 @@ from pyverilator import PyVerilator
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
+from finn.util.basic import make_build_dir
 from finn.util.data_packing import npy_to_rtlsim_input
 
 
@@ -77,17 +78,13 @@ class BinaryTruthTable(CustomOp):
 
     def get_nodeattr_types(self):
         return {
-            # Number of intput bits, 2 by default
+            # number of intput bits, 2 by default
             "in_bits": ("i", True, 2),
-            # Code generation mode
+            # code generation mode
             "code_mode": ("s", False, "Verilog"),
-            # Output code directory
-            "code_dir": (
-                "s",
-                False,
-                "/workspace/finn-base/src/finn/data/verilog/truthtable/",
-            ),
-            # Execution mode, "pyhton" by default
+            # output code directory
+            "code_dir": ("s", False, ""),
+            # execution mode, "pyhton" by default
             "exec_mode": ("s", True, "python"),
         }
 
@@ -109,40 +106,39 @@ class BinaryTruthTable(CustomOp):
 
     def infer_node_datatype(self, model):
         node = self.onnx_node
-        # Check that the input[0] is binary
+        # check that the input[0] is binary
         assert (
             model.get_tensor_datatype(node.input[0]) == DataType["BINARY"]
         ), """ The input vector DataType is not BINARY."""
-        # Check that the input[1] is UINT32
+        # check that the input[1] is UINT32
         assert (
             model.get_tensor_datatype(node.input[1]) == DataType["UINT32"]
         ), """ The input vector DataType is not UINT32."""
-        # Check that the input[2] is UINT32
+        # check that the input[2] is UINT32
         model.set_tensor_datatype(node.output[0], DataType["BINARY"])
 
     def execute_node(self, context, graph):
         node = self.onnx_node
-        # Load inputs
+        # load inputs
         input_entry = context[node.input[0]]
         care_set = context[node.input[1]]
-        # Load execution mode
+        # load execution mode
         mode = self.get_nodeattr("exec_mode")
         if mode == "python":
-            # Calculate output in Python mode
+            # calculate output in Python mode
             output = binary_truthtable(input_entry, care_set, self)
         elif mode == "rtlsim":
-            # Generate PyVerilator object if Verilog file exits,
-            # otherwise generate Verilog and proceed
-            verilog_dir = self.get_nodeattr("code_dir") + "incomplete_table.v"
+            # check the code directory is not empty
+            verilog_dir = self.get_nodeattr("code_dir") + "/incomplete_table.v"
             if not os.path.exists(verilog_dir):
-                self.generate_verilog(care_set)
+                raise Exception("Non valid path for the Verilog file: %s" % verilog_dir)
             sim = PyVerilator.build(verilog_dir)
             bits = self.get_nodeattr("in_bits")
-            # Convert input binary float array into an integer
+            # convert input binary float array into an integer
             value = npy_to_rtlsim_input(input_entry, DataType.BINARY, bits, False)[0]
-            # Set value into the Verilog module
+            # set value into the Verilog module
             sim.io["in"] = value
-            # Read result value
+            # read result value
             output = sim.io["result"]
         else:
             raise Exception(
@@ -151,7 +147,7 @@ class BinaryTruthTable(CustomOp):
                     mode
                 )
             )
-        # Return output
+        # return output
         context[node.output[0]] = output
 
     def verify_node(self):
@@ -204,13 +200,9 @@ class BinaryTruthTable(CustomOp):
         verilog_string += "\t\t\tdefault: result = 1'b0;\n"
         # close the module
         verilog_string += "\t\tendcase\n\tend\nendmodule\n"
-        # open file, write string and close file
-
-        dir = self.get_nodeattr("code_dir")
-
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-
-        verilog_file = open(dir + "incomplete_table.v", "w")
+        # create temporary folder and save attribute value
+        self.set_nodeattr("code_dir", make_build_dir("verilog_"))
+        # create and write verilog file
+        verilog_file = open(self.get_nodeattr("code_dir") + "/incomplete_table.v", "w")
         verilog_file.write(verilog_string)
         verilog_file.close()
