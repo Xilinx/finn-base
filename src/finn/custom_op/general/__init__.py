@@ -27,11 +27,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from finn.custom_op.general.debugmarker import DebugMarker
+from finn.custom_op.general.genericpartition import GenericPartition
 from finn.custom_op.general.im2col import Im2Col
 from finn.custom_op.general.maxpoolnhwc import MaxPoolNHWC
 from finn.custom_op.general.multithreshold import MultiThreshold
 from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
-from finn.custom_op.general.streamingdataflowpartition import StreamingDataflowPartition
 from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
 from finn.custom_op.logicnets.binary_truthtable import BinaryTruthTable
 
@@ -40,7 +40,7 @@ custom_op = dict()
 custom_op["DebugMarker"] = DebugMarker
 custom_op["QuantAvgPool2d"] = QuantAvgPool2d
 custom_op["MaxPoolNHWC"] = MaxPoolNHWC
-custom_op["StreamingDataflowPartition"] = StreamingDataflowPartition
+custom_op["GenericPartition"] = GenericPartition
 custom_op["MultiThreshold"] = MultiThreshold
 custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
 custom_op["Im2Col"] = Im2Col
