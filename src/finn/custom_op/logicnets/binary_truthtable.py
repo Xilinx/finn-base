@@ -124,6 +124,19 @@ class BinaryTruthTable(CustomOp):
         # load inputs
         input_entry = context[node.input[0]]
         care_set = context[node.input[1]]
+        # check input_entry size
+        in_size = input_entry.size
+        expected_in_size = self.get_nodeattr("in_bits")
+        assert (
+            in_size == expected_in_size
+        ), """The input bit array vector is %i and should be %i""" % (
+            in_size,
+            expected_in_size,
+        )
+        # check input_entry shape
+        assert (
+            len(input_entry.shape) == 1
+        ), """The input vector has more than one dimension."""
         # load execution mode
         mode = self.get_nodeattr("exec_mode")
         if mode == "python":
