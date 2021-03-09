@@ -34,6 +34,7 @@ import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 from finn.custom_op.registry import getCustomOp
+from finn.transformation.general import GiveUniqueNodeNames
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.logicnets.gen_bintruthtable_verilog import (
@@ -93,6 +94,8 @@ def test_binarytruthtable():
     assert model.get_tensor_datatype("output") is DataType.FLOAT32
     model = model.transform(InferDataTypes())
     assert model.get_tensor_datatype("output") is DataType.BINARY
+    # Give unique names to each node
+    model = model.transform(GiveUniqueNodeNames())
 
     # Generate verilog
     model = model.transform(

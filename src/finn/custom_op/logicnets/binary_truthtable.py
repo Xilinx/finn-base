@@ -146,7 +146,8 @@ class BinaryTruthTable(CustomOp):
             )
         elif mode == "rtlsim":
             # check the code directory is not empty
-            verilog_dir = self.get_nodeattr("code_dir") + "/incomplete_table.v"
+            nodeName = self.onnx_node.name
+            verilog_dir = self.get_nodeattr("code_dir") + "/" + nodeName + ".v"
             if not os.path.exists(verilog_dir):
                 raise Exception("Non valid path for the Verilog file: %s" % verilog_dir)
             sim = PyVerilator.build(verilog_dir)
@@ -196,10 +197,11 @@ class BinaryTruthTable(CustomOp):
     def generate_verilog(self, care_set):
 
         input_bits = self.get_nodeattr("in_bits")
+        nodeName = self.onnx_node.name
         # the module name is kept constant to "incomplete_table"
         # the input name is kept constant to "in"
         # the output is kept constant to "result"
-        verilog_string = "module incomplete_table (\n"
+        verilog_string = "module %s (\n" % (nodeName)
         verilog_string += "\tinput [%d:0] in,\n" % (input_bits - 1)
         verilog_string += "\t output reg result\n"
         verilog_string += ");\n\n"
@@ -220,6 +222,6 @@ class BinaryTruthTable(CustomOp):
         # create temporary folder and save attribute value
         self.set_nodeattr("code_dir", make_build_dir("verilog_"))
         # create and write verilog file
-        verilog_file = open(self.get_nodeattr("code_dir") + "/incomplete_table.v", "w")
+        verilog_file = open(self.get_nodeattr("code_dir") + "/" + nodeName + ".v", "w")
         verilog_file.write(verilog_string)
         verilog_file.close()
