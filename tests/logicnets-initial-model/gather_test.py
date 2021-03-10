@@ -8,7 +8,7 @@ from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 
-array_data = np.array([[1, 0, 1, 1], [1, 0, 1, 1]])
+array_data = np.array([[1, 0, 1, 1]])
 
 indices_data = np.array([0])
 
