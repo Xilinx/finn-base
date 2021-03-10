@@ -80,7 +80,7 @@ def test_conv_lowering_convmnist():
 # input channels
 @pytest.mark.parametrize("ifm_ch", [2, 3])
 # stride
-@pytest.mark.parametrize("stride", [1, 2])
+@pytest.mark.parametrize("stride", [[1, 1], [1, 2], [2, 1], [2, 2]])
 # padding
 @pytest.mark.parametrize("padding", [[0, 0, 0, 0], [1, 1, 1, 1]])
 # dilations
@@ -107,18 +107,20 @@ def test_dws_reg_conv_lowering(
     ofm_ch = ifm_ch
     pad_h = padding[0] + padding[2]
     pad_w = padding[1] + padding[3]
+    stride_h = stride[0]
+    stride_w = stride[1]
 
     ofm_dim_h = compute_conv_output_dim(
         ifm_dim_h,
         k_h,
-        stride,
+        stride_h,
         pad_h,
         dilations[0],
     )
     ofm_dim_w = compute_conv_output_dim(
         ifm_dim_w,
         k_w,
-        stride,
+        stride_w,
         pad_w,
         dilations[0],
     )
@@ -146,7 +148,7 @@ def test_dws_reg_conv_lowering(
         outputs=["outp"],
         kernel_shape=[k_h, k_w],
         pads=padding,
-        strides=[stride, stride],
+        strides=[stride_h, stride_w],
         group=group,
         dilations=dilations,
     )
