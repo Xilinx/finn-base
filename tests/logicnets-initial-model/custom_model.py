@@ -22,21 +22,20 @@ in0_data = np.array([0, 1], dtype=np.float32)
 in1_data = np.array([0, 1], dtype=np.float32)
 in2_data = np.array([0, 1], dtype=np.float32)
 
-in0 = helper.make_tensor_value_info("in0", TensorProto.FLOAT, [in_bits])
-in1 = helper.make_tensor_value_info("in1", TensorProto.FLOAT, [in_bits])
-in2 = helper.make_tensor_value_info("in2", TensorProto.FLOAT, [in_bits])
+in0 = helper.make_tensor_value_info("in0", TensorProto.FLOAT, in0_data.shape)
+in1 = helper.make_tensor_value_info("in1", TensorProto.FLOAT, in1_data.shape)
+in2 = helper.make_tensor_value_info("in2", TensorProto.FLOAT, in2_data.shape)
 care_set = helper.make_tensor_value_info(
-    "care_set", TensorProto.FLOAT, [care_set_data.size]
+    "care_set", TensorProto.FLOAT, care_set_data.shape
 )
 out0 = helper.make_tensor_value_info("out0", TensorProto.FLOAT, [1])
 out1 = helper.make_tensor_value_info("out1", TensorProto.FLOAT, [1])
 indices0 = helper.make_tensor_value_info(
-    "indices0", TensorProto.FLOAT, indices0_data.shape
+    "indices0", TensorProto.INT64, indices0_data.shape
 )
 indices1 = helper.make_tensor_value_info(
-    "indices1", TensorProto.FLOAT, indices1_data.shape
+    "indices1", TensorProto.INT64, indices1_data.shape
 )
-
 LUT0 = helper.make_node(
     "BinaryTruthTable",
     ["in0", "care_set"],
@@ -120,8 +119,12 @@ graph = helper.make_graph(
         helper.make_tensor_value_info("concat_in1", TensorProto.FLOAT, [1]),
         helper.make_tensor_value_info("concat_in2", TensorProto.FLOAT, [1]),
         helper.make_tensor_value_info("concat_out", TensorProto.FLOAT, [3]),
-        helper.make_tensor_value_info("sparse_out0", TensorProto.FLOAT, [2]),
-        helper.make_tensor_value_info("sparse_out1", TensorProto.FLOAT, [2]),
+        helper.make_tensor_value_info(
+            "sparse_out0", TensorProto.FLOAT, indices0_data.shape
+        ),
+        helper.make_tensor_value_info(
+            "sparse_out1", TensorProto.FLOAT, indices1_data.shape
+        ),
     ],
 )
 
@@ -154,7 +157,7 @@ def expected_output(in0, in1, in2, indices0, indices1, care_set, in_bits):
     out0 = 1 if sparse_out0_int in care_set else 0
     out1 = 1 if sparse_out1_int in care_set else 0
 
-    return out0, out1
+    return np.array([out0, out1])
 
 
 input_dict = {
@@ -167,7 +170,6 @@ input_dict = {
 }
 
 model = ModelWrapper(modelproto)
-
 model.save("after_wrap.onnx")
 
 model.set_tensor_datatype("in0", DataType.BINARY)
@@ -181,12 +183,15 @@ model.set_tensor_datatype("sparse_out1", DataType.BINARY)
 model.set_tensor_datatype("care_set", DataType.UINT32)
 model.set_tensor_datatype("indices0", DataType.UINT32)
 model.set_tensor_datatype("indices1", DataType.UINT32)
-# model.set_tensor_datatype("out0",DataType.BINARY)
-# model.set_tensor_datatype("out1",DataType.BINARY)
+model.set_tensor_datatype("out0", DataType.BINARY)
+model.set_tensor_datatype("out1", DataType.BINARY)
+
+model = model.transform(InferShapes())
+model.save("after-shape.onnx")
 
 model = model.transform(InferDataTypes())
-model = model.transform(InferShapes())
 model.save("after-datatypes.onnx")
+
 model = model.transform(GiveUniqueNodeNames())
 model.save("after-uniquenames.onnx")
 
@@ -195,4 +200,11 @@ model = model.transform(
 )
 
 out = oxe.execute_onnx(model, input_dict)
-print(input_dict)
+
+output = np.array([out["out0"], out["out1"]])
+
+expected = expected_output(
+    in0_data, in1_data, in0_data, indices0_data, indices1_data, care_set_data, in_bits
+)
+
+assert (output == expected).all
