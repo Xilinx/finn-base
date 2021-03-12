@@ -95,13 +95,13 @@ class BinaryTruthTable(CustomOp):
         val = np.random.randn(1).astype(np.bool)
         node = helper.make_node(
             "Constant",
-            inputs=[],
+            inputs=[node.input[0], node.input[1]],
             outputs=["val"],
             value=helper.make_tensor(
                 name="const_tensor",
-                data_type=onnx.TensorProto.BOOL,
+                data_type=onnx.TensorProto.FLOAT,
                 dims=val.shape,
-                vals=val.flatten().astype(bool),
+                vals=val.flatten().astype(float),
             ),
         )
         return node
@@ -166,7 +166,7 @@ class BinaryTruthTable(CustomOp):
                 )
             )
         # return output
-        context[node.output[0]] = output
+        context[node.output[0]] = np.array([output])
 
     def verify_node(self):
         info_messages = []
