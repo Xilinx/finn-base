@@ -166,7 +166,7 @@ class BinaryTruthTable(CustomOp):
                 )
             )
         # return output
-        context[node.output[0]] = np.array([output])
+        context[node.output[0]] = np.array([output], dtype=np.float32)
 
     def verify_node(self):
         info_messages = []
