@@ -119,8 +119,9 @@ def test_binarytruthtable():
             ]
 
             entry = 1 if out_idx in care_set_data else 0
+            expected = np.array([entry])
             # compare outputs
-            assert entry == out_dict["output"]
+            assert expected == out_dict["output"]
         # Change execution mode into "rtlsim" for simulation with PyVerilator
         myOp = getCustomOp(model.graph.node[0])
         myOp.set_nodeattr("exec_mode", "rtlsim")
