@@ -33,6 +33,7 @@ from onnx import helper
 from pyverilator import PyVerilator
 
 from finn.core.datatype import DataType
+from finn.core.modelwrapper import ModelWrapper
 from finn.custom_op.base import CustomOp
 from finn.util.basic import make_build_dir
 from finn.util.data_packing import npy_to_rtlsim_input
@@ -93,12 +94,13 @@ class BinaryTruthTable(CustomOp):
     def make_shape_compatible_op(self, model):
         node = self.onnx_node
         val = np.random.randn(1).astype(np.bool)
+        tensor_name = ModelWrapper.make_new_valueinfo_name(model)
         node = helper.make_node(
             "Constant",
-            inputs=[node.input[0], node.input[1]],
+            inputs=[],
             outputs=["val"],
             value=helper.make_tensor(
-                name="const_tensor",
+                name=tensor_name,
                 data_type=onnx.TensorProto.FLOAT,
                 dims=val.shape,
                 vals=val.flatten().astype(float),
