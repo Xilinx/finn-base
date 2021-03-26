@@ -206,6 +206,7 @@ input_dict = {
     "care_set": care_set_data,
     "indices0": indices0_data,
     "indices1": indices1_data,
+    "indices_in": indices_in_data,
 }
 
 model = ModelWrapper(modelproto)
