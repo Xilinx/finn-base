@@ -18,7 +18,10 @@ in_bits = 2
 care_set_data = np.array([1, 2, 3], dtype=np.float32)
 indices0_data = np.array([1, 2])
 indices1_data = np.array([0, 1])
-indices_in_data = np.array([0, 1])
+indices_in0_data = np.array([0, 1])
+indices_in1_data = np.array([2, 3])
+indices_in2_data = np.array([4, 5])
+
 in0_data = np.array([0, 1], dtype=np.float32)
 in1_data = np.array([0, 1], dtype=np.float32)
 in2_data = np.array([0, 1], dtype=np.float32)
@@ -37,25 +40,38 @@ indices0 = helper.make_tensor_value_info(
 indices1 = helper.make_tensor_value_info(
     "indices1", TensorProto.INT64, indices1_data.shape
 )
-indices_in = helper.make_tensor_value_info(
-    "indices_in", TensorProto.INT64, indices_in_data.shape
+indices_in0 = helper.make_tensor_value_info(
+    "indices_in0", TensorProto.INT64, indices_in0_data.shape
+)
+indices_in1 = helper.make_tensor_value_info(
+    "indices_in1", TensorProto.INT64, indices_in1_data.shape
+)
+indices_in2 = helper.make_tensor_value_info(
+    "indices_in2", TensorProto.INT64, indices_in2_data.shape
+)
+
+concat_in = helper.make_node(
+    "Concat",
+    ["in0", "in1", "in2"],
+    ["concatenated_input"],
+    axis=0,
 )
 
 gather_in0 = helper.make_node(
     "Gather",
-    ["in0", "indices_in"],
+    ["concatenated_input", "indices_in0"],
     ["LUTin0"],
 )
 
 gather_in1 = helper.make_node(
     "Gather",
-    ["in1", "indices_in"],
+    ["concatenated_input", "indices_in1"],
     ["LUTin1"],
 )
 
 gather_in2 = helper.make_node(
     "Gather",
-    ["in2", "indices_in"],
+    ["concatenated_input", "indices_in2"],
     ["LUTin2"],
 )
 
@@ -132,11 +148,7 @@ gather1 = helper.make_node(
 
 graph = helper.make_graph(
     nodes=[
-        LUT0,
-        LUT1,
-        LUT2,
-        LUT3,
-        LUT4,
+        concat_in,
         gather_in0,
         gather_in1,
         gather_in2,
@@ -144,11 +156,27 @@ graph = helper.make_graph(
         gather0,
         gather1,
         concat_out,
+        LUT0,
+        LUT1,
+        LUT2,
+        LUT3,
+        LUT4,
     ],
     name="my_LogicNets model",
-    inputs=[in0, in1, in2, care_set, indices0, indices1, indices_in],
+    inputs=[
+        in0,
+        in1,
+        in2,
+        care_set,
+        indices0,
+        indices1,
+        indices_in0,
+        indices_in1,
+        indices_in2,
+    ],
     outputs=[final_output],
     value_info=[
+        helper.make_tensor_value_info("concatenated_input", TensorProto.FLOAT, [6]),
         helper.make_tensor_value_info("LUTin0", TensorProto.FLOAT, [2]),
         helper.make_tensor_value_info("LUTin1", TensorProto.FLOAT, [2]),
         helper.make_tensor_value_info("LUTin2", TensorProto.FLOAT, [2]),
@@ -206,7 +234,9 @@ input_dict = {
     "care_set": care_set_data,
     "indices0": indices0_data,
     "indices1": indices1_data,
-    "indices_in": indices_in_data,
+    "indices_in0": indices_in0_data,
+    "indices_in1": indices_in1_data,
+    "indices_in2": indices_in2_data,
 }
 
 model = ModelWrapper(modelproto)
@@ -224,6 +254,10 @@ model.set_tensor_datatype("concat_in2", DataType.BINARY)
 model.set_tensor_datatype("sparse_out0", DataType.BINARY)
 model.set_tensor_datatype("sparse_out1", DataType.BINARY)
 model.set_tensor_datatype("care_set", DataType.UINT32)
+model.set_tensor_datatype("concatenated_input", DataType.UINT32)
+model.set_tensor_datatype("indices_in0", DataType.UINT32)
+model.set_tensor_datatype("indices_in1", DataType.UINT32)
+model.set_tensor_datatype("indices_in2", DataType.UINT32)
 model.set_tensor_datatype("indices0", DataType.UINT32)
 model.set_tensor_datatype("indices1", DataType.UINT32)
 model.set_tensor_datatype("final_output", DataType.BINARY)
