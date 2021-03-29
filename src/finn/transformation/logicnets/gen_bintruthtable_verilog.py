@@ -53,6 +53,7 @@ class GenBinaryTruthTableVerilog(NodeLocalTransformation):
     def applyNodeLocal(self, node):
         op_type = node.op_type
         if op_type == "BinaryTruthTable":
-            _genbintruthtable_verilog(node, self.care_set)
+            specific_care_set = self.care_set[node.input[1]]
+            _genbintruthtable_verilog(node, specific_care_set)
 
         return (node, False)
