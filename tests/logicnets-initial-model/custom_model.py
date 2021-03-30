@@ -23,9 +23,9 @@ indices_in0_data = np.array([0, 1])
 indices_in1_data = np.array([2, 3])
 indices_in2_data = np.array([4, 5])
 
-in0_data = np.array([0, 1], dtype=np.float32)
-in1_data = np.array([0, 1], dtype=np.float32)
-in2_data = np.array([0, 1], dtype=np.float32)
+in0_data = np.array([0, 0], dtype=np.float32)
+in1_data = np.array([0, 0], dtype=np.float32)
+in2_data = np.array([0, 0], dtype=np.float32)
 
 in0 = helper.make_tensor_value_info("in0", TensorProto.FLOAT, in0_data.shape)
 in1 = helper.make_tensor_value_info("in1", TensorProto.FLOAT, in1_data.shape)
@@ -154,17 +154,17 @@ graph = helper.make_graph(
     nodes=[
         concat_in,
         gather_in0,
-        gather_in1,
-        gather_in2,
         concat0,
         gather0,
+        LUT2,
+        LUT3,
+        LUT4,
         gather1,
         concat_out,
         LUT0,
         LUT1,
-        LUT2,
-        LUT3,
-        LUT4,
+        gather_in1,
+        gather_in2,
     ],
     name="my_LogicNets model",
     inputs=[
@@ -204,15 +204,14 @@ modelproto = helper.make_model(graph, producer_name="simple-model")
 onnx.save(modelproto, "simple-model.onnx")
 
 
-def expected_output(in0, in1, in2, indices0, indices1, care_set, in_bits):
-
+def expected_output(in0, in1, in2, indices0, indices1, care_set0, care_set1, in_bits):
     in0_int = npy_to_rtlsim_input(in0, DataType.BINARY, in_bits, False)[0]
     in1_int = npy_to_rtlsim_input(in1, DataType.BINARY, in_bits, False)[0]
     in2_int = npy_to_rtlsim_input(in2, DataType.BINARY, in_bits, False)[0]
 
-    concat_in0 = 1 if in0_int in care_set else 0
-    concat_in1 = 1 if in1_int in care_set else 0
-    concat_in2 = 1 if in2_int in care_set else 0
+    concat_in0 = 1 if in0_int in care_set0 else 0
+    concat_in1 = 1 if in1_int in care_set0 else 0
+    concat_in2 = 1 if in2_int in care_set0 else 0
 
     concat_out = [int(concat_in0), int(concat_in1), int(concat_in2)]
 
@@ -226,8 +225,8 @@ def expected_output(in0, in1, in2, indices0, indices1, care_set, in_bits):
         0
     ]
 
-    out0 = 1 if sparse_out0_int in care_set else 0
-    out1 = 1 if sparse_out1_int in care_set else 0
+    out0 = 1 if sparse_out0_int in care_set1 else 0
+    out1 = 1 if sparse_out1_int in care_set1 else 0
 
     return np.array([out0, out1])
 
@@ -291,10 +290,15 @@ out = oxe.execute_onnx(model, input_dict)
 
 output = out["final_output"]
 
-# expected = expected_output(
-#    in0_data, in1_data, in0_data, indices0_data, indices1_data, care_set_data, in_bits
-# )
+expected = expected_output(
+    in0_data,
+    in1_data,
+    in0_data,
+    indices0_data,
+    indices1_data,
+    care_set0_data,
+    care_set1_data,
+    in_bits,
+)
 
-print(output)
-# print(expected)
-# assert (output == expected).all
+assert (output == expected).all
