@@ -23,20 +23,19 @@ indices_in0_data = np.array([0, 1])
 indices_in1_data = np.array([2, 3])
 indices_in2_data = np.array([4, 5])
 
-in0_data = np.array([0, 0], dtype=np.float32)
-in1_data = np.array([0, 0], dtype=np.float32)
-in2_data = np.array([0, 0], dtype=np.float32)
+general_input_data = np.array([0, 0, 0, 0, 0, 0], dtype=np.float32)
 
-in0 = helper.make_tensor_value_info("in0", TensorProto.FLOAT, in0_data.shape)
-in1 = helper.make_tensor_value_info("in1", TensorProto.FLOAT, in1_data.shape)
-in2 = helper.make_tensor_value_info("in2", TensorProto.FLOAT, in2_data.shape)
+general_input = helper.make_tensor_value_info(
+    "general_input", TensorProto.FLOAT, general_input_data.shape
+)
+
 care_set0 = helper.make_tensor_value_info(
     "care_set0", TensorProto.FLOAT, care_set0_data.shape
 )
 care_set1 = helper.make_tensor_value_info(
     "care_set1", TensorProto.FLOAT, care_set1_data.shape
 )
-final_output = helper.make_tensor_value_info("final_output", TensorProto.FLOAT, [2])
+general_output = helper.make_tensor_value_info("general_output", TensorProto.FLOAT, [2])
 
 indices0 = helper.make_tensor_value_info(
     "indices0", TensorProto.INT64, indices0_data.shape
@@ -54,28 +53,22 @@ indices_in2 = helper.make_tensor_value_info(
     "indices_in2", TensorProto.INT64, indices_in2_data.shape
 )
 
-concat_in = helper.make_node(
-    "Concat",
-    ["in0", "in1", "in2"],
-    ["concatenated_input"],
-    axis=0,
-)
 
 gather_in0 = helper.make_node(
     "Gather",
-    ["concatenated_input", "indices_in0"],
+    ["general_input", "indices_in0"],
     ["LUTin0"],
 )
 
 gather_in1 = helper.make_node(
     "Gather",
-    ["concatenated_input", "indices_in1"],
+    ["general_input", "indices_in1"],
     ["LUTin1"],
 )
 
 gather_in2 = helper.make_node(
     "Gather",
-    ["concatenated_input", "indices_in2"],
+    ["general_input", "indices_in2"],
     ["LUTin2"],
 )
 
@@ -134,7 +127,7 @@ concat0 = helper.make_node(
 concat_out = helper.make_node(
     "Concat",
     ["out0", "out1"],
-    ["final_output"],
+    ["general_output"],
     axis=0,
 )
 
@@ -152,7 +145,6 @@ gather1 = helper.make_node(
 
 graph = helper.make_graph(
     nodes=[
-        concat_in,
         gather_in0,
         concat0,
         gather0,
@@ -168,9 +160,7 @@ graph = helper.make_graph(
     ],
     name="my_LogicNets model",
     inputs=[
-        in0,
-        in1,
-        in2,
+        general_input,
         care_set0,
         care_set1,
         indices0,
@@ -179,9 +169,8 @@ graph = helper.make_graph(
         indices_in1,
         indices_in2,
     ],
-    outputs=[final_output],
+    outputs=[general_output],
     value_info=[
-        helper.make_tensor_value_info("concatenated_input", TensorProto.FLOAT, [6]),
         helper.make_tensor_value_info("LUTin0", TensorProto.FLOAT, [2]),
         helper.make_tensor_value_info("LUTin1", TensorProto.FLOAT, [2]),
         helper.make_tensor_value_info("LUTin2", TensorProto.FLOAT, [2]),
@@ -204,7 +193,12 @@ modelproto = helper.make_model(graph, producer_name="simple-model")
 onnx.save(modelproto, "simple-model.onnx")
 
 
-def expected_output(in0, in1, in2, indices0, indices1, care_set0, care_set1, in_bits):
+def expected_output(input_data, indices0, indices1, care_set0, care_set1, in_bits):
+
+    in0 = input_data[0:1]
+    in1 = input_data[2:3]
+    in2 = input_data[4:5]
+
     in0_int = npy_to_rtlsim_input(in0, DataType.BINARY, in_bits, False)[0]
     in1_int = npy_to_rtlsim_input(in1, DataType.BINARY, in_bits, False)[0]
     in2_int = npy_to_rtlsim_input(in2, DataType.BINARY, in_bits, False)[0]
@@ -232,9 +226,7 @@ def expected_output(in0, in1, in2, indices0, indices1, care_set0, care_set1, in_
 
 
 input_dict = {
-    "in0": in0_data,
-    "in1": in1_data,
-    "in2": in2_data,
+    "general_input": general_input_data,
     "care_set0": care_set0_data,
     "care_set1": care_set1_data,
     "indices0": indices0_data,
@@ -247,9 +239,7 @@ input_dict = {
 model = ModelWrapper(modelproto)
 model.save("after_wrap.onnx")
 
-model.set_tensor_datatype("in0", DataType.BINARY)
-model.set_tensor_datatype("in1", DataType.BINARY)
-model.set_tensor_datatype("in2", DataType.BINARY)
+model.set_tensor_datatype("general_input", DataType.BINARY)
 model.set_tensor_datatype("LUTin0", DataType.BINARY)
 model.set_tensor_datatype("LUTin1", DataType.BINARY)
 model.set_tensor_datatype("LUTin2", DataType.BINARY)
@@ -266,7 +256,7 @@ model.set_tensor_datatype("indices_in1", DataType.UINT32)
 model.set_tensor_datatype("indices_in2", DataType.UINT32)
 model.set_tensor_datatype("indices0", DataType.UINT32)
 model.set_tensor_datatype("indices1", DataType.UINT32)
-model.set_tensor_datatype("final_output", DataType.BINARY)
+model.set_tensor_datatype("general_output", DataType.BINARY)
 
 model = model.transform(InferShapes())
 model.save("after-shape.onnx")
@@ -288,12 +278,10 @@ model = model.transform(
 
 out = oxe.execute_onnx(model, input_dict)
 
-output = out["final_output"]
+output = out["general_output"]
 
 expected = expected_output(
-    in0_data,
-    in1_data,
-    in0_data,
+    general_input_data,
     indices0_data,
     indices1_data,
     care_set0_data,
