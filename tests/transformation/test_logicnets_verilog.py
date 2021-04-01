@@ -303,6 +303,7 @@ def test_logicnets_verilog():
         care_set1_data,
         in_bits,
     )
+
     assert np.array_equal(output, expected)
 
     # PyVerilator simulation of generated Verilog code
@@ -312,4 +313,5 @@ def test_logicnets_verilog():
     sim.io["general_input"] = in_value
     output_value_int = sim.io["general_output"]
     output_value_bin = np.array(list(np.binary_repr(output_value_int))).astype(np.int8)
+
     assert np.array_equal(output_value_bin, expected)
