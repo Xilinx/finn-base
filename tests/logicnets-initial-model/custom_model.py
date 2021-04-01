@@ -9,9 +9,7 @@ from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.general import GiveUniqueNodeNames
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
-from finn.transformation.logicnets.gen_bintruthtable_verilog import (
-    GenBinaryTruthTableVerilog,
-)
+from finn.transformation.logicnets.gen_logicnets_verilog import GenLogicNetsVerilog
 from finn.util.data_packing import npy_to_rtlsim_input
 
 in_bits = 2
@@ -160,7 +158,6 @@ graph = helper.make_graph(
     ],
     name="my_LogicNets model",
     inputs=[
-        general_input,
         care_set0,
         care_set1,
         indices0,
@@ -168,6 +165,7 @@ graph = helper.make_graph(
         indices_in0,
         indices_in1,
         indices_in2,
+        general_input,
     ],
     outputs=[general_output],
     value_info=[
@@ -226,8 +224,8 @@ def expected_output(input_data, indices0, indices1, care_set0, care_set1, in_bit
 
 
 input_dict = {
-    "general_input": general_input_data,
     "care_set0": care_set0_data,
+    "general_input": general_input_data,
     "care_set1": care_set1_data,
     "indices0": indices0_data,
     "indices1": indices1_data,
@@ -272,8 +270,16 @@ care_set_dict = {
     "care_set1": care_set1_data,
 }
 
+indices_dict = {
+    "indices_in0": indices_in0_data,
+    "indices_in1": indices_in1_data,
+    "indices_in2": indices_in2_data,
+    "indices0": indices0_data,
+    "indices1": indices1_data,
+}
+
 model = model.transform(
-    GenBinaryTruthTableVerilog(num_workers=None, care_set=care_set_dict)
+    GenLogicNetsVerilog(care_set=care_set_dict, indices=indices_dict)
 )
 
 out = oxe.execute_onnx(model, input_dict)
