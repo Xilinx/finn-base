@@ -97,9 +97,14 @@ def test_binarytruthtable():
     # Give unique names to each node
     model = model.transform(GiveUniqueNodeNames())
 
+    # care_set dictionary
+    care_set_dict = {
+        "care_set": care_set_data,
+    }
+
     # Generate verilog
     model = model.transform(
-        GenBinaryTruthTableVerilog(num_workers=None, care_set=care_set_data)
+        GenBinaryTruthTableVerilog(num_workers=None, care_set=care_set_dict)
     )
 
     # Loop over "python" and "rtlsim" execution modes
