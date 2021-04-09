@@ -11,7 +11,6 @@ from finn.transformation.general import GiveUniqueNodeNames
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.logicnets.gen_logicnets_verilog import GenLogicNetsVerilog
-from finn.util.basic import make_build_dir
 from finn.util.data_packing import npy_to_rtlsim_input
 
 
@@ -283,12 +282,8 @@ def test_logicnets_verilog():
         "indices1": indices1_data,
     }
 
-    # Generate directory for storing Verilog files
-    code_dir = make_build_dir("logicnets_model_")
     model = model.transform(
-        GenLogicNetsVerilog(
-            care_set=care_set_dict, indices=indices_dict, code_dir=code_dir
-        )
+        GenLogicNetsVerilog(care_set=care_set_dict, indices=indices_dict)
     )
 
     out = oxe.execute_onnx(model, input_dict)
@@ -307,6 +302,8 @@ def test_logicnets_verilog():
     assert np.array_equal(output, expected)
 
     # PyVerilator simulation of generated Verilog code
+    code_dir = model.get_metadata_prop("code_dir")
+    print(code_dir)
     verilog_dir = code_dir + "/" + "LogicNetsModule.v"
     sim = PyVerilator.build(verilog_dir)
     in_value = npy_to_rtlsim_input(general_input_data, DataType.BINARY, 6, False)[0]
