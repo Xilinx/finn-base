@@ -34,8 +34,7 @@ from finn.transformation.base import Transformation
 from finn.transformation.logicnets.gen_bintruthtable_verilog import (
     GenBinaryTruthTableVerilog,
 )
-
-# from finn.util.basic import make_build_dir
+from finn.util.basic import make_build_dir
 
 
 def _check_node_verilog(model):
@@ -54,15 +53,11 @@ def _check_node_verilog(model):
     return True
 
 
-def _create_logicnets_folder(model, code_dir):
+def _create_logicnets_folder(model):
+
+    code_dir = make_build_dir("logicnets_model_")
+    model.set_metadata_prop("code_dir", code_dir)
     graph = model.graph
-
-    # TO BE DISCUSSED
-    # try:
-    #    code_dir
-    # except :
-    #    code_dir = make_build_dir("logicnets_model_")
-
     # Check every BinaryTruthTable operation within the ONNX model and copy into
     # LogicNets folder
     for node in graph.node:
@@ -72,15 +67,30 @@ def _create_logicnets_folder(model, code_dir):
             node_dir = customOp.get_nodeattr("code_dir")
             node_file = node_dir + "/" + nodeName + ".v"
             shutil.copy2(node_file, code_dir)
-    return code_dir
+    return model
 
 
-def _generate_verilog(model, indices, code_dir):
+def _generate_verilog(model, indices):
 
     # Generate verilog file
+    code_dir = model.get_metadata_prop("code_dir")
     verilog_file = open(code_dir + "/" + "LogicNetsModule.v", "w")
 
     graph = model.graph
+
+    # Check if every node in the graph is "BinaryTruthTable", "Gather" or "Concat"
+    # IMPORTANT:    No other node can be present in the graph.
+    for node in model.graph.node:
+        if (
+            (node.op_type != "BinaryTruthTable")
+            and (node.op_type != "Concat")
+            and (node.op_type != "Gather")
+        ):
+            raise Exception(
+                """NodeType %s detected. Every node must be either
+                            BinaryTruthTable or Concat or Gather"""
+                % (node.op_type)
+            )
 
     # Find the general input tensor name representing the input array.
     # IMPORTANT:    The input tensor is assumed to contain "input" in the TensorName
@@ -120,8 +130,6 @@ def _generate_verilog(model, indices, code_dir):
         output_shape,
         output_tensor_name,
     )
-    # Get number of nodes in the ONNX graph
-    number_nodes = len(graph.node)
 
     # IMPORTANT: One important assumption made here is that the nodes within te ONNX
     # graph are ordered from input to output and based on the graph dependencies.
@@ -178,52 +186,48 @@ def _generate_verilog(model, indices, code_dir):
             node_name = node.name
             customOp = registry.getCustomOp(node)
             in_bits = customOp.get_nodeattr("in_bits") - 1
+
             # Step 3
-            for j in range(index):
-                if (graph.node[j].op_type == "Gather") and (
-                    graph.node[j].output[0] == op_input_name
-                ):
-                    # Step 4
-                    gather_index_name = graph.node[j].input[1]
-                    gather_input_name = graph.node[j].input[0]
-                    # Step 5
-                    verilog_string += "wire [%s:0] %s = {" % (in_bits, op_input_name)
-                    for index in indices[gather_index_name]:
-                        verilog_string += "%s[%s]," % (gather_input_name, index)
-                    verilog_string = verilog_string[:-1]
-                    verilog_string += "};\n"
-                    break
-            k = index
+            preceding_node = model.find_producer(op_input_name)
+            if preceding_node.op_type != "Gather":
+                raise Exception(
+                    "The node_type preceding node %s is %s and must be Gather"
+                    % (node.name, preceding_node.op_type)
+                )
+
+            # Step 4
+            gather_index_name = preceding_node.input[1]
+            gather_input_name = preceding_node.input[0]
+
+            # Step 5
+            verilog_string += "wire [%s:0] %s = {" % (in_bits, op_input_name)
+            for index in indices[gather_index_name]:
+                verilog_string += "%s[%s]," % (gather_input_name, index)
+            verilog_string = verilog_string[:-1]
+            verilog_string += "};\n"
+
             # Step 6
-            while k < number_nodes:
-                if (graph.node[k].op_type == "Concat") and op_output_name in graph.node[
-                    k
-                ].input:
-                    # Step 7
-                    concat_out_position = list(graph.node[k].input).index(
-                        op_output_name
-                    )
-                    # Step 8
-                    concat_out_name = graph.node[k].output[0]
-                    # Step 9
-                    if concat_out_name != output_tensor_name and (
-                        concat_out_name not in concat_wires
-                    ):
-                        concat_size = model.get_tensor_shape(concat_out_name)[0]
-                        verilog_string += "wire [%s:0] %s;\n" % (
-                            concat_size - 1,
-                            concat_out_name,
-                        )
-                        concat_wires.append(concat_out_name)
-                    verilog_string += "%s %s_inst(.in(%s), .result(%s[%s]));\n\n" % (
-                        node_name,
-                        node_name,
-                        op_input_name,
+            succesor_nodes = model.find_consumers(op_output_name)
+            for succesor_node in succesor_nodes:
+                # Step 7
+                concat_out_position = list(succesor_node.input).index(op_output_name)
+                concat_out_name = succesor_node.output[0]
+                if concat_out_name != output_tensor_name and (
+                    concat_out_name not in concat_wires
+                ):
+                    concat_size = model.get_tensor_shape(concat_out_name)[0]
+                    verilog_string += "wire [%s:0] %s;\n" % (
+                        concat_size - 1,
                         concat_out_name,
-                        concat_out_position,
                     )
-                    break
-                k += 1
+                    concat_wires.append(concat_out_name)
+                verilog_string += "%s %s_inst(.in(%s), .result(%s[%s]));\n\n" % (
+                    node_name,
+                    node_name,
+                    op_input_name,
+                    concat_out_name,
+                    concat_out_position,
+                )
     verilog_string += "endmodule"
 
     # Write verilog_string into final verilog_file
@@ -251,11 +255,10 @@ class GenLogicNetsVerilog(Transformation):
     - The code_dir is used to return the path of the generated verilog source
     code."""
 
-    def __init__(self, care_set, indices, code_dir):
+    def __init__(self, care_set, indices):
         super().__init__()
         self.care_set = care_set
         self.indices = indices
-        self.code_dir = code_dir
 
     def apply(self, model):
 
@@ -270,11 +273,11 @@ class GenLogicNetsVerilog(Transformation):
             )
 
         # Create LogicNets folder and copy all individual BinaryTruthTable code into
-        # the folder
-        code_dir = _create_logicnets_folder(model, code_dir=self.code_dir)
-
+        # the folder. The code_dir is included as a metadata attribute
+        model = _create_logicnets_folder(model)
+        print(model.graph)
         # Generate the Verilog wrapper that connects every individual BinaryTruthTable
         # verilog module.
-        _generate_verilog(model, indices=self.indices, code_dir=code_dir)
+        _generate_verilog(model, indices=self.indices)
 
         return (model, False)
