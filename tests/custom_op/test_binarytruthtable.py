@@ -40,6 +40,7 @@ from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.logicnets.gen_bintruthtable_verilog import (
     GenBinaryTruthTableVerilog,
 )
+from finn.transformation.logicnets.gen_truthtable_pla import GenTruthTablePLA
 from finn.util.data_packing import npy_to_rtlsim_input
 
 # export_onnx_path = "test_truthtable.onnx"
@@ -60,7 +61,7 @@ def test_binarytruthtable():
         dtype=np.float32,
     )
     # Set the care set
-    care_set_data = np.asarray([1, 58, 15, 89, 695, 6485], dtype=np.float32)
+    care_set_data = np.asarray([1, 58, 15, 89, 695, 6485])
     in_bits = 16
 
     # Set input and output tensor information
@@ -106,6 +107,9 @@ def test_binarytruthtable():
     model = model.transform(
         GenBinaryTruthTableVerilog(num_workers=None, care_set=care_set_dict)
     )
+
+    # Generate PLA files
+    model = model.transform(GenTruthTablePLA(num_workers=None, care_set=care_set_dict))
 
     # Loop over "python" and "rtlsim" execution modes
     for _ in range(2):

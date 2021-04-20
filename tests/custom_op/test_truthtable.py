@@ -38,6 +38,7 @@ from finn.custom_op.registry import getCustomOp
 from finn.transformation.general import GiveUniqueNodeNames
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
+from finn.transformation.logicnets.gen_truthtable_pla import GenTruthTablePLA
 from finn.transformation.logicnets.gen_truthtable_verilog import GenTruthTableVerilog
 from finn.util.data_packing import npy_to_rtlsim_input
 
@@ -112,11 +113,15 @@ def test_truthtable():
         "results": results_data,
     }
 
-    # Generate verilog
+    # Generate Verilog
     finn_model = finn_model.transform(
         GenTruthTableVerilog(num_workers=None, care_set=care_set_dict)
     )
 
+    # Generate PLA files
+    finn_model = finn_model.transform(
+        GenTruthTablePLA(num_workers=None, care_set=care_set_dict)
+    )
     # Loop over "python" and "rtlsim" execution modes
     for _ in range(2):
         # Loop over different input combinations

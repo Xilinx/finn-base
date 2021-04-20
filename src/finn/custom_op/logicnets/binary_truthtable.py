@@ -230,8 +230,37 @@ class BinaryTruthTable(CustomOp):
         # close the module
         verilog_string += "\t\tendcase\n\tend\nendmodule\n"
         # create temporary folder and save attribute value
-        self.set_nodeattr("code_dir", make_build_dir("BinaryTruthTable_verilog_"))
+        self.set_nodeattr("code_dir", make_build_dir("BinaryTruthTable_files_"))
         # create and write verilog file
         verilog_file = open(self.get_nodeattr("code_dir") + "/" + nodeName + ".v", "w")
         verilog_file.write(verilog_string)
         verilog_file.close()
+
+    def generate_pla(self, care_set):
+
+        input_bits = self.get_nodeattr("in_bits")
+        nodeName = self.onnx_node.name
+
+        pla_string = ".i %d\n" % (input_bits)
+        pla_string += ".o 1\n"
+
+        pla_string += ".ilb"
+        for i in range(input_bits):
+            pla_string += " in_%d" % (i)
+
+        pla_string += "\n"
+
+        pla_string += ".ob out"
+
+        pla_string += "\n"
+        pla_string += ".type fd\n"
+
+        for index, val in enumerate(care_set):
+            pla_string += bin(val)[2:].zfill(input_bits)
+            pla_string += " 1"
+            pla_string += "\n"
+
+        pla_string += "\n.e"
+        pla_file = open(self.get_nodeattr("code_dir") + "/" + nodeName + ".pla", "w")
+        pla_file.write(pla_string)
+        pla_file.close()

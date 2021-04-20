@@ -323,8 +323,41 @@ class TruthTable(CustomOp):
         # close the module
         verilog_string += "\t\tendcase\n\tend\nendmodule\n"
         # create temporary folder and save attribute value
-        self.set_nodeattr("code_dir", make_build_dir("TruthTable_verilog_"))
+        self.set_nodeattr("code_dir", make_build_dir("TruthTable_files_"))
         # create and write verilog file
         verilog_file = open(self.get_nodeattr("code_dir") + "/" + nodeName + ".v", "w")
         verilog_file.write(verilog_string)
         verilog_file.close()
+
+    def generate_pla(self, care_set, results):
+
+        input_bits = self.get_nodeattr("in_bits")
+        output_bits = self.get_nodeattr("out_bits")
+        nodeName = self.onnx_node.name
+
+        pla_string = ".i %d\n" % (input_bits)
+        pla_string += ".o %d\n" % (output_bits)
+
+        pla_string += ".ilb"
+        for i in range(input_bits):
+            pla_string += " in_%d" % (i)
+
+        pla_string += "\n"
+
+        pla_string += ".ob"
+        for i in range(output_bits):
+            pla_string += " out_%d" % (i)
+
+        pla_string += "\n"
+        pla_string += ".type fd\n"
+
+        for index, val in enumerate(care_set):
+            pla_string += bin(val)[2:].zfill(input_bits)
+            pla_string += " "
+            pla_string += bin(results[index])[2:].zfill(output_bits)
+            pla_string += "\n"
+
+        pla_string += "\n.e"
+        pla_file = open(self.get_nodeattr("code_dir") + "/" + nodeName + ".pla", "w")
+        pla_file.write(pla_string)
+        pla_file.close()
