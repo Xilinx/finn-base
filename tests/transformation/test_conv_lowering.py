@@ -95,10 +95,8 @@ def test_dws_reg_conv_lowering(
     if k_w > ifm_dim_w:
         pytest.skip("Kernel width must be smaller than image height")
     # Ensure the right padding parameters are set
-    if ifm_dim_h == 1:
-        padding[0] = 0
-        padding[2] = 0
     if ifm_dim_w == 1:
+        dilations[1] = 1
         padding[1] = 0
         padding[3] = 0
 
@@ -122,7 +120,7 @@ def test_dws_reg_conv_lowering(
         k_w,
         stride_w,
         pad_w,
-        dilations[0],
+        dilations[1],
     )
 
     # set up onnx model
