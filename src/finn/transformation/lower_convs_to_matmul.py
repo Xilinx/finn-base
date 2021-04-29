@@ -85,12 +85,8 @@ class LowerConvsToMatMul(Transformation):
                 dilation_attr = get_by_name(n.attribute, "dilations")
                 if dilation_attr is not None:
                     dilation = dilation_attr.ints
-                    assert (
-                        len(set(dilation)) <= 1
-                    ), "Only equal dilation value along each spatial axis is supported"
-                    dilation = dilation[0]
                 else:
-                    dilation = 1  # default value
+                    dilation = [1, 1]  # default value
                 # handle both auto_pad and explicit padding
                 auto_pad = get_by_name(n.attribute, "auto_pad")
                 if auto_pad is not None:
@@ -137,7 +133,7 @@ class LowerConvsToMatMul(Transformation):
                     # sparsity of the weight matrix. For this
                     # we use the sparsity annotation of the
                     # weight tensor
-                    sparsity = {"dw": {"kernel_shape": k_h}}
+                    sparsity = {"dw": {"kernel_shape": [k_h, k_w]}}
                     model.set_tensor_sparsity(weight_name, sparsity)
                     # additionally create variable "dw" to store
                     # as attribute in Im2Col that indicates that the created

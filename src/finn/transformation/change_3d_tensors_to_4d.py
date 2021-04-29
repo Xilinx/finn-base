@@ -169,7 +169,7 @@ class Change3DTo4DTensors(Transformation):
                 strides = get_by_name(n.attribute, "strides", "name").ints
                 if len(dilations) == 1:  # we must add another dimension to it
                     dilations.append(
-                        dilations[0]
+                        1
                     )  # only equal dilation value along each spatial axis is supported
                 if len(kernel_shape) == 1:  # we must add another dimension to it
                     kernel_shape.append(1)
