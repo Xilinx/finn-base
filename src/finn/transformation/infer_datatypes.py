@@ -35,7 +35,7 @@ from finn.util.basic import is_finn_op
 def _infer_node_datatype(model, node):
     """Infer output datatype(s) for a particular node. Returns True if any
     changes were made."""
-    dt_identity_optypes = ["Reshape", "Transpose"]
+    dt_identity_optypes = ["Reshape", "Transpose", "Flatten"]
     idtypes = list(map(lambda x: model.get_tensor_datatype(x), node.input))
     odtypes = list(map(lambda x: model.get_tensor_datatype(x), node.output))
     op_type = node.op_type
