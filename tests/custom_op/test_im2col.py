@@ -9,36 +9,25 @@ from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 
 
-def check_two_dict_for_equality(dict1, dict2):
-    for key in dict1:
-        assert key in dict2, "Key: {} is not in both dictionaries".format(key)
-        assert (
-            dict1[key] == dict2[key]
-        ), """Values for key {} are not the same
-        in both dictionaries""".format(
-            key
-        )
-
-    return True
-
-
 def execution_im2col(
     x,
     idt,
     k_h,
     k_w,
-    stride,
+    stride_h,
+    stride_w,
     ifm_ch,
     ifm_dim_h,
     ifm_dim_w,
     pad_amt,
     pad_val=0,
-    dilation=1,
+    dilation_h=1,
+    dilation_w=1,
 ):
     pad_amt_h = pad_amt[0] + pad_amt[2]
     pad_amt_w = pad_amt[1] + pad_amt[3]
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt_h, dilation)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt_w, dilation)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride_h, pad_amt_h, dilation_h)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride_w, pad_amt_w, dilation_w)
 
     # set up onnx model
     inp = helper.make_tensor_value_info(
@@ -53,12 +42,12 @@ def execution_im2col(
         ["inp"],
         ["outp"],
         domain="finn.custom_op.general",
-        stride=stride,
+        stride=[stride_h, stride_w],
         kernel_size=[k_h, k_w],
         pad_amount=pad_amt,
         pad_value=pad_val,
         input_shape="(1,{},{},{})".format(ifm_dim_h, ifm_dim_w, ifm_ch),
-        dilations=dilation,
+        dilations=[dilation_h, dilation_w],
     )
 
     graph = helper.make_graph(
@@ -103,20 +92,38 @@ def execution_im2col(
 # pad_val     | 0       | 0    | 0    | 0    | 0    | 0    | 0    | 0    | 0    | 0    |
 # k_H         | 2       | 2    | 2    | 2    | 3    | 2    | 2    | 2    | 2    | 3    |
 # k_W         | 2       | 2    | 2    | 2    | 3    | 1    | 1    | 1    | 1    | 1    |
-# stride      | 1       | 1    | 1    | 2    | 2    | 1    | 1    | 1    | 2    | 2    |
-# dilations   | 1       | 2    | 2    | 2    | 2    | 1    | 2    | 2    | 2    | 2    |
+# stride_h    | 1       | 1    | 1    | 2    | 2    | 1    | 1    | 1    | 2    | 2    |
+# stride_w    | 1       | 1    | 1    | 2    | 2    | 1    | 1    | 1    | 2    | 2    |
+# dilation_h  | 1       | 2    | 2    | 2    | 2    | 1    | 2    | 2    | 2    | 2    |
+# dilation_w  | 1       | 2    | 2    | 2    | 2    | 1    | 2    | 2    | 2    | 2    |
+# ------------------------------------------------------------------------------
+# case id     | 10   | 11   | 12   | 13
+# idt         | INT8 | INT8 | INT8 | INT8
+# ifm_dim_H   | 5    | 5    | 5    | 4
+# ifm_dim_W   | 5    | 1    | 5    | 5
+# ifm_ch      | 2    | 2    | 2    | 2
+# pad_amt     | 1    | 1    | 1    | 1
+# pad_val     | 0    | 0    | 0    | 0
+# k_H         | 2    | 2    | 2    | 1
+# k_W         | 2    | 1    | 2    | 2
+# stride_h    | 1    | 2    | 1    | 1
+# stride_w    | 2    | 1    | 2    | 2
+# dilation_h  | 2    | 2    | 1    | 1
+# dilation_w  | 2    | 2    | 2    | 2
 def test_im2col_dilations():
     case_id = 0
     idt = DataType.INT8
     k_H = 2
     k_W = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 5
     pad_amt = [0, 0, 0, 0]
     pad_val = 0
-    dilation = 1
+    dilation_h = 1
+    dilation_w = 1
 
     x = np.asarray(
         [
@@ -168,13 +175,15 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -185,13 +194,15 @@ def test_im2col_dilations():
     idt = DataType.INT8
     k_H = 2
     k_W = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 5
     pad_amt = [0, 0, 0, 0]
     pad_val = 0
-    dilation = 2
+    dilation_h = 2
+    dilation_w = 2
 
     x = np.asarray(
         [
@@ -234,13 +245,15 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -251,13 +264,15 @@ def test_im2col_dilations():
     idt = DataType.INT8
     k_H = 2
     k_W = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 5
     pad_amt = [1, 1, 1, 1]
     pad_val = 0
-    dilation = 2
+    dilation_h = 2
+    dilation_w = 2
 
     x = np.asarray(
         [
@@ -320,13 +335,15 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -337,13 +354,15 @@ def test_im2col_dilations():
     idt = DataType.INT8
     k_H = 2
     k_W = 2
-    stride = 2
+    stride_h = 2
+    stride_w = 2
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 5
     pad_amt = [1, 1, 1, 1]
     pad_val = 0
-    dilation = 2
+    dilation_h = 2
+    dilation_w = 2
 
     x = np.asarray(
         [
@@ -386,13 +405,15 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -403,13 +424,15 @@ def test_im2col_dilations():
     idt = DataType.INT8
     k_H = 3
     k_W = 3
-    stride = 2
+    stride_h = 2
+    stride_w = 2
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 5
     pad_amt = [1, 1, 1, 1]
     pad_val = 0
-    dilation = 2
+    dilation_h = 2
+    dilation_w = 2
 
     x = np.asarray(
         [
@@ -445,13 +468,15 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -462,13 +487,15 @@ def test_im2col_dilations():
     idt = DataType.INT8
     k_H = 2
     k_W = 1
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 1
     pad_amt = [0, 0, 0, 0]
     pad_val = 0
-    dilation = 1
+    dilation_h = 1
+    dilation_w = 1
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -485,13 +512,15 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -502,13 +531,15 @@ def test_im2col_dilations():
     idt = DataType.INT8
     k_H = 2
     k_W = 1
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 1
     pad_amt = [0, 0, 0, 0]
     pad_val = 0
-    dilation = 2
+    dilation_h = 2
+    dilation_w = 2
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -525,13 +556,15 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -542,13 +575,15 @@ def test_im2col_dilations():
     idt = DataType.INT8
     k_H = 2
     k_W = 1
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 1
     pad_amt = [1, 0, 1, 0]
     pad_val = 0
-    dilation = 2
+    dilation_h = 2
+    dilation_w = 2
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -573,13 +608,15 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -590,13 +627,15 @@ def test_im2col_dilations():
     idt = DataType.INT8
     k_H = 2
     k_W = 1
-    stride = 2
+    stride_h = 2
+    stride_w = 2
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 1
     pad_amt = [1, 0, 1, 0]
     pad_val = 0
-    dilation = 2
+    dilation_h = 2
+    dilation_w = 2
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -613,13 +652,15 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -630,13 +671,15 @@ def test_im2col_dilations():
     idt = DataType.INT8
     k_H = 3
     k_W = 1
-    stride = 2
+    stride_h = 2
+    stride_w = 2
     ifm_ch = 2
     ifm_dim_H = 5
     ifm_dim_W = 1
     pad_amt = [1, 0, 1, 0]
     pad_val = 0
-    dilation = 2
+    dilation_h = 2
+    dilation_w = 2
 
     x = np.asarray(
         [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
@@ -653,13 +696,298 @@ def test_im2col_dilations():
         idt,
         k_H,
         k_W,
-        stride,
+        stride_h,
+        stride_w,
         ifm_ch,
         ifm_dim_H,
         ifm_dim_W,
         pad_amt,
         pad_val,
-        dilation,
+        dilation_h,
+        dilation_w,
+    )
+
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
+
+    case_id = 10
+    idt = DataType.INT8
+    k_H = 2
+    k_W = 2
+    stride_h = 1
+    stride_w = 2
+    ifm_ch = 2
+    ifm_dim_H = 5
+    ifm_dim_W = 5
+    pad_amt = [1, 1, 1, 1]
+    pad_val = 0
+    dilation_h = 2
+    dilation_w = 2
+
+    x = np.asarray(
+        [
+            [
+                [[1, -1], [2, -2], [3, -3], [4, -4], [5, -5]],
+                [[6, -6], [7, -7], [8, -8], [9, -9], [10, -10]],
+                [[11, -11], [12, -12], [13, -13], [14, -14], [15, -15]],
+                [[16, -16], [17, -17], [18, -18], [19, -19], [20, -20]],
+                [[21, -21], [22, -22], [23, -23], [24, -24], [25, -25]],
+            ]
+        ],
+        dtype=np.float32,
+    )
+
+    expected = np.asarray(
+        [
+            [
+                [
+                    [0, 0, 0, 0, 0, 0, 7, -7],
+                    [0, 0, 0, 0, 7, -7, 9, -9],
+                    [0, 0, 0, 0, 9, -9, 0, 0],
+                ],
+                [
+                    [0, 0, 2, -2, 0, 0, 12, -12],
+                    [2, -2, 4, -4, 12, -12, 14, -14],
+                    [4, -4, 0, 0, 14, -14, 0, 0],
+                ],
+                [
+                    [0, 0, 7, -7, 0, 0, 17, -17],
+                    [7, -7, 9, -9, 17, -17, 19, -19],
+                    [9, -9, 0, 0, 19, -19, 0, 0],
+                ],
+                [
+                    [0, 0, 12, -12, 0, 0, 22, -22],
+                    [12, -12, 14, -14, 22, -22, 24, -24],
+                    [14, -14, 0, 0, 24, -24, 0, 0],
+                ],
+                [
+                    [0, 0, 17, -17, 0, 0, 0, 0],
+                    [17, -17, 19, -19, 0, 0, 0, 0],
+                    [19, -19, 0, 0, 0, 0, 0, 0],
+                ],
+            ]
+        ],
+        dtype=np.float32,
+    )
+
+    produced = execution_im2col(
+        x,
+        idt,
+        k_H,
+        k_W,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_H,
+        ifm_dim_W,
+        pad_amt,
+        pad_val,
+        dilation_h,
+        dilation_w,
+    )
+
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
+
+    case_id = 11
+    idt = DataType.INT8
+    k_H = 2
+    k_W = 1
+    stride_h = 2
+    stride_w = 1
+    ifm_ch = 2
+    ifm_dim_H = 5
+    ifm_dim_W = 1
+    pad_amt = [1, 0, 1, 0]
+    pad_val = 0
+    dilation_h = 2
+    dilation_w = 2
+
+    x = np.asarray(
+        [[[[1, -1]], [[2, -2]], [[3, -3]], [[4, -4]], [[5, -5]]]],
+        dtype=np.float32,
+    )
+
+    expected = np.asarray(
+        [[[[0, 0, 2, -2]], [[2, -2, 4, -4]], [[4, -4, 0, 0]]]],
+        dtype=np.float32,
+    )
+
+    produced = execution_im2col(
+        x,
+        idt,
+        k_H,
+        k_W,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_H,
+        ifm_dim_W,
+        pad_amt,
+        pad_val,
+        dilation_h,
+        dilation_w,
+    )
+
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
+
+    case_id = 12
+    idt = DataType.INT8
+    k_H = 2
+    k_W = 2
+    stride_h = 1
+    stride_w = 2
+    ifm_ch = 2
+    ifm_dim_H = 5
+    ifm_dim_W = 5
+    pad_amt = [1, 1, 1, 1]
+    pad_val = 0
+    dilation_h = 1
+    dilation_w = 2
+
+    x = np.asarray(
+        [
+            [
+                [[1, -1], [2, -2], [3, -3], [4, -4], [5, -5]],
+                [[6, -6], [7, -7], [8, -8], [9, -9], [10, -10]],
+                [[11, -11], [12, -12], [13, -13], [14, -14], [15, -15]],
+                [[16, -16], [17, -17], [18, -18], [19, -19], [20, -20]],
+                [[21, -21], [22, -22], [23, -23], [24, -24], [25, -25]],
+            ]
+        ],
+        dtype=np.float32,
+    )
+
+    expected = np.asarray(
+        [
+            [
+                [
+                    [0, 0, 0, 0, 0, 0, 2, -2],
+                    [0, 0, 0, 0, 2, -2, 4, -4],
+                    [0, 0, 0, 0, 4, -4, 0, 0],
+                ],
+                [
+                    [0, 0, 2, -2, 0, 0, 7, -7],
+                    [2, -2, 4, -4, 7, -7, 9, -9],
+                    [4, -4, 0, 0, 9, -9, 0, 0],
+                ],
+                [
+                    [0, 0, 7, -7, 0, 0, 12, -12],
+                    [7, -7, 9, -9, 12, -12, 14, -14],
+                    [9, -9, 0, 0, 14, -14, 0, 0],
+                ],
+                [
+                    [0, 0, 12, -12, 0, 0, 17, -17],
+                    [12, -12, 14, -14, 17, -17, 19, -19],
+                    [14, -14, 0, 0, 19, -19, 0, 0],
+                ],
+                [
+                    [0, 0, 17, -17, 0, 0, 22, -22],
+                    [17, -17, 19, -19, 22, -22, 24, -24],
+                    [19, -19, 0, 0, 24, -24, 0, 0],
+                ],
+                [
+                    [0, 0, 22, -22, 0, 0, 0, 0],
+                    [22, -22, 24, -24, 0, 0, 0, 0],
+                    [24, -24, 0, 0, 0, 0, 0, 0],
+                ],
+            ]
+        ],
+        dtype=np.float32,
+    )
+
+    produced = execution_im2col(
+        x,
+        idt,
+        k_H,
+        k_W,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_H,
+        ifm_dim_W,
+        pad_amt,
+        pad_val,
+        dilation_h,
+        dilation_w,
+    )
+
+    assert (produced == expected).all(), "Test failed for case number {}".format(
+        case_id
+    )
+
+    case_id = 13
+    idt = DataType.INT8
+    k_H = 2
+    k_W = 3
+    stride_h = 1
+    stride_w = 2
+    ifm_ch = 2
+    ifm_dim_H = 4
+    ifm_dim_W = 5
+    pad_amt = [1, 1, 1, 1]
+    pad_val = 0
+    dilation_h = 1
+    dilation_w = 2
+
+    x = np.asarray(
+        [
+            [
+                [[1, -1], [2, -2], [3, -3], [4, -4], [5, -5]],
+                [[6, -6], [7, -7], [8, -8], [9, -9], [10, -10]],
+                [[11, -11], [12, -12], [13, -13], [14, -14], [15, -15]],
+                [[16, -16], [17, -17], [18, -18], [19, -19], [20, -20]],
+            ]
+        ],
+        dtype=np.float32,
+    )
+
+    expected = np.asarray(
+        [
+            [
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 2, -2, 4, -4],
+                    [0, 0, 0, 0, 0, 0, 2, -2, 4, -4, 0, 0],
+                ],
+                [
+                    [0, 0, 2, -2, 4, -4, 0, 0, 7, -7, 9, -9],
+                    [2, -2, 4, -4, 0, 0, 7, -7, 9, -9, 0, 0],
+                ],
+                [
+                    [0, 0, 7, -7, 9, -9, 0, 0, 12, -12, 14, -14],
+                    [7, -7, 9, -9, 0, 0, 12, -12, 14, -14, 0, 0],
+                ],
+                [
+                    [0, 0, 12, -12, 14, -14, 0, 0, 17, -17, 19, -19],
+                    [12, -12, 14, -14, 0, 0, 17, -17, 19, -19, 0, 0],
+                ],
+                [
+                    [0, 0, 17, -17, 19, -19, 0, 0, 0, 0, 0, 0],
+                    [17, -17, 19, -19, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+            ]
+        ],
+        dtype=np.float32,
+    )
+
+    produced = execution_im2col(
+        x,
+        idt,
+        k_H,
+        k_W,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_H,
+        ifm_dim_W,
+        pad_amt,
+        pad_val,
+        dilation_h,
+        dilation_w,
     )
 
     assert (produced == expected).all(), "Test failed for case number {}".format(
@@ -677,15 +1005,18 @@ def test_im2col_dilations():
 # pad_val     | 0       | 0    | 0    | 0    | 0    | 0    | 0    | 0    | 0    |
 # k_H         | 2       | 2    | 2    | 2    | 3    | 3    | 3    | 3    | 3    |
 # k_W         | 2       | 2    | 2    | 2    | 2    | 2    | 1    | 1    | 1    |
-# stride      | 1       | 1    | 1    | 1    | 1    | 1    | 1    | 1    | 2    |
-# dilations   | 1       | 1    | 1    | 1    | 1    | 1    | 1    | 1    | 1    |
+# stride_h    | 1       | 1    | 1    | 1    | 1    | 1    | 1    | 1    | 2    |
+# stride_w    | 1       | 1    | 1    | 1    | 1    | 1    | 1    | 1    | 2    |
+# dilation_h  | 1       | 1    | 1    | 1    | 1    | 1    | 1    | 1    | 1    |
+# dilation_w  | 1       | 1    | 1    | 1    | 1    | 1    | 1    | 1    | 1    |
 def test_im2col():
     case_id = 0
     # bipolar inputs with following im2col parameters
     idt = DataType.BIPOLAR
     k_h = 2
     k_w = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 1
     ifm_dim_h = 4
     ifm_dim_w = 4
@@ -694,8 +1025,8 @@ def test_im2col():
     pad_amt_w = pad_amt[1] + pad_amt[3]
     pad_val = 0
 
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt_h)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt_w)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride_h, pad_amt_h)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride_w, pad_amt_w)
 
     x = np.asarray(
         [
@@ -762,7 +1093,17 @@ def test_im2col():
     ).reshape(1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch)
 
     produced = execution_im2col(
-        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
+        x,
+        idt,
+        k_h,
+        k_w,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_h,
+        ifm_dim_w,
+        pad_amt,
+        pad_val,
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -772,7 +1113,8 @@ def test_im2col():
     idt = DataType.INT8
     k_h = 2
     k_w = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 4
@@ -815,7 +1157,17 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
+        x,
+        idt,
+        k_h,
+        k_w,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_h,
+        ifm_dim_w,
+        pad_amt,
+        pad_val,
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -825,7 +1177,8 @@ def test_im2col():
     idt = DataType.INT8
     k_h = 2
     k_w = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 4
@@ -888,7 +1241,17 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
+        x,
+        idt,
+        k_h,
+        k_w,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_h,
+        ifm_dim_w,
+        pad_amt,
+        pad_val,
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -898,7 +1261,8 @@ def test_im2col():
     idt = DataType.INT8
     k_h = 2
     k_w = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 5
@@ -944,7 +1308,17 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
+        x,
+        idt,
+        k_h,
+        k_w,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_h,
+        ifm_dim_w,
+        pad_amt,
+        pad_val,
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -954,7 +1328,8 @@ def test_im2col():
     idt = DataType.INT8
     k_h = 3
     k_w = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 5
@@ -994,7 +1369,17 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
+        x,
+        idt,
+        k_h,
+        k_w,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_h,
+        ifm_dim_w,
+        pad_amt,
+        pad_val,
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -1004,7 +1389,8 @@ def test_im2col():
     idt = DataType.INT8
     k_h = 3
     k_w = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_h = 4
     ifm_dim_w = 5
@@ -1064,7 +1450,17 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
+        x,
+        idt,
+        k_h,
+        k_w,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_h,
+        ifm_dim_w,
+        pad_amt,
+        pad_val,
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -1074,7 +1470,8 @@ def test_im2col():
     idt = DataType.INT8
     k_h = 3
     k_w = 1
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_h = 5
     ifm_dim_w = 1
@@ -1092,7 +1489,17 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
+        x,
+        idt,
+        k_h,
+        k_w,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_h,
+        ifm_dim_w,
+        pad_amt,
+        pad_val,
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -1102,7 +1509,8 @@ def test_im2col():
     idt = DataType.INT8
     k_h = 3
     k_w = 1
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 2
     ifm_dim_h = 5
     ifm_dim_w = 1
@@ -1128,7 +1536,17 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
+        x,
+        idt,
+        k_h,
+        k_w,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_h,
+        ifm_dim_w,
+        pad_amt,
+        pad_val,
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -1138,7 +1556,8 @@ def test_im2col():
     idt = DataType.INT8
     k_h = 3
     k_w = 1
-    stride = 2
+    stride_h = 2
+    stride_w = 2
     ifm_ch = 2
     ifm_dim_h = 5
     ifm_dim_w = 1
@@ -1156,7 +1575,17 @@ def test_im2col():
     )
 
     produced = execution_im2col(
-        x, idt, k_h, k_w, stride, ifm_ch, ifm_dim_h, ifm_dim_w, pad_amt, pad_val
+        x,
+        idt,
+        k_h,
+        k_w,
+        stride_h,
+        stride_w,
+        ifm_ch,
+        ifm_dim_h,
+        ifm_dim_w,
+        pad_amt,
+        pad_val,
     )
     assert (produced == expected).all(), "Test failed for case number {}".format(
         case_id
@@ -1167,7 +1596,8 @@ def test_im2col_infer_shapes():
     idt = DataType.BIPOLAR
     k_h = 2
     k_w = 2
-    stride = 1
+    stride_h = 1
+    stride_w = 1
     ifm_ch = 1
     ifm_dim_h = 4
     ifm_dim_w = 4
@@ -1176,8 +1606,8 @@ def test_im2col_infer_shapes():
     pad_amt_w = pad_amt[1] + pad_amt[3]
     dilation = 1
 
-    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride, pad_amt_h, dilation)
-    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride, pad_amt_w, dilation)
+    ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride_h, pad_amt_h, dilation)
+    ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride_w, pad_amt_w, dilation)
 
     # set up onnx model
     inp = helper.make_tensor_value_info(
@@ -1194,10 +1624,10 @@ def test_im2col_infer_shapes():
         ["abs"],
         ["im2col"],
         domain="finn.custom_op.general",
-        stride=stride,
+        stride=[stride_w, stride_w],
         kernel_size=[k_h, k_w],
         input_shape="(1,{},{},{})".format(ifm_dim_h, ifm_dim_w, ifm_ch),
-        dilations=dilation,
+        dilations=[dilation, dilation],
     )
 
     abs1_node = helper.make_node("Abs", inputs=["im2col"], outputs=["outp"])

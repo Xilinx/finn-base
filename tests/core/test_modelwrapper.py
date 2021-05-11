@@ -68,7 +68,7 @@ def test_modelwrapper():
     assert model.get_tensor_layout(first_conv_iname) == inp_layout
     inp_sparsity = model.get_tensor_sparsity(first_conv_iname)
     assert inp_sparsity is None
-    inp_sparsity = {"dw": {"kernel_shape": 3}}
+    inp_sparsity = {"dw": {"kernel_shape": [3, 3]}}
     model.set_tensor_sparsity(first_conv_iname, inp_sparsity)
     assert model.get_tensor_sparsity(first_conv_iname) == inp_sparsity
 
