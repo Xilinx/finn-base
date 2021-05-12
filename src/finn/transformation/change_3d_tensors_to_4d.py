@@ -152,7 +152,7 @@ class Change3DTo4DTensors(Transformation):
             # Find tensors that are the output of nodes that reduce the dimension
             if node_op_type == "ArgMax":
                 keep_dims = get_by_name(n.attribute, "keepdims", "name").i
-                if len(input_shape == 3) and keep_dims == 0:
+                if len(input_shape) == 3 and keep_dims == 0:
                     node_out = n.output
                     for n_o in node_out:
                         tensors_reduced_dimension.append(n_o)
@@ -166,7 +166,7 @@ class Change3DTo4DTensors(Transformation):
                     perm.append(3)  # append 4th dimension
             elif node_op_type in ["ArgMax", "LogSoftMax", "TopK", "Flatten"]:
                 axis = get_by_name(n.attribute, "axis", "name")
-                if len(input_shape == 3) and axis.i < 0:
+                if len(input_shape) == 3 and axis.i < 0:
                     axis.i = 3 - axis.i  # count dimensions from the front
             elif node_op_type == "Conv":
                 dilations = get_by_name(n.attribute, "dilations", "name").ints
