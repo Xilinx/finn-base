@@ -44,7 +44,7 @@ pynq_part_map["Pynq-Z1"] = "xc7z020clg400-1"
 pynq_part_map["Pynq-Z2"] = "xc7z020clg400-1"
 pynq_part_map["ZCU102"] = "xczu9eg-ffvb1156-2-e"
 pynq_part_map["ZCU104"] = "xczu7ev-ffvc1156-2-e"
-pynq_part_map["ZCU111"] = "xczu28dr-2effvg1517-2-e"
+pynq_part_map["ZCU111"] = "xczu28dr-ffvg1517-2-e"
 
 # native AXI HP port width (in bits) for PYNQ boards
 pynq_native_port_width = dict()
