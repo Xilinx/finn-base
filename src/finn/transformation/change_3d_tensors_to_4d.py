@@ -56,6 +56,12 @@ def _find_invalid_nodes(model):
         "Transpose",
         "LogSoftmax",
         "ArgMax",
+        "Div",
+        "TopK",
+        "MatMul",
+        "Flatten",
+        "Reshape",
+        "MaxPool",
     ]
     invalid_nodes = []
     for n in model.graph.node:
@@ -96,7 +102,7 @@ class Change3DTo4DTensors(Transformation):
         model = model.transform(RemoveUnusedTensors())
 
         # This list contains all nodes with initializers that need to be converted
-        nodes_with_initializers = ["Mul", "Conv", "Add"]
+        nodes_with_initializers = ["Mul", "Conv", "Add", "Div", "Reshape"]
         # Obtain a list of initializer names (used to filter out only value infos)
         initializers_names = [x.name for x in model.graph.initializer]
 
@@ -118,8 +124,7 @@ class Change3DTo4DTensors(Transformation):
                 if x.name not in initializers_names
             },
         }
-        # Extract only initializers from Conv, Mul and Add nodes (which are the
-        # only ones relevant for conversion)
+        # Extract only initializers from nodes that are relevant for conversion
         all_tensors = {
             **all_tensors,
             **{
@@ -143,10 +148,11 @@ class Change3DTo4DTensors(Transformation):
         tensors_reduced_dimension = []
         for n in model.graph.node:
             node_op_type = n.op_type
+            input_shape = model.get_tensor_shape(n.input[0])
             # Find tensors that are the output of nodes that reduce the dimension
             if node_op_type == "ArgMax":
                 keep_dims = get_by_name(n.attribute, "keepdims", "name").i
-                if keep_dims == 0:
+                if len(input_shape == 3) and keep_dims == 0:
                     node_out = n.output
                     for n_o in node_out:
                         tensors_reduced_dimension.append(n_o)
@@ -158,10 +164,10 @@ class Change3DTo4DTensors(Transformation):
                     len(perm) == 3
                 ):  # Meaning that the transpose operation was on a 3D tensor
                     perm.append(3)  # append 4th dimension
-            elif node_op_type == "ArgMax" or node_op_type == "LogSoftMax":
+            elif node_op_type in ["ArgMax", "LogSoftMax", "TopK", "Flatten"]:
                 axis = get_by_name(n.attribute, "axis", "name")
-                if axis.i == -1:
-                    axis.i = 2  # argmax is now on the second-to-last axis
+                if len(input_shape == 3) and axis.i < 0:
+                    axis.i = 3 - axis.i  # count dimensions from the front
             elif node_op_type == "Conv":
                 dilations = get_by_name(n.attribute, "dilations", "name").ints
                 kernel_shape = get_by_name(n.attribute, "kernel_shape", "name").ints
@@ -171,6 +177,19 @@ class Change3DTo4DTensors(Transformation):
                     dilations.append(
                         1
                     )  # only equal dilation value along each spatial axis is supported
+                if len(kernel_shape) == 1:  # we must add another dimension to it
+                    kernel_shape.append(1)
+                if (
+                    len(pads) == 2
+                ):  # pads = [x1_begin, x1_end] --> [x1_begin, x2_begin, x1_end, x2_end]
+                    pads.insert(1, 0)
+                    pads.append(0)
+                if len(strides) == 1:  # strides = [stride_h, stride_w]
+                    strides.append(1)
+            elif node_op_type == "MaxPool":
+                kernel_shape = get_by_name(n.attribute, "kernel_shape", "name").ints
+                pads = get_by_name(n.attribute, "pads", "name").ints
+                strides = get_by_name(n.attribute, "strides", "name").ints
                 if len(kernel_shape) == 1:  # we must add another dimension to it
                     kernel_shape.append(1)
                 if (
