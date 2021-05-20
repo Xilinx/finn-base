@@ -167,7 +167,7 @@ class Change3DTo4DTensors(Transformation):
             elif node_op_type in ["ArgMax", "LogSoftMax", "TopK", "Flatten"]:
                 axis = get_by_name(n.attribute, "axis", "name")
                 if len(input_shape) == 3 and axis.i < 0:
-                    axis.i = 3 - axis.i  # count dimensions from the front
+                    axis.i = 3 + axis.i  # count dimensions from the front
             elif node_op_type == "Conv":
                 dilations = get_by_name(n.attribute, "dilations", "name").ints
                 kernel_shape = get_by_name(n.attribute, "kernel_shape", "name").ints
