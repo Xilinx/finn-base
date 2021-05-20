@@ -70,7 +70,7 @@ def test_batchnorm_to_affine_shufflenet():
 
 @pytest.mark.parametrize("epsilon", [0.0, 0.00001, 0.001])
 def test_batchnorm_to_affine_epsilon(epsilon):
-    """ Dummy batchnorm node to test out the epsilon attribute. """
+    """Dummy batchnorm node to test out the epsilon attribute."""
 
     batchnorm_node = onnx.helper.make_node(
         "BatchNormalization",
