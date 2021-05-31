@@ -192,6 +192,17 @@ def pyverilate_stitched_ip(model, read_internal_signals=True):
                 wf.write("//Added from " + vfile + "\n\n")
                 wf.write(rf.read())
 
+    verilator_args = []
+    # disable common verilator warnings that should be harmless
+    verilator_args += ["-Wno-STMTDLY"]
+    verilator_args += ["-Wno-PINMISSING"]
+    verilator_args += ["-Wno-IMPLICIT"]
+    verilator_args += ["-Wno-WIDTH"]
+    verilator_args += ["-Wno-COMBDLY"]
+    # force inlining of all submodules to ensure we can read internal signals properly
+    if read_internal_signals:
+        verilator_args += ["--inline-mult", "0"]
+
     sim = PyVerilator.build(
         top_module_file_name,
         verilog_path=[vivado_stitch_proj_dir],
@@ -200,6 +211,7 @@ def pyverilate_stitched_ip(model, read_internal_signals=True):
         top_module_name=top_module_name,
         auto_eval=False,
         read_internal_signals=read_internal_signals,
+        extra_args=verilator_args,
     )
     return sim
 
