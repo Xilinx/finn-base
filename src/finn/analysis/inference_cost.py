@@ -80,8 +80,12 @@ def inference_cost_conv(model, node):
     # extract info about the conv kernel attributes
     k = get_by_name(node.attribute, "kernel_shape").ints
     k_prod = np.prod(k)
-    group = get_by_name(node.attribute, "group").i
-    # extract info from tensor shapes
+    group = get_by_name(node.attribute, "group")
+    if group is None:
+        group = 1
+    else:
+        group = group.i
+    # extract info from tensor shapes and datatypes
     (i_dtype, w_dtype, o_dtype) = get_node_tensor_dtypes(model, node)
     (i_shape, w_shape, o_shape) = get_node_tensor_shapes(model, node)
     bsize = i_shape[0]
@@ -103,12 +107,42 @@ def inference_cost_conv(model, node):
     return ret
 
 
+def inference_cost_matmul(model, node):
+    # extract info from tensor shapes and datatypes
+    (i_dtype, w_dtype, o_dtype) = get_node_tensor_dtypes(model, node)
+    (i_shape, w_shape, o_shape) = get_node_tensor_shapes(model, node)
+    if node.op_type == "Gemm":
+        assert len(i_shape) == 2 and len(w_shape) == 2
+        tA = get_by_name(node.attribute, "transA")
+        tB = get_by_name(node.attribute, "transB")
+        if tA is not None and tA.i == 1:
+            i_shape = i_shape[::-1]
+        if tB is not None and tB.i == 1:
+            w_shape = w_shape[::-1]
+    # exclude common dim (last axis) from one side to avoid duplication
+    n_macs = np.prod(i_shape[:-1]) * np.prod(w_shape)
+    w_mem = np.prod(w_shape)
+    o_mem = np.prod(o_shape)
+    idt_name = i_dtype.name
+    wdt_name = w_dtype.name
+    odt_name = o_dtype.name
+    mac_op_type_str = "op_mac_%s_%s" % (idt_name, wdt_name)
+    w_mem_type_str = "mem_w_%s" % (wdt_name)
+    o_mem_type_str = "mem_o_%s" % (odt_name)
+    ret = {mac_op_type_str: n_macs, w_mem_type_str: w_mem, o_mem_type_str: o_mem}
+    return ret
+
+
 def inference_cost(model):
     "Ensure all nodes have unique names prior to calling this analysis pass."
 
     node_costs = {}
     unsupported_ops = set()
-    inference_cost_fxn_map = {"Conv": inference_cost_conv}
+    inference_cost_fxn_map = {
+        "Conv": inference_cost_conv,
+        "MatMul": inference_cost_matmul,
+        "Gemm": inference_cost_matmul,
+    }
     for node in model.graph.node:
         if node.op_type in inference_cost_fxn_map.keys():
             node_cost = inference_cost_fxn_map[node.op_type](model, node)
