@@ -33,12 +33,22 @@ from finn.custom_op.base import CustomOp
 
 
 def quant(inp_tensor, scale, zeropt, bitwidth):
-    # TODO check if we already have an impl for this
+    # TODO implement based on Brevitas, but without introducing a dependency
+    # (e.g. pure numpy, no pytorch tensors/ops)
+    # https://bit.ly/2S6qvZJ
     return inp_tensor
 
 
 class Quant(CustomOp):
-    """Generic quantization operation for QONNX."""
+    """Generic quantization operation for QONNX. Takes four inputs:
+    - input tensor to quantize
+    - the scale
+    - the zero-point
+    - the bit-width
+
+    The output is a tensor of the same shape as the input tensor, with quantized
+    values.
+    """
 
     def get_nodeattr_types(self):
         return {
