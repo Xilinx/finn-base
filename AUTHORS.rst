@@ -2,10 +2,11 @@
 Contributors
 ============
 
-* Yaman Umuroglu <yamanu@xilinx.com> (maintainer)
-* Sambhav Jain <sambhavj@xilinx.com> (maintainer)
+* Yaman Umuroglu (@maltanar) (maintainer)
+* Sambhav Jain (@sjain-stanford)
 * Jakoba Petri-Koenig (@auphelia)
 * Lucian Petrica (@quetric)
 * Tobias Alonso (@Tobi-Alonso)
 * Hendrik Borras (@HenniOVP)
 * Mirza Mrahorovic (@mmrahorovic)
+* Felix Paul Jentzsch (@felixpj)
