@@ -30,10 +30,12 @@ jobs:
         run: |
           docker run --rm \
                      -v $(pwd):/workspace/finn-base \
+                     -e FINN_BUILD_DIR=/tmp/finn-base-gha \
                      finn-base-gha run_tests.sh
 
       - name: Build Docs
         run: |
           docker run --rm \
                      -v $(pwd):/workspace/finn-base \
+                     -e FINN_BUILD_DIR=/tmp/finn-base-gha \
                      finn-base-gha build_docs.sh

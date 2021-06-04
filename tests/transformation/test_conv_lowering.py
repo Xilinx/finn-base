@@ -72,40 +72,197 @@ def test_conv_lowering_convmnist():
 # input datatype
 @pytest.mark.parametrize("idt", [DataType.INT2, DataType.INT4])
 # kernel size
-@pytest.mark.parametrize("k", [2, 4])
+@pytest.mark.parametrize("k_h", [2, 3])
+@pytest.mark.parametrize("k_w", [2, 3, 1])
 # input dimension
-@pytest.mark.parametrize("ifm_dim", [4, 6])
+@pytest.mark.parametrize("ifm_dim_h", [9, 11])
+@pytest.mark.parametrize("ifm_dim_w", [9, 11, 1])
 # input channels
 @pytest.mark.parametrize("ifm_ch", [2, 3])
 # stride
-@pytest.mark.parametrize("stride", [1, 2])
+@pytest.mark.parametrize("stride", [[1, 1], [1, 2], [2, 1], [2, 2]])
 # padding
 @pytest.mark.parametrize("padding", [[0, 0, 0, 0], [1, 1, 1, 1]])
-def test_depthwise_conv_lowering(idt, k, ifm_dim, ifm_ch, stride, padding):
+# dilations
+@pytest.mark.parametrize("dilations", [[1, 1], [2, 2], [3, 3]])
+# depthwise or channelwise
+@pytest.mark.parametrize("dw", [True, False])
+def test_dws_reg_conv_lowering(
+    idt, k_h, k_w, ifm_dim_h, ifm_dim_w, ifm_ch, stride, padding, dilations, dw
+):
+    if k_h > ifm_dim_h:
+        pytest.skip("Kernel height must be smaller than image height")
+    if k_w > ifm_dim_w:
+        pytest.skip("Kernel width must be smaller than image height")
+    # Ensure the right padding parameters are set
+    if ifm_dim_w == 1:
+        dilations[1] = 1
+        padding[1] = 0
+        padding[3] = 0
 
     wdt = idt
     odt = DataType.INT32
     ofm_ch = ifm_ch
-    ofm_dim = compute_conv_output_dim(ifm_dim, k, stride, pad=padding[0])
+    pad_h = padding[0] + padding[2]
+    pad_w = padding[1] + padding[3]
+    stride_h = stride[0]
+    stride_w = stride[1]
+
+    ofm_dim_h = compute_conv_output_dim(
+        ifm_dim_h,
+        k_h,
+        stride_h,
+        pad_h,
+        dilations[0],
+    )
+    ofm_dim_w = compute_conv_output_dim(
+        ifm_dim_w,
+        k_w,
+        stride_w,
+        pad_w,
+        dilations[1],
+    )
 
     # set up onnx model
     inp = oh.make_tensor_value_info(
-        "inp", TensorProto.FLOAT, [1, ifm_ch, ifm_dim, ifm_dim]
+        "inp", TensorProto.FLOAT, [1, ifm_ch, ifm_dim_h, ifm_dim_w]
     )
     outp = oh.make_tensor_value_info(
-        "outp", TensorProto.FLOAT, [1, ofm_ch, ofm_dim, ofm_dim]
+        "outp", TensorProto.FLOAT, [1, ofm_ch, ofm_dim_h, ofm_dim_w]
     )
 
-    W = oh.make_tensor_value_info("W", TensorProto.FLOAT, [ofm_ch, 1, k, k])
+    if dw is True:
+        W = oh.make_tensor_value_info("W", TensorProto.FLOAT, [ofm_ch, 1, k_h, k_w])
+        group = ifm_ch
+    else:
+        W = oh.make_tensor_value_info(
+            "W", TensorProto.FLOAT, [ofm_ch, ifm_ch, k_h, k_w]
+        )
+        group = 1
 
     dw_cnv = oh.make_node(
         "Conv",
         inputs=["inp", "W"],
         outputs=["outp"],
-        kernel_shape=[k, k],
+        kernel_shape=[k_h, k_w],
+        pads=padding,
+        strides=[stride_h, stride_w],
+        group=group,
+        dilations=dilations,
+    )
+    graph = oh.make_graph(
+        nodes=[dw_cnv],
+        name="dw_cnv_graph",
+        inputs=[inp],
+        outputs=[outp],
+        value_info=[W],
+    )
+
+    model = oh.make_model(graph, producer_name="test_dws_reg_cnv-model")
+    model = ModelWrapper(model)
+    model.set_tensor_datatype("inp", idt)
+    model.set_tensor_datatype("outp", odt)
+    model.set_tensor_datatype("W", wdt)
+
+    if dw is True:
+        w_tensor = gen_finn_dt_tensor(wdt, [ofm_ch, 1, k_h, k_w])
+    else:
+        w_tensor = gen_finn_dt_tensor(wdt, [ofm_ch, ifm_ch, k_h, k_w])
+
+    model.set_initializer("W", w_tensor)
+    model = model.transform(InferShapes())
+
+    input_tensor = gen_finn_dt_tensor(idt, [1, ifm_ch, ifm_dim_h, ifm_dim_w])
+    input_dict = {"inp": input_tensor}
+    output_dict = oxe.execute_onnx(model, input_dict)
+    expected = output_dict["outp"]
+
+    model = model.transform(LowerConvsToMatMul())
+    output_dict = oxe.execute_onnx(model, input_dict)
+    produced = output_dict["outp"]
+    assert (produced == expected).all()
+
+    if dw is True:
+        # check if created nodes have attributes that indicate depthwise conv
+        assert model.get_tensor_sparsity("W") is not None
+        im2col_node = getCustomOp(model.graph.node[1])
+        assert im2col_node.get_nodeattr("depthwise") == 1
+
+
+# input datatype
+@pytest.mark.parametrize("idt", [DataType.INT2, DataType.INT4])
+# kernel size
+@pytest.mark.parametrize("k_h", [2])
+@pytest.mark.parametrize("k_w", [2])
+# input dimension
+@pytest.mark.parametrize("ifm_dim_h", [4])
+@pytest.mark.parametrize("ifm_dim_w", [4])
+# input channels
+@pytest.mark.parametrize("ifm_ch", [2])
+# stride
+@pytest.mark.parametrize("stride", [1, 2])
+# padding. Padding is applied to dimensions H and W as: [H_begin, W_begin, H_end, W_end]
+@pytest.mark.parametrize(
+    "padding",
+    [
+        [0, 0, 0, 0],
+        [0, 0, 0, 1],
+        [0, 0, 1, 0],
+        [0, 0, 1, 1],
+        [0, 1, 0, 0],
+        [0, 1, 0, 1],
+        [0, 1, 1, 0],
+        [0, 1, 1, 1],
+        [1, 0, 0, 0],
+        [1, 0, 0, 1],
+        [1, 0, 1, 0],
+        [1, 0, 1, 1],
+        [1, 1, 0, 0],
+        [1, 1, 0, 1],
+        [1, 1, 1, 0],
+        [1, 1, 1, 1],
+    ],
+)
+def test_non_equal_padding(
+    idt, k_h, k_w, ifm_dim_h, ifm_dim_w, ifm_ch, stride, padding
+):
+    wdt = idt
+    odt = DataType.INT32
+    ofm_ch = ifm_ch
+    pad_h = padding[0] + padding[2]
+    pad_w = padding[1] + padding[3]
+
+    ofm_dim_h = compute_conv_output_dim(
+        ifm_dim_h,
+        k_h,
+        stride,
+        pad_h,
+    )
+    ofm_dim_w = compute_conv_output_dim(
+        ifm_dim_w,
+        k_w,
+        stride,
+        pad_w,
+    )
+
+    # set up onnx model
+    inp = oh.make_tensor_value_info(
+        "inp", TensorProto.FLOAT, [1, ifm_ch, ifm_dim_h, ifm_dim_w]
+    )
+    outp = oh.make_tensor_value_info(
+        "outp", TensorProto.FLOAT, [1, ofm_ch, ofm_dim_h, ofm_dim_w]
+    )
+
+    W = oh.make_tensor_value_info("W", TensorProto.FLOAT, [ofm_ch, ifm_ch, k_h, k_w])
+
+    dw_cnv = oh.make_node(
+        "Conv",
+        inputs=["inp", "W"],
+        outputs=["outp"],
+        kernel_shape=[k_h, k_w],
         pads=padding,
         strides=[stride, stride],
-        group=ifm_ch,
+        group=1,
     )
     graph = oh.make_graph(
         nodes=[dw_cnv],
@@ -120,11 +277,11 @@ def test_depthwise_conv_lowering(idt, k, ifm_dim, ifm_ch, stride, padding):
     model.set_tensor_datatype("inp", idt)
     model.set_tensor_datatype("outp", odt)
     model.set_tensor_datatype("W", wdt)
-    w_tensor = gen_finn_dt_tensor(wdt, [ofm_ch, 1, k, k])
+    w_tensor = gen_finn_dt_tensor(wdt, [ofm_ch, ifm_ch, k_h, k_w])
     model.set_initializer("W", w_tensor)
     model = model.transform(InferShapes())
 
-    input_tensor = gen_finn_dt_tensor(idt, [1, ifm_ch, ifm_dim, ifm_dim])
+    input_tensor = gen_finn_dt_tensor(idt, [1, ifm_ch, ifm_dim_h, ifm_dim_w])
     input_dict = {"inp": input_tensor}
     output_dict = oxe.execute_onnx(model, input_dict)
     expected = output_dict["outp"]
@@ -134,23 +291,20 @@ def test_depthwise_conv_lowering(idt, k, ifm_dim, ifm_ch, stride, padding):
     produced = output_dict["outp"]
     assert (produced == expected).all()
 
-    # check if created nodes have attributes that indicate depthwise conv
-    assert model.get_tensor_sparsity("W") is not None
-    im2col_node = getCustomOp(model.graph.node[1])
-    assert im2col_node.get_nodeattr("depthwise") == 1
-
 
 def test_conv_lowering_conv_1x1():
 
     np.random.seed(0)
 
-    in_feature_dim = 7
+    in_feature_dim_h = 7
+    in_feature_dim_w = 7
     in_chn = 3
     kernel_size = 1
-    out_feature_dim = in_feature_dim
+    out_feature_dim_h = in_feature_dim_h
+    out_feature_dim_w = in_feature_dim_w
 
-    input_shape = [1, in_chn, in_feature_dim, in_feature_dim]
-    output_shape = [1, in_chn, out_feature_dim, out_feature_dim]
+    input_shape = [1, in_chn, in_feature_dim_h, in_feature_dim_w]
+    output_shape = [1, in_chn, out_feature_dim_h, out_feature_dim_w]
 
     conv_param_shape = [in_chn, in_chn, kernel_size, kernel_size]
 

@@ -51,7 +51,27 @@ def execute_node(node, context, graph, return_full_exec_context=False):
 
     Input/output provided via context."""
 
-    if node.op_type == "StreamingDataflowPartition":
+    if node.op_type == "GenericPartition":
+        partition_node = getCustomOp(node)
+        model = ModelWrapper(partition_node.get_nodeattr("model"))
+        inp_ctx = dict(filter(lambda x: x[0] in node.input, context.items()))
+        # inputs may have been renamed in partition
+        for i, old_iname in enumerate(node.input):
+            new_iname = model.graph.input[i].name
+            if old_iname != new_iname:
+                inp_ctx[new_iname] = inp_ctx[old_iname]
+                del inp_ctx[old_iname]
+        ret = execute_onnx(model, inp_ctx, return_full_exec_context)
+        # outputs may have been renamed in partition
+        for i, node_oname in enumerate(node.output):
+            model_oname = model.graph.output[i].name
+            context[node_oname] = ret[model_oname]
+        # prefix and insert exec context entries
+        if return_full_exec_context:
+            for tname in ret.keys():
+                if tname not in [x.name for x in model.graph.output]:
+                    context[node.name + "_" + tname] = ret[tname]
+    elif node.op_type == "StreamingDataflowPartition":
         sdp_node = getCustomOp(node)
         model = ModelWrapper(sdp_node.get_nodeattr("model"))
         inp_ctx = dict(filter(lambda x: x[0] in node.input, context.items()))

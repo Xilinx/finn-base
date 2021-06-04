@@ -319,18 +319,37 @@ def finnpy_to_packed_bytearray(
     of 8 bits. The returned ndarray has the same number of dimensions as the
     input.
 
-    If fast_mode is enabled, will attempt to use shortcuts (casting) to save
-    on runtime for certain cases.
-    This mode is currently not well-tested, use at your own risk.
+    If fast_mode is enabled, will attempt to use shortcuts  to save
+    on runtime for certain cases:
+    * 8-bit ndarray -> 8-bit
+    * ndarray -> 1-bit and total bits % 8 == 0
+    This mode is currently not well-tested, use at your own risk!
     """
 
-    # handle no-packing cases (if fast_mode) via casting to save on compute
+    # handle fast_mode cases (currently only called from driver):
     if issubclass(type(ndarray), np.ndarray) and fast_mode:
         inp_is_byte = ndarray.dtype in [np.uint8, np.int8]
         out_is_byte = dtype.bitwidth() == 8
         double_reverse = reverse_inner and reverse_endian
+        # fast mode case: byte -> byte: cast
         if inp_is_byte and out_is_byte and double_reverse:
             return ndarray.view(np.uint8)
+        # fast mode case: xxx -> bit with nbits % 8 == 0: np.packbits
+        out_is_bit = dtype.bitwidth() == 1
+        bits = dtype.bitwidth() * ndarray.shape[-1]
+        bits_padded = roundup_to_integer_multiple(bits, 8)
+        no_pad = bits_padded == bits
+        if out_is_bit and no_pad and double_reverse:
+            in_as_int8 = ndarray.astype(np.int8)
+            # bipolar -> binary if needed
+            if dtype == DataType.BIPOLAR:
+                in_as_int8 = (in_as_int8 + 1) // 2
+            # reverse inner
+            in_as_int8 = np.flip(in_as_int8, axis=-1)
+            # pack with numpy
+            packed_data = np.packbits(in_as_int8, axis=-1)
+            # reverse endianness and return
+            return np.flip(packed_data, axis=-1)
 
     if (not issubclass(type(ndarray), np.ndarray)) or ndarray.dtype != np.float32:
         # try to convert to a float numpy array (container dtype is float)

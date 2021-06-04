@@ -29,6 +29,7 @@
 import pytest
 
 import numpy as np
+import onnx
 import os
 import urllib.request as ureq
 
@@ -65,3 +66,55 @@ def test_batchnorm_to_affine_shufflenet():
     produced = oxe.execute_onnx(new_model, input_dict)[oname]
     assert np.isclose(expected, produced).all()
     os.remove(export_onnx_path)
+
+
+@pytest.mark.parametrize("epsilon", [0.0, 0.00001, 0.001])
+def test_batchnorm_to_affine_epsilon(epsilon):
+    """Dummy batchnorm node to test out the epsilon attribute."""
+
+    batchnorm_node = onnx.helper.make_node(
+        "BatchNormalization",
+        inputs=["x", "s", "bias", "mean", "var"],
+        outputs=["y"],
+        epsilon=epsilon,
+    )
+
+    x = onnx.helper.make_tensor_value_info("x", onnx.TensorProto.FLOAT, [1, 3, 5, 5])
+    s = onnx.helper.make_tensor_value_info("s", onnx.TensorProto.FLOAT, [3])
+    bias = onnx.helper.make_tensor_value_info("bias", onnx.TensorProto.FLOAT, [3])
+    mean = onnx.helper.make_tensor_value_info("mean", onnx.TensorProto.FLOAT, [3])
+    var = onnx.helper.make_tensor_value_info("var", onnx.TensorProto.FLOAT, [3])
+    y = onnx.helper.make_tensor_value_info("y", onnx.TensorProto.FLOAT, [1, 3, 5, 5])
+
+    # Graph
+    graph = onnx.helper.make_graph(
+        nodes=[batchnorm_node],
+        name="test_batchnorm_graph",
+        inputs=[x],
+        outputs=[y],
+        value_info=[s, bias, mean, var],
+    )
+
+    onnx_model = onnx.helper.make_model(graph, producer_name="test_batchnorm-model")
+    model = ModelWrapper(onnx_model)
+
+    model.set_initializer("s", np.array([1, 2, 3]).astype(np.float32))
+    model.set_initializer("bias", np.array([1, 2, 3]).astype(np.float32))
+    model.set_initializer("mean", np.array([3, 4, 5]).astype(np.float32))
+    model.set_initializer("var", np.array([0.5, 0.7, 0.3]).astype(np.float32))
+
+    i_val = np.arange(0, 3 * 5 * 5, dtype=np.float32)
+    i_val = np.reshape(i_val, [1, 3, 5, 5])
+    input_dict = {"x": i_val}
+    output_node_name = "y"
+
+    output_dict = oxe.execute_onnx(model, input_dict, return_full_exec_context=True)
+    output_original = output_dict[output_node_name]
+
+    model_lowered = model.transform(BatchNormToAffine())
+    output_dict = oxe.execute_onnx(
+        model_lowered, input_dict, return_full_exec_context=True
+    )
+    output_lowered = output_dict[output_node_name]
+
+    assert (output_original == output_lowered).all()

@@ -112,7 +112,18 @@ class CustomOp(ABC):
                 if dtype == "s":
                     # encode string attributes
                     value = value.encode("utf-8")
-                attr.__setattr__(dtype, value)
+                    attr.__setattr__(dtype, value)
+                elif dtype == "floats":  # list of floats
+                    attr.floats[:] = value
+                elif dtype == "ints":  # list of integers
+                    attr.ints[:] = value
+                elif dtype in ["strings", "tensors", "graphs", "sparse_tensors"]:
+                    # untested / unsupported attribute types
+                    # add testcases & appropriate getters before enabling
+                    raise Exception("Attribute type %s not yet supported" % dtype)
+                else:
+                    # attempt to set attr.dtype = value directly
+                    attr.__setattr__(dtype, value)
             else:
                 # not set, create and insert AttributeProto
                 attr_proto = helper.make_attribute(name, value)

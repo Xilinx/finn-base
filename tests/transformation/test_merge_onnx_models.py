@@ -81,7 +81,7 @@ def test_merge_onnx_models():
     model2.set_initializer("a1", a1_value)
     # set a dummy sparsity annotation to check if it gets correctly transferred
     # to the merged model
-    sparsity = {"dw": {"kernel_shape": 0}}
+    sparsity = {"dw": {"kernel_shape": [0, 0]}}
     model2.set_tensor_sparsity("a1", sparsity)
     model2 = model2.transform(InferShapes())
     model2 = model2.transform(InferDataTypes())
