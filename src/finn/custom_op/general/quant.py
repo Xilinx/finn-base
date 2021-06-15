@@ -26,21 +26,23 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import numpy as np
 import onnx.helper as helper
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
-import numpy as np
 
 
 def min_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
-    """ Compute the minimum integer representable by a given number of bits.
+    """Compute the minimum integer representable by a given number of bits.
     Args:
         signed (bool): Indicates whether the represented integer is signed or not.
-        narrow_range (bool): Indicates whether to narrow the minimum value represented by 1.
+        narrow_range (bool): Indicates whether to narrow the minimum value
+        represented by 1.
         bit_width (int): Number of bits available for the representation.
     Returns:
-        int: Maximum unsigned integer that can be represented according to the input arguments.
+        int: Maximum unsigned integer that can be represented according to
+        the input arguments.
     Examples:
         >>> min_int(signed=True, narrow_range=True, bit_width=8)
         int(-127)
@@ -52,21 +54,24 @@ def min_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
         int(0)
     """
     if signed and narrow_range:
-        value = - (2 ** (bit_width - 1)) + 1
+        value = -(2 ** (bit_width - 1)) + 1
     elif signed and not narrow_range:
-        value = - (2 ** (bit_width - 1))
+        value = -(2 ** (bit_width - 1))
     else:
         value = 0 * bit_width
     return value
 
+
 def max_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
-    """ Compute the maximum integer representable by a given number of bits.
+    """Compute the maximum integer representable by a given number of bits.
     Args:
         signed (bool): Indicates whether the represented integer is signed or not.
-        narrow_range (bool): Indicates whether to narrow the maximum unsigned value represented by 1.
+        narrow_range (bool): Indicates whether to narrow the maximum unsigned value
+        represented by 1.
         bit_width (int): Number of bits available for the representation.
     Returns:
-        Tensor: Maximum integer that can be represented according to the input arguments.
+        Tensor: Maximum integer that can be represented according to
+        the input arguments.
     Examples:
         >>> max_int(signed=True, narrow_range=True, bit_width=8)
         int(127)
@@ -98,10 +103,11 @@ def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow):
     y_int = y_int + zeropt
     min_int_val = min_int(signed, narrow, bitwidth)
     max_int_val = max_int(signed, narrow, bitwidth)
-    #re-impl of: y_int = self.tensor_clamp_impl(y_int, min_val=min_int_val, max_val=max_int_val)
+    # re-impl of: y_int = self.tensor_clamp_impl(y_int, min_val=min_int_val,
+    # max_val=max_int_val)
     y_int = np.where(y_int > max_int_val, max_int_val.astype(y_int.dtype), y_int)
     y_int = np.where(y_int < min_int_val, min_int_val.astype(y_int.dtype), y_int)
-    #re-impl of: y_int = self.float_to_int_impl(y_int)
+    # re-impl of: y_int = self.float_to_int_impl(y_int)
     y_int = np.round(y_int)
 
     # back in forward(...) re-impl
