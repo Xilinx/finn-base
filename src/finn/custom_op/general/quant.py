@@ -92,29 +92,22 @@ def max_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
 
 
 def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow):
-    # TODO implement based on Brevitas, but without introducing a dependency
-    # (e.g. pure numpy, no pytorch tensors/ops)
-    # https://bit.ly/2S6qvZJ
-
-    # Re-impl of IntQuant class from brevitas
-    # forward(...) re-impl
-    # re-impl of: y_int = self.to_int(scale, zero_point, bit_width, x)
+    # Re-impl of IntQuant class from Brevitas: https://bit.ly/2S6qvZJ
+    # Scaling
     y_int = inp_tensor / scale
     y_int = y_int + zeropt
+    # Clamping
     min_int_val = min_int(signed, narrow, bitwidth)
     max_int_val = max_int(signed, narrow, bitwidth)
-    # re-impl of: y_int = self.tensor_clamp_impl(y_int, min_val=min_int_val,
-    # max_val=max_int_val)
     y_int = np.where(y_int > max_int_val, max_int_val.astype(y_int.dtype), y_int)
     y_int = np.where(y_int < min_int_val, min_int_val.astype(y_int.dtype), y_int)
-    # re-impl of: y_int = self.float_to_int_impl(y_int)
+    # Rounding
     y_int = np.round(y_int)
 
-    # back in forward(...) re-impl
+    # Re-scaling
     out_tensor = y_int - zeropt
     out_tensor = out_tensor * scale
 
-    # Not required: y = self.delay_wrapper(x, y)
     return out_tensor
 
 
