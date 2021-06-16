@@ -92,7 +92,8 @@ def max_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
 
 
 def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow):
-    # Re-impl of IntQuant class from Brevitas: https://bit.ly/2S6qvZJ
+    # Port of IntQuant class from Brevitas: https://bit.ly/2S6qvZJ
+
     # Scaling
     y_int = inp_tensor / scale
     y_int = y_int + zeropt

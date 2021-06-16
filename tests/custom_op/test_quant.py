@@ -105,7 +105,7 @@ def test_brevitas_quant_onnx_export_and_exec(network_type, wbits, abits):
     model.save(exported_domains_onnx)
 
     # Clean model
-    cleaned_onnx = f"{export_onnx_path}/{net_name}_cleaned.onnx"
+    cleaned_onnx = f"{export_onnx_path}/{net_name}_with_domains_and_shapes.onnx"
     model = ModelWrapper(exported_domains_onnx)
     model = model.transform(GiveUniqueNodeNames())
     model = model.transform(InferShapes())
