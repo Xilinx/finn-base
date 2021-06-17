@@ -26,7 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-FROM mcr.microsoft.com/azureml/onnxruntime:v1.4.0
+FROM pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime
 
 LABEL maintainer="Yaman Umuroglu <yamanu@xilinx.com>"
 
@@ -42,9 +42,6 @@ USER root
 
 RUN apt-get update
 RUN apt-get install -y git build-essential verilator python3-dev
-# use python3 and pip3 as python and pip defaults
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
-RUN update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 10
 
 # Copy entrypoint scripts to the workdir (as root)
 WORKDIR /usr/local/bin
@@ -84,6 +81,10 @@ USER ${USER}
 # Set ENV
 ENV PYTHONPATH "${PYTHONPATH}:/workspace/finn-base/src"
 ENV PATH "${PATH}:/home/${USER}/.local/bin"
+
+# cloning dependency repos (as user)
+# Brevitas
+RUN git clone https://github.com/Xilinx/brevitas.git /workspace/brevitas
 
 # Set workdir to gray before launching container
 WORKDIR /workspace/finn-base

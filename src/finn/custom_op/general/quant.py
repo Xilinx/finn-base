@@ -26,17 +26,90 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import numpy as np
 import onnx.helper as helper
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
 
 
-def quant(inp_tensor, scale, zeropt, bitwidth):
-    # TODO implement based on Brevitas, but without introducing a dependency
-    # (e.g. pure numpy, no pytorch tensors/ops)
-    # https://bit.ly/2S6qvZJ
-    return inp_tensor
+def min_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
+    """Compute the minimum integer representable by a given number of bits.
+    Args:
+        signed (bool): Indicates whether the represented integer is signed or not.
+        narrow_range (bool): Indicates whether to narrow the minimum value
+        represented by 1.
+        bit_width (int): Number of bits available for the representation.
+    Returns:
+        int: Maximum unsigned integer that can be represented according to
+        the input arguments.
+    Examples:
+        >>> min_int(signed=True, narrow_range=True, bit_width=8)
+        int(-127)
+        >>> min_int(signed=False, narrow_range=True, bit_width=8)
+        int(0)
+        >>> min_int(signed=True, narrow_range=False, bit_width=8)
+        int(-128)
+        >>> min_int(signed=False, narrow_range=False, bit_width=8)
+        int(0)
+    """
+    if signed and narrow_range:
+        value = -(2 ** (bit_width - 1)) + 1
+    elif signed and not narrow_range:
+        value = -(2 ** (bit_width - 1))
+    else:
+        value = 0 * bit_width
+    return value
+
+
+def max_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
+    """Compute the maximum integer representable by a given number of bits.
+    Args:
+        signed (bool): Indicates whether the represented integer is signed or not.
+        narrow_range (bool): Indicates whether to narrow the maximum unsigned value
+        represented by 1.
+        bit_width (int): Number of bits available for the representation.
+    Returns:
+        Tensor: Maximum integer that can be represented according to
+        the input arguments.
+    Examples:
+        >>> max_int(signed=True, narrow_range=True, bit_width=8)
+        int(127)
+        >>> max_int(signed=False, narrow_range=True, bit_width=8)
+        int(254)
+        >>> max_int(signed=True, narrow_range=False, bit_width=8)
+        int(127)
+        >>> max_int(signed=False, narrow_range=False, bit_width=8)
+        int(255)
+    """
+    if not signed and not narrow_range:
+        value = (2 ** bit_width) - 1
+    elif not signed and narrow_range:
+        value = (2 ** bit_width) - 2
+    else:
+        value = (2 ** (bit_width - 1)) - 1
+    return value
+
+
+def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow):
+    # Port of IntQuant class from Brevitas: https://bit.ly/2S6qvZJ
+
+    # Scaling
+    y_int = inp_tensor / scale
+    y_int = y_int + zeropt
+    # Clamping
+    min_int_val = min_int(signed, narrow, bitwidth)
+    max_int_val = max_int(signed, narrow, bitwidth)
+    y_int = np.where(y_int > max_int_val, max_int_val.astype(y_int.dtype), y_int)
+    y_int = np.where(y_int < min_int_val, min_int_val.astype(y_int.dtype), y_int)
+    # Rounding
+    y_int = np.round(y_int)
+
+    # Re-scaling
+    out_tensor = y_int - zeropt
+    out_tensor = out_tensor * scale
+
+    return out_tensor
 
 
 class Quant(CustomOp):
@@ -106,8 +179,11 @@ class Quant(CustomOp):
         scale = context[node.input[1]]
         zeropt = context[node.input[2]]
         bitwidth = context[node.input[3]]
+        # save attributes
+        signed = self.get_nodeattr("signed")
+        narrow = self.get_nodeattr("narrow")
         # calculate output
-        ret = quant(inp_tensor, scale, zeropt, bitwidth)
+        ret = quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow)
         # set context according to output name
         context[node.output[0]] = ret
 

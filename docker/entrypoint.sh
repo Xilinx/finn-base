@@ -44,4 +44,14 @@ recho () {
 gecho "Installing finn-base in develop mode"
 pip install --user --no-dependencies -e /workspace/finn-base
 
+gecho "Setting up known-good commit versions for FINN-base testing dependencies"
+# checkout the correct dependency repo commits
+# the repos themselves are cloned in the Dockerfile
+BREVITAS_COMMIT=d7ded80fa9557da2998ea310669edee7fb2d9526
+# Brevitas
+gecho "brevitas @ $BREVITAS_COMMIT"
+git -C /workspace/brevitas pull --quiet
+git -C /workspace/brevitas checkout $BREVITAS_COMMIT --quiet
+pip install --user -e /workspace/brevitas
+
 exec $@
