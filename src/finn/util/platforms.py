@@ -279,6 +279,52 @@ class ZU7EV_Platform(Platform):
         return [[230000, 2 * 230000, 610, 92, 1728] for i in range(1)]
 
 
+class ZU9EG_Platform(Platform):
+    def __init__(
+        self,
+        ndevices=1,
+        limits=DEFAULT_RES_LIMITS,
+        avg_constraints=DEFAULT_AVG_CONSTRAINTS,
+    ):
+        super(ZU9EG_Platform, self).__init__(
+            nslr=1,
+            ndevices=ndevices,
+            sll_count=[[0]],
+            ddr_slr=[],
+            eth_slr=0,
+            eth_gbps=1,
+            limits=limits,
+            avg_constraints=avg_constraints,
+        )
+
+    @property
+    def compute_resources(self):
+        return [[274000, 2 * 274000, 1824, 0, 2520] for i in range(1)]
+
+
+class ZU28DR_Platform(Platform):
+    def __init__(
+        self,
+        ndevices=1,
+        limits=DEFAULT_RES_LIMITS,
+        avg_constraints=DEFAULT_AVG_CONSTRAINTS,
+    ):
+        super(ZU28DR_Platform, self).__init__(
+            nslr=1,
+            ndevices=ndevices,
+            sll_count=[[0]],
+            ddr_slr=[],
+            eth_slr=0,
+            eth_gbps=1,
+            limits=limits,
+            avg_constraints=avg_constraints,
+        )
+
+    @property
+    def compute_resources(self):
+        return [[425000, 2 * 425000, 2160, 80, 4272] for i in range(1)]
+
+
 class Alveo_NxU50_Platform(Platform):
     def __init__(
         self,
@@ -421,3 +467,5 @@ platforms["Pynq-Z1"] = Zynq7020_Platform
 platforms["Pynq-Z2"] = Zynq7020_Platform
 platforms["Ultra96"] = ZU3EG_Platform
 platforms["ZCU104"] = ZU7EV_Platform
+platforms["ZCU102"] = ZU9EG_Platform
+platforms["ZCU111"] = ZU28DR_Platform
