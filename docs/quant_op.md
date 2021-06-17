@@ -11,10 +11,10 @@ This version of the operator is new. (?)
 #### Attributes
 
 <dl>
-<dt><tt>narrow</tt> : int (default is 0)</dt>
-<dd>Defines if the value range should be interpreted as narrow.</dd>
 <dt><tt>signed</tt> : int (default is 1)</dt>
-<dd>Defines if the quantization includes a signed bit.</dd>
+<dd>Defines if the quantization includes a signed bit. E.g. at 8b unsigned=[0, 255] vs signed=[-128, 127].</dd>
+<dt><tt>narrow</tt> : int (default is 0)</dt>
+<dd>Defines if the value range should be interpreted as narrow, when signed=1. E.g. at 8b regular=[-128, 127] vs narrow=[-127, 127].</dd>
 </dl>
 
 #### Inputs
