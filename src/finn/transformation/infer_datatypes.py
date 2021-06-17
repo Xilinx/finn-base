@@ -42,6 +42,7 @@ def _infer_node_datatype(model, node):
         "Slice",
         "Gather",
         "Identity",
+        "MaxPool",
     ]
     idtypes = list(map(lambda x: model.get_tensor_datatype(x), node.input))
     odtypes = list(map(lambda x: model.get_tensor_datatype(x), node.output))
