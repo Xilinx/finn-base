@@ -61,8 +61,8 @@ def _infer_node_datatype(model, node):
             # always produces bipolar outputs
             model.set_tensor_datatype(node.output[0], DataType.BIPOLAR)
         elif node.op_type in ["MatMul", "Conv"]:
-            if len(list(filter(lambda x: x == DataType.FLOAT32, idtypes))) != 0:
-                # node has at least one float input, output is also float
+            if len(list(filter(lambda x: not x.is_integer(), idtypes))) != 0:
+                # node has at least one non-integer input, output is also float
                 model.set_tensor_datatype(node.output[0], DataType.FLOAT32)
             else:
                 # TODO compute minimum / maximum result to minimize bitwidth
