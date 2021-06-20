@@ -161,10 +161,20 @@ class Quant(CustomOp):
         ), "Bitwidth must be integer for Quant node: " + str(node)
         bitwidth = int(bitwidth)
         # determine the FINN DataType
-        if signed:
-            finn_dt = DataType["INT" + str(bitwidth)]
+        unit_scale = np.all(scale == 1.0)
+        zero_zeropt = np.all(zeropt == 0.0)
+        assert zero_zeropt, "Only zero_point=0 Quant nodes supported for now"
+        if unit_scale and zero_zeropt:
+            if signed:
+                finn_dt = DataType["INT" + str(bitwidth)]
+            else:
+                finn_dt = DataType["UINT" + str(bitwidth)]
         else:
-            finn_dt = DataType["UINT" + str(bitwidth)]
+            if signed:
+                finn_dt = DataType["SCALEDINT" + str(bitwidth)]
+            else:
+                finn_dt = DataType["SCALEDUINT" + str(bitwidth)]
+
         return (scale, zeropt, bitwidth, finn_dt)
 
     def infer_node_datatype(self, model):
