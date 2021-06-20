@@ -121,7 +121,18 @@ def inference_cost_matmul(model, node):
             w_shape = w_shape[::-1]
     # exclude common dim (last axis) from one side to avoid duplication
     n_macs = np.prod(i_shape[:-1]) * np.prod(w_shape)
-    w_mem = np.prod(w_shape)
+    # deal with both dyn,param and dyn,dyn cases for weight memory
+    inp0_is_const = model.get_initializer(node.input[0]) is not None
+    inp1_is_const = model.get_initializer(node.input[1]) is not None
+    if inp0_is_const and (not inp1_is_const):
+        # inp 0 is static
+        w_mem = np.prod(i_shape)
+    elif (not inp0_is_const) and inp1_is_const:
+        # inp 1 is static
+        w_mem = np.prod(w_shape)
+    elif (not inp0_is_const) and (not inp1_is_const):
+        # both inputs dynamic
+        w_mem = 0
     o_mem = np.prod(o_shape)
     idt_name = i_dtype.name
     wdt_name = w_dtype.name
@@ -137,6 +148,18 @@ def inference_cost(model):
     "Ensure all nodes have unique names prior to calling this analysis pass."
 
     node_costs = {}
+    zero_cost_ops = [
+        "MaxPool",
+        "Quant",
+        "Reshape",
+        "Concat",
+        "Transpose",
+        "Div",
+        "Mul",
+        "Add",
+        "Sub",
+        "BatchNormalization",
+    ]
     unsupported_ops = set()
     inference_cost_fxn_map = {
         "Conv": inference_cost_conv,
@@ -147,6 +170,8 @@ def inference_cost(model):
         if node.op_type in inference_cost_fxn_map.keys():
             node_cost = inference_cost_fxn_map[node.op_type](model, node)
             node_costs[node.name] = node_cost
+        elif node.op_type in zero_cost_ops:
+            continue
         else:
             unsupported_ops.add(node.op_type)
 
