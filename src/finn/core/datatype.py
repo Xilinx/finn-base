@@ -113,6 +113,72 @@ class DataType(Enum):
     INT32 = auto()
     INT64 = auto()
     FLOAT32 = auto()
+    SCALEDINT1 = auto()
+    SCALEDINT2 = auto()
+    SCALEDINT3 = auto()
+    SCALEDINT4 = auto()
+    SCALEDINT5 = auto()
+    SCALEDINT6 = auto()
+    SCALEDINT7 = auto()
+    SCALEDINT8 = auto()
+    SCALEDINT9 = auto()
+    SCALEDINT10 = auto()
+    SCALEDINT11 = auto()
+    SCALEDINT12 = auto()
+    SCALEDINT13 = auto()
+    SCALEDINT14 = auto()
+    SCALEDINT15 = auto()
+    SCALEDINT16 = auto()
+    SCALEDINT17 = auto()
+    SCALEDINT18 = auto()
+    SCALEDINT19 = auto()
+    SCALEDINT20 = auto()
+    SCALEDINT21 = auto()
+    SCALEDINT22 = auto()
+    SCALEDINT23 = auto()
+    SCALEDINT24 = auto()
+    SCALEDINT25 = auto()
+    SCALEDINT26 = auto()
+    SCALEDINT27 = auto()
+    SCALEDINT28 = auto()
+    SCALEDINT29 = auto()
+    SCALEDINT30 = auto()
+    SCALEDINT31 = auto()
+    SCALEDINT32 = auto()
+    SCALEDINT64 = auto()
+    SCALEDUINT1 = auto()
+    SCALEDUINT2 = auto()
+    SCALEDUINT3 = auto()
+    SCALEDUINT4 = auto()
+    SCALEDUINT5 = auto()
+    SCALEDUINT6 = auto()
+    SCALEDUINT7 = auto()
+    SCALEDUINT8 = auto()
+    SCALEDUINT9 = auto()
+    SCALEDUINT10 = auto()
+    SCALEDUINT11 = auto()
+    SCALEDUINT12 = auto()
+    SCALEDUINT13 = auto()
+    SCALEDUINT14 = auto()
+    SCALEDUINT15 = auto()
+    SCALEDUINT16 = auto()
+    SCALEDUINT17 = auto()
+    SCALEDUINT18 = auto()
+    SCALEDUINT19 = auto()
+    SCALEDUINT20 = auto()
+    SCALEDUINT21 = auto()
+    SCALEDUINT22 = auto()
+    SCALEDUINT23 = auto()
+    SCALEDUINT24 = auto()
+    SCALEDUINT25 = auto()
+    SCALEDUINT26 = auto()
+    SCALEDUINT27 = auto()
+    SCALEDUINT28 = auto()
+    SCALEDUINT29 = auto()
+    SCALEDUINT30 = auto()
+    SCALEDUINT31 = auto()
+    SCALEDUINT32 = auto()
+    SCALEDUINT64 = auto()
 
     def bitwidth(self):
         """Returns the number of bits required for this DataType."""
@@ -121,6 +187,10 @@ class DataType(Enum):
             return int(self.name.strip("UINT"))
         elif self.name.startswith("INT"):
             return int(self.name.strip("INT"))
+        elif self.name.startswith("SCALEDINT"):
+            return int(self.name.strip("SCALEDINT"))
+        elif self.name.startswith("SCALEDUINT"):
+            return int(self.name.strip("SCALEDUINT"))
         elif "FLOAT" in self.name:
             return int(self.name.strip("FLOAT"))
         elif self.name in ["BINARY", "BIPOLAR"]:
@@ -144,7 +214,7 @@ class DataType(Enum):
         elif self.name == "TERNARY":
             return -1
         else:
-            raise Exception("Unrecognized data type: %s" % self.name)
+            raise Exception("Unrecognized data type for min(): %s" % self.name)
 
     def max(self):
         """Returns the largest possible value allowed by this DataType."""
@@ -162,7 +232,7 @@ class DataType(Enum):
         elif self.name == "TERNARY":
             return +1
         else:
-            raise Exception("Unrecognized data type: %s" % self.name)
+            raise Exception("Unrecognized data type for max(): %s" % self.name)
 
     def allowed(self, value):
         """Check whether given value is allowed for this DataType.
@@ -184,7 +254,7 @@ class DataType(Enum):
         elif self.name == "TERNARY":
             return value in [-1, 0, +1]
         else:
-            raise Exception("Unrecognized data type: %s" % self.name)
+            raise Exception("Unrecognized data type for allowed(): %s" % self.name)
 
     def get_num_possible_values(self):
         """Returns the number of possible values this DataType can take. Only
@@ -210,12 +280,22 @@ class DataType(Enum):
 
     def signed(self):
         """Returns whether this DataType can represent negative numbers."""
-        return self.min() < 0
+        is_scaledsint = self.name.startswith("SCALEDINT")
+        is_scaleduint = self.name.startswith("SCALEDUINT")
+        is_scaledint = is_scaledsint or is_scaleduint
+        if is_scaledint:
+            # manually handle for signed int types (since min is not defined)
+            return is_scaledsint
+        else:
+            return self.min() < 0
 
     def is_integer(self):
         """Returns whether this DataType represents integer values only."""
         # only FLOAT32 is noninteger for now
-        return self != DataType.FLOAT32
+        is_scaledsint = self.name.startswith("SCALEDINT")
+        is_scaleduint = self.name.startswith("SCALEDUINT")
+        is_scaledint = is_scaledsint or is_scaleduint
+        return (self != DataType.FLOAT32) and (not is_scaledint)
 
     def get_hls_datatype_str(self):
         """Returns the corresponding Vivado HLS datatype name."""
