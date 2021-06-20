@@ -178,7 +178,10 @@ class Quant(CustomOp):
         return (scale, zeropt, bitwidth, finn_dt)
 
     def infer_node_datatype(self, model):
-        (scale, zeropt, bitwidth, finn_dt) = self.get_quant_config(model)
+        try:
+            (scale, zeropt, bitwidth, finn_dt) = self.get_quant_config(model)
+        except AssertionError:
+            finn_dt = DataType["FLOAT32"]
         node = self.onnx_node
         model.set_tensor_datatype(node.output[0], finn_dt)
 

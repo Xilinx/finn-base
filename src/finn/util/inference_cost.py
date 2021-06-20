@@ -66,7 +66,12 @@ def compute_mem_bits(inf_cost_dict, filter_string="mem_w"):
 
 
 def inference_cost(
-    model_filename, output_json="inference_cost.json", preprocess=True, save_final=True
+    model_filename,
+    *,
+    output_json="inference_cost.json",
+    preprocess=True,
+    save_final=True,
+    discount_sparsity=True
 ):
     """Print the inference cost estimate metric for given ONNX model.
     Supports the Quant op for weight/activation quantization.
@@ -77,6 +82,8 @@ def inference_cost(
         datatype inference and constant folding. Strongly recommended.
     :param save_final: If set, save the final ONNX model after any preprocessing
         as final.onnx
+    :param discount_sparsity: If set, will discount op cost of MAC ops with a
+        constant zero weight, and the mem cost of constant zero weights.
     """
     print("Inference cost for " + model_filename)
     model = ModelWrapper(model_filename)
@@ -86,6 +93,7 @@ def inference_cost(
             qnt_node.domain = "finn.custom_op.general"
         model = model.transform(InferShapes())
         model = model.transform(GiveUniqueParameterTensors())
+        model = model.transform(InferDataTypes())
         model = model.transform(FoldConstants())
         model = model.transform(RemoveUnusedTensors())
         model = model.transform(RemoveStaticGraphInputs())
@@ -94,7 +102,7 @@ def inference_cost(
     model = model.transform(GiveReadableTensorNames())
     if save_final:
         model.save("final.onnx")
-    ret = model.analysis(infca.inference_cost)
+    ret = model.analysis(lambda x: infca.inference_cost(x, discount_sparsity))
     bops = compute_bops(ret)
     mem_w_bits = compute_mem_bits(ret, "mem_w")
     mem_o_bits = compute_mem_bits(ret, "mem_o")

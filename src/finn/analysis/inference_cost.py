@@ -60,6 +60,15 @@ def get_node_tensor_shapes(model, node):
     return (i_shape, w_shape, o_shape)
 
 
+def get_node_weight_density(model, w_name):
+    w_tensor = model.get_initializer(w_name)
+    if w_tensor is None:
+        return 1.0
+    w_total = np.prod(w_tensor.shape)
+    w_density = np.count_nonzero(w_tensor) / w_total
+    return w_density
+
+
 def aggregate_dict_keys(res_dict):
     total_dict = {}
     for layer in res_dict:
@@ -76,7 +85,7 @@ def aggregate_dict_keys(res_dict):
     return total_dict
 
 
-def inference_cost_conv(model, node):
+def inference_cost_conv(model, node, discount_sparsity):
     # extract info about the conv kernel attributes
     k = get_by_name(node.attribute, "kernel_shape").ints
     k_prod = np.prod(k)
@@ -97,6 +106,11 @@ def inference_cost_conv(model, node):
     n_macs = bsize * (ofm_ch // group) * ifm_ch * k_prod * ofm_pix_total
     w_mem = np.prod(w_shape)
     o_mem = np.prod(o_shape)
+    if discount_sparsity:
+        wname = node.input[1]
+        density = get_node_weight_density(model, wname)
+        n_macs *= density
+        w_mem *= density
     idt_name = i_dtype.name
     wdt_name = w_dtype.name
     odt_name = o_dtype.name
@@ -107,7 +121,7 @@ def inference_cost_conv(model, node):
     return ret
 
 
-def inference_cost_matmul(model, node):
+def inference_cost_matmul(model, node, discount_sparsity):
     # extract info from tensor shapes and datatypes
     (i_dtype, w_dtype, o_dtype) = get_node_tensor_dtypes(model, node)
     (i_shape, w_shape, o_shape) = get_node_tensor_shapes(model, node)
@@ -121,7 +135,25 @@ def inference_cost_matmul(model, node):
             w_shape = w_shape[::-1]
     # exclude common dim (last axis) from one side to avoid duplication
     n_macs = np.prod(i_shape[:-1]) * np.prod(w_shape)
-    w_mem = np.prod(w_shape)
+    # deal with both dyn,param and dyn,dyn cases for weight memory
+    inp0_is_const = model.get_initializer(node.input[0]) is not None
+    inp1_is_const = model.get_initializer(node.input[1]) is not None
+    if inp0_is_const and (not inp1_is_const):
+        # inp 0 is static
+        w_mem = np.prod(i_shape)
+        wname = node.input[0]
+    elif (not inp0_is_const) and inp1_is_const:
+        # inp 1 is static
+        w_mem = np.prod(w_shape)
+        wname = node.input[1]
+    elif (not inp0_is_const) and (not inp1_is_const):
+        # both inputs dynamic
+        w_mem = 0
+        wname = None
+    if discount_sparsity and wname is not None:
+        density = get_node_weight_density(model, wname)
+        n_macs *= density
+        w_mem *= density
     o_mem = np.prod(o_shape)
     idt_name = i_dtype.name
     wdt_name = w_dtype.name
@@ -133,10 +165,29 @@ def inference_cost_matmul(model, node):
     return ret
 
 
-def inference_cost(model):
+def inference_cost(model, discount_sparsity=True):
     "Ensure all nodes have unique names prior to calling this analysis pass."
 
     node_costs = {}
+    zero_cost_ops = [
+        "MaxPool",
+        "AveragePool",
+        "Quant",
+        "Reshape",
+        "Concat",
+        "Transpose",
+        "Div",
+        "Mul",
+        "Add",
+        "Sub",
+        "BatchNormalization",
+        "Relu",
+        "Elu",
+        "Selu",
+        "Sigmoid",
+        "Identity",
+        "Flatten",
+    ]
     unsupported_ops = set()
     inference_cost_fxn_map = {
         "Conv": inference_cost_conv,
@@ -145,12 +196,17 @@ def inference_cost(model):
     }
     for node in model.graph.node:
         if node.op_type in inference_cost_fxn_map.keys():
-            node_cost = inference_cost_fxn_map[node.op_type](model, node)
+            node_cost = inference_cost_fxn_map[node.op_type](
+                model, node, discount_sparsity
+            )
             node_costs[node.name] = node_cost
+        elif node.op_type in zero_cost_ops:
+            continue
         else:
             unsupported_ops.add(node.op_type)
 
     ret = aggregate_dict_keys(node_costs)
     ret["unsupported"] = unsupported_ops
+    ret["discount_sparsity"] = discount_sparsity
 
     return ret
