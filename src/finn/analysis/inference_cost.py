@@ -171,6 +171,7 @@ def inference_cost(model, discount_sparsity=True):
     node_costs = {}
     zero_cost_ops = [
         "MaxPool",
+        "AveragePool",
         "Quant",
         "Reshape",
         "Concat",
@@ -180,6 +181,12 @@ def inference_cost(model, discount_sparsity=True):
         "Add",
         "Sub",
         "BatchNormalization",
+        "Relu",
+        "Elu",
+        "Selu",
+        "Sigmoid",
+        "Identity",
+        "Flatten",
     ]
     unsupported_ops = set()
     inference_cost_fxn_map = {
