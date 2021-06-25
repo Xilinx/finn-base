@@ -165,6 +165,42 @@ def inference_cost_matmul(model, node, discount_sparsity):
     return ret
 
 
+def inference_cost_upsample(model, node, discount_sparsity):
+    # extract info about the upsampling kernel attributes
+    mode = get_by_name(node.attribute, "mode").s.decode("utf-8")
+    scales_tensor = node.input[1]
+    scales_initializer = model.get_initializer(scales_tensor)
+
+    # extract info from tensor shapes and datatypes
+    (i_dtype, scale_dtype, o_dtype) = get_node_tensor_dtypes(model, node)
+    (i_shape, scale_shape, o_shape) = get_node_tensor_shapes(model, node)
+    bsize = i_shape[0]
+    ifm_ch = i_shape[1]
+    ofm_pix_total = np.prod(o_shape[2:])
+
+    # MAC calculation
+    if mode == "nearest":
+        # No calculation involved, since data is just copied over multiple times
+        n_macs = 0
+    elif mode == "linear":
+        # Data gets linearly interpolated in each dimension
+        # Two MACs per dimension and output pixel assumed
+        n_dim_scaling = np.sum(scales_initializer > 1)
+        n_macs = 2 * n_dim_scaling * ofm_pix_total * ifm_ch * bsize
+    else:
+        raise ValueError(f"Upsampling mode {mode} not supported for estimation.")
+
+    # Mem calculation
+    o_mem = np.prod(o_shape)
+    idt_name = i_dtype.name
+    odt_name = o_dtype.name
+    mac_op_type_str = "op_mac_%s_%s" % (idt_name, idt_name)
+    o_mem_type_str = "mem_o_%s" % (odt_name)
+
+    ret = {mac_op_type_str: n_macs, o_mem_type_str: o_mem}
+    return ret
+
+
 def inference_cost(model, discount_sparsity=True):
     "Ensure all nodes have unique names prior to calling this analysis pass."
 
@@ -193,6 +229,7 @@ def inference_cost(model, discount_sparsity=True):
         "Conv": inference_cost_conv,
         "MatMul": inference_cost_matmul,
         "Gemm": inference_cost_matmul,
+        "Upsample": inference_cost_upsample,
     }
     for node in model.graph.node:
         if node.op_type in inference_cost_fxn_map.keys():
