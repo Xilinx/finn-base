@@ -30,15 +30,14 @@ import numpy as np
 from onnx import TensorProto, helper
 
 from finn.transformation.base import Transformation
-from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
 
 
 def _auto_pad_to_explicit_padding(
-    autopad_str, idim_h, idim_w, k_h, k_w, stride, n_dims
+    autopad_str, idim_h, idim_w, k_h, k_w, stride_h, stride_w, n_dims
 ):
-    pad_total_h = (stride - 1) * idim_h - stride + k_h
-    pad_total_w = (stride - 1) * idim_w - stride + k_w
+    pad_total_h = (stride_h - 1) * idim_h - stride_h + k_h
+    pad_total_w = (stride_w - 1) * idim_w - stride_w + k_w
     pad_half_small_h = int((pad_total_h / 2))
     pad_half_small_w = int((pad_total_w / 2))
     pad_half_large_h = pad_total_h - pad_half_small_h
@@ -64,7 +63,6 @@ class LowerConvsToMatMul(Transformation):
         for n in graph.node:
             node_ind += 1
             if n.op_type == "Conv":
-                graph_modified = True
                 cnv_input = n.input[0]
                 cnv_output = n.output[0]
                 idt = model.get_tensor_datatype(cnv_input)
@@ -73,7 +71,8 @@ class LowerConvsToMatMul(Transformation):
                 k = get_by_name(n.attribute, "kernel_shape").ints
                 k_h = k[0]
                 k_w = k[1]
-                stride = get_by_name(n.attribute, "strides").ints[-1]
+                stride_h = get_by_name(n.attribute, "strides").ints[0]
+                stride_w = get_by_name(n.attribute, "strides").ints[1]
                 group = get_by_name(n.attribute, "group").i
                 weight_name = n.input[1]
                 W_conv = model.get_initializer(weight_name)
@@ -86,12 +85,8 @@ class LowerConvsToMatMul(Transformation):
                 dilation_attr = get_by_name(n.attribute, "dilations")
                 if dilation_attr is not None:
                     dilation = dilation_attr.ints
-                    assert (
-                        len(set(dilation)) <= 1
-                    ), "Only equal dilation value along each spatial axis is supported"
-                    dilation = dilation[0]
                 else:
-                    dilation = 1  # default value
+                    dilation = [1, 1]  # default value
                 # handle both auto_pad and explicit padding
                 auto_pad = get_by_name(n.attribute, "auto_pad")
                 if auto_pad is not None:
@@ -107,7 +102,8 @@ class LowerConvsToMatMul(Transformation):
                             ifm_dim_w,
                             k_h,
                             k_w,
-                            stride,
+                            stride_h,
+                            stride_w,
                             len(model.get_tensor_shape(n.input[0])) - 2,
                         )
                 else:
@@ -119,15 +115,6 @@ class LowerConvsToMatMul(Transformation):
                     assert (
                         ifm_dim_h == 1 or ifm_dim_w == 1
                     ), "Padding is assumed to be 1D, image is 2D"
-                    if ifm_dim_h == 1:  # Assumption: dim H is not padded
-                        pad_2D = [0, 0, 0, 0]
-                        pad_2D[1] = pad[0]
-                        pad_2D[3] = pad[1]
-                    elif ifm_dim_w == 1:  # Assumption: dim W is not padded
-                        pad_2D = [0, 0, 0, 0]
-                        pad_2D[0] = pad[0]
-                        pad_2D[2] = pad[1]
-                    pad = pad_2D
 
                 # if depthwise conv create sparse matrix and variable "dw"
                 # to store as attribute in Im2Col that indicates that the created
@@ -146,7 +133,7 @@ class LowerConvsToMatMul(Transformation):
                     # sparsity of the weight matrix. For this
                     # we use the sparsity annotation of the
                     # weight tensor
-                    sparsity = {"dw": {"kernel_shape": k_h}}
+                    sparsity = {"dw": {"kernel_shape": [k_h, k_w]}}
                     model.set_tensor_sparsity(weight_name, sparsity)
                     # additionally create variable "dw" to store
                     # as attribute in Im2Col that indicates that the created
@@ -179,7 +166,13 @@ class LowerConvsToMatMul(Transformation):
                     padding = 0
 
                 # k_h=k_w==1: pointwise convolution, thus no im2col needed
-                if k_h == 1 and k_w == 1 and padding == 0 and stride == 1:
+                if (
+                    k_h == 1
+                    and k_w == 1
+                    and padding == 0
+                    and stride_h == 1
+                    and stride_w == 1
+                ):
                     need_im2col = False
 
                 if need_im2col:
@@ -215,7 +208,7 @@ class LowerConvsToMatMul(Transformation):
                         [inp_trans_out],
                         [im2col_out],
                         domain="finn.custom_op.general",
-                        stride=stride,
+                        stride=[stride_h, stride_w],
                         kernel_size=[k_h, k_w],
                         pad_amount=pad,
                         input_shape="(1,{},{},{})".format(ifm_dim_h, ifm_dim_w, ifm_ch),
@@ -243,5 +236,4 @@ class LowerConvsToMatMul(Transformation):
                 # remove old nodes
                 graph.node.remove(n)
 
-        model = model.transform(InferShapes())
         return (model, graph_modified)

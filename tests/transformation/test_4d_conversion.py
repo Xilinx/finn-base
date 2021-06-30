@@ -24,7 +24,7 @@ def generate_random_input(model):
 
 
 def set_all_initializers(model):
-    """ Sets all initializers of the graph to a random value. """
+    """Sets all initializers of the graph to a random value."""
     for n in model.graph.node:
         if len(n.input) > 1:
             init_name = n.input[1]

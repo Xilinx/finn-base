@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Xilinx
+# Copyright (c) 2021, Xilinx
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,183 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import os
+
+from finn.util.basic import get_rtlsim_trace_depth, make_build_dir
+
+try:
+    from pyverilator import PyVerilator
+except ModuleNotFoundError:
+    PyVerilator = None
+
+
+def pyverilate_get_liveness_threshold_cycles():
+    """Return the number of no-output cycles rtlsim will wait before assuming
+    the simulation is not finishing and throwing an exception."""
+
+    return int(os.getenv("LIVENESS_THRESHOLD", 10000))
+
+
+def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
+    """Runs the pyverilator simulation by passing the input values to the simulation,
+    toggle the clock and observing the execution time. Function contains also an
+    observation loop that can abort the simulation if no output value is produced
+    after a set number of cycles. Can handle multiple i/o streams. See function
+    implementation for details on how the top-level signals should be named.
+
+    Arguments:
+
+    * sim: the PyVerilator object for simulation
+    * io_dict: a dict of dicts in the following format:
+      {"inputs" : {"in0" : <input_data>, "in1" : <input_data>},
+      "outputs" : {"out0" : [], "out1" : []} }
+      <input_data> is a list of Python arbitrary-precision ints indicating
+      what data to push into the simulation, and the output lists are
+      similarly filled when the simulation is complete
+    * num_out_values: number of total values to be read from the simulation to
+      finish the simulation and return.
+    * trace_file: vcd dump filename, empty string (no vcd dump) by default
+    * sname: signal naming for streams, "_V_V_" by default, vitis_hls uses "_V_"
+
+    Returns: number of clock cycles elapsed for completion
+
+    """
+
+    if trace_file != "":
+        sim.start_vcd_trace(trace_file)
+
+    for outp in io_dict["outputs"]:
+        sim.io[outp + sname + "TREADY"] = 1
+
+    # observe if output is completely calculated
+    # total_cycle_count will contain the number of cycles the calculation ran
+    output_done = False
+    total_cycle_count = 0
+    output_count = 0
+    old_output_count = 0
+
+    # avoid infinite looping of simulation by aborting when there is no change in
+    # output values after 100 cycles
+    no_change_count = 0
+    liveness_threshold = pyverilate_get_liveness_threshold_cycles()
+
+    while not (output_done):
+        for inp in io_dict["inputs"]:
+            inputs = io_dict["inputs"][inp]
+            sim.io[inp + sname + "TVALID"] = 1 if len(inputs) > 0 else 0
+            sim.io[inp + sname + "TDATA"] = inputs[0] if len(inputs) > 0 else 0
+            if (
+                sim.io[inp + sname + "TREADY"] == 1
+                and sim.io[inp + sname + "TVALID"] == 1
+            ):
+                inputs = inputs[1:]
+            io_dict["inputs"][inp] = inputs
+
+        for outp in io_dict["outputs"]:
+            outputs = io_dict["outputs"][outp]
+            if (
+                sim.io[outp + sname + "TVALID"] == 1
+                and sim.io[outp + sname + "TREADY"] == 1
+            ):
+                outputs = outputs + [sim.io[outp + sname + "TDATA"]]
+                output_count += 1
+            io_dict["outputs"][outp] = outputs
+
+        sim.io.ap_clk = 1
+        sim.io.ap_clk = 0
+
+        total_cycle_count = total_cycle_count + 1
+
+        if output_count == old_output_count:
+            no_change_count = no_change_count + 1
+        else:
+            no_change_count = 0
+            old_output_count = output_count
+
+        # check if all expected output words received
+        if output_count == num_out_values:
+            output_done = True
+
+        # end sim on timeout
+        if no_change_count == liveness_threshold:
+            if trace_file != "":
+                sim.flush_vcd_trace()
+                sim.stop_vcd_trace()
+            raise Exception(
+                "Error in simulation! Takes too long to produce output. "
+                "Consider setting the LIVENESS_THRESHOLD env.var. to a "
+                "larger value."
+            )
+
+    if trace_file != "":
+        sim.flush_vcd_trace()
+        sim.stop_vcd_trace()
+
+    return total_cycle_count
+
+
+def pyverilate_stitched_ip(model, read_internal_signals=True):
+    """Given a model with stitched IP, return a PyVerilator sim object.
+    If read_internal_signals is True, it will be possible to examine the
+    internal (not only port) signals of the Verilog module, but this may
+    slow down compilation and emulation.
+    Trace depth is also controllable, see get_rtlsim_trace_depth()
+    """
+    if PyVerilator is None:
+        raise ImportError("Installation of PyVerilator is required.")
+
+    vivado_stitch_proj_dir = model.get_metadata_prop("vivado_stitch_proj")
+    with open(vivado_stitch_proj_dir + "/all_verilog_srcs.txt", "r") as f:
+        all_verilog_srcs = f.read().split()
+
+    def file_to_dir(x):
+        return os.path.dirname(os.path.realpath(x))
+
+    def file_to_basename(x):
+        return os.path.basename(os.path.realpath(x))
+
+    top_module_file_name = file_to_basename(model.get_metadata_prop("wrapper_filename"))
+    top_module_name = top_module_file_name.strip(".v")
+    build_dir = make_build_dir("pyverilator_ipstitched_")
+
+    # dump all Verilog code to a single file
+    # this is because large models with many files require
+    # a verilator command line too long for bash on most systems
+    # NOTE: there are duplicates in this list, and some files
+    # are identical but in multiple directories (regslice_core.v)
+
+    # remove duplicates from list by doing list -> set -> list
+    all_verilog_files = list(set(filter(lambda x: x.endswith(".v"), all_verilog_srcs)))
+
+    # remove all but one instances of regslice_core.v
+    filtered_verilog_files = []
+    remove_entry = False
+    for vfile in all_verilog_files:
+        if "regslice_core" in vfile:
+            if not remove_entry:
+                filtered_verilog_files.append(vfile)
+            remove_entry = True
+        else:
+            filtered_verilog_files.append(vfile)
+
+    # concatenate all verilog code into a single file
+    with open(vivado_stitch_proj_dir + "/" + top_module_file_name, "w") as wf:
+        for vfile in filtered_verilog_files:
+            with open(vfile) as rf:
+                wf.write("//Added from " + vfile + "\n\n")
+                wf.write(rf.read())
+
+    sim = PyVerilator.build(
+        top_module_file_name,
+        verilog_path=[vivado_stitch_proj_dir],
+        build_dir=build_dir,
+        trace_depth=get_rtlsim_trace_depth(),
+        top_module_name=top_module_name,
+        auto_eval=False,
+        read_internal_signals=read_internal_signals,
+    )
+    return sim
 
 
 def _find_signal(sim, signal_name):

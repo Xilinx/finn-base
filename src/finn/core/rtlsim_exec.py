@@ -30,11 +30,12 @@ import os
 
 from finn.custom_op.registry import getCustomOp
 from finn.util.data_packing import npy_to_rtlsim_input, rtlsim_output_to_npy
-from finn.util.fpgadataflow import (
+from finn.util.pyverilator import (
     pyverilate_get_liveness_threshold_cycles,
     pyverilate_stitched_ip,
+    reset_rtlsim,
+    toggle_clk,
 )
-from finn.util.pyverilator import reset_rtlsim, toggle_clk
 
 try:
     from pyverilator import PyVerilator
