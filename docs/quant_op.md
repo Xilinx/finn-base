@@ -45,8 +45,7 @@ Not quite sure if this example is okay? It runs fine with finn-base alone.
 <summary>Quant</summary>
 
 ```python
-from onnx import TensorProto, helper
-import finn.core.execute_custom_node as ex_cu_node
+from onnx import helper
 import numpy as np
 
 # Define node settings and input
@@ -67,30 +66,14 @@ node = helper.make_node(
     signed=signed,
 )
 
-# Create tensors, graph and execution context
-x_onnx = helper.make_tensor_value_info("x", TensorProto.FLOAT, [100])
-scale_onnx = helper.make_tensor_value_info("scale", TensorProto.FLOAT, [1])
-zeropt_onnx = helper.make_tensor_value_info("zeropt", TensorProto.FLOAT, [1])
-bitwidth_onnx = helper.make_tensor_value_info("bitwidth", TensorProto.FLOAT, [1])
-y_onnx = helper.make_tensor_value_info("y", TensorProto.FLOAT, [100])
-
-graph_def = helper.make_graph([node], "test_model", [x_onnx, scale_onnx, zeropt_onnx, bitwidth_onnx], [y_onnx])
-
-execution_context = {}
-execution_context["x"] = x
-execution_context["scale"] = scale
-execution_context["zeropt"] = zeropt
-execution_context["bitwidth"] = bitwidth
-
-# Execute node
-ex_cu_node.execute_custom_node(node, execution_context, graph_def)
-output_onnx = execution_context['y']
-
 # Execute the same settings with the reference implementation (quant)
 # See the sample implementation for more details on quant.
 output_ref = quant(x, scale, zeropt, bitwidth, signed, narrow)
 
-assert np.isclose(output_onnx, output_ref).all()
+# Execute node and compare
+expect(node, inputs=[x, scale, zeropt, bitwidth], outputs=[output_ref],
+       name='test_quant')
+
 ```
 
 </details>
