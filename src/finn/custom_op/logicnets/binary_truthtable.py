@@ -77,7 +77,7 @@ def binary_truthtable(input, care_set, bits):
 
 
 class BinaryTruthTable(CustomOp):
-    """The class corresponing to the Binary TruthTable function. """
+    """The class corresponing to the Binary TruthTable function."""
 
     def get_nodeattr_types(self):
         return {
