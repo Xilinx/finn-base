@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Xilinx, Inc.
+# Copyright (c) 2021 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,34 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from finn.custom_op.general.debugmarker import DebugMarker
-from finn.custom_op.general.genericpartition import GenericPartition
-from finn.custom_op.general.im2col import Im2Col
-from finn.custom_op.general.maxpoolnhwc import MaxPoolNHWC
-from finn.custom_op.general.multithreshold import MultiThreshold
-from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
-from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
-from finn.custom_op.logicnets.binary_truthtable import BinaryTruthTable
-from finn.custom_op.logicnets.truthtable import TruthTable
+import finn.custom_op.registry as registry
+from finn.transformation.base import NodeLocalTransformation
 
-custom_op = dict()
 
-custom_op["DebugMarker"] = DebugMarker
-custom_op["QuantAvgPool2d"] = QuantAvgPool2d
-custom_op["MaxPoolNHWC"] = MaxPoolNHWC
-custom_op["GenericPartition"] = GenericPartition
-custom_op["MultiThreshold"] = MultiThreshold
-custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
-custom_op["Im2Col"] = Im2Col
-custom_op["BinaryTruthTable"] = BinaryTruthTable
-custom_op["TruthTable"] = TruthTable
+def _genbintruthtable_verilog(node, care_set):
+    """Calls Verilog generation helper function inside the customOp class"""
+    op_type = node.op_type
+    try:
+        myOp = registry.getCustomOp(node)
+        myOp.generate_verilog(care_set)
+
+    except KeyError:
+        # exception if op_type is not supported
+        raise Exception("Custom op_type %s is currently not supported." % op_type)
+
+
+class GenBinaryTruthTableVerilog(NodeLocalTransformation):
+    """Generate a Verilog file for every node in the Graph using the
+    TruthTable custom operation"""
+
+    def __init__(self, num_workers, care_set):
+        super().__init__(num_workers=num_workers)
+        self.care_set = care_set
+
+    def applyNodeLocal(self, node):
+        op_type = node.op_type
+        if op_type == "BinaryTruthTable":
+            specific_care_set = self.care_set[node.input[1]]
+            _genbintruthtable_verilog(node, specific_care_set)
+
+        return (node, False)

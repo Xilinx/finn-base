@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Xilinx, Inc.
+# Copyright (c) 2021 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,26 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from finn.custom_op.general.debugmarker import DebugMarker
-from finn.custom_op.general.genericpartition import GenericPartition
-from finn.custom_op.general.im2col import Im2Col
-from finn.custom_op.general.maxpoolnhwc import MaxPoolNHWC
-from finn.custom_op.general.multithreshold import MultiThreshold
-from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
-from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
-from finn.custom_op.logicnets.binary_truthtable import BinaryTruthTable
-from finn.custom_op.logicnets.truthtable import TruthTable
+import numpy as np
+from random import randint
 
-custom_op = dict()
 
-custom_op["DebugMarker"] = DebugMarker
-custom_op["QuantAvgPool2d"] = QuantAvgPool2d
-custom_op["MaxPoolNHWC"] = MaxPoolNHWC
-custom_op["GenericPartition"] = GenericPartition
-custom_op["MultiThreshold"] = MultiThreshold
-custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
-custom_op["Im2Col"] = Im2Col
-custom_op["BinaryTruthTable"] = BinaryTruthTable
-custom_op["TruthTable"] = TruthTable
+def random_care_set(n_bits, n_entries):
+    """Generates a random care_set based on the binary n_bit size and number or desired
+    entries. The function checks if the n_entries is less than the possible
+    2^(n_bits) - 1. Duplicated entries are also checked, and if exist, the duplicated
+    entry is taken out. Then, more random values are generated until m_entries different
+    random values are generated."""
+    max_entries = 2 ** n_bits - 1
+
+    assert (
+        n_entries <= max_entries
+    ), """Number of entries must be smaller than '2^(n_bits) - 1'"""
+
+    care_set = np.array([])
+    while care_set.size != n_entries:
+        for _ in range((n_entries - care_set.size)):
+            value = randint(0, max_entries)
+            care_set = np.append(care_set, value)
+        care_set = np.unique(care_set)
+    return care_set
