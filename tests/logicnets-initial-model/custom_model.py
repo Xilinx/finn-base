@@ -1,5 +1,4 @@
 import numpy as np
-import onnx
 import onnx.helper as helper
 from onnx import TensorProto
 

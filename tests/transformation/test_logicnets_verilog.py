@@ -1,5 +1,4 @@
 import numpy as np
-import onnx
 import onnx.helper as helper
 from onnx import TensorProto
 from pyverilator import PyVerilator
@@ -246,11 +245,11 @@ def test_logicnets_verilog():
     model.set_tensor_datatype("concat_in0", DataType.BINARY)
     model.set_tensor_datatype("concat_in1", DataType.BINARY)
     model.set_tensor_datatype("concat_in2", DataType.BINARY)
+    model.set_tensor_datatype("concat_out", DataType.BINARY)
     model.set_tensor_datatype("sparse_out0", DataType.BINARY)
     model.set_tensor_datatype("sparse_out1", DataType.BINARY)
     model.set_tensor_datatype("care_set0", DataType.UINT32)
     model.set_tensor_datatype("care_set1", DataType.UINT32)
-    model.set_tensor_datatype("concatenated_input", DataType.UINT32)
     model.set_tensor_datatype("indices_in0", DataType.UINT32)
     model.set_tensor_datatype("indices_in1", DataType.UINT32)
     model.set_tensor_datatype("indices_in2", DataType.UINT32)
