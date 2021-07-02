@@ -188,7 +188,6 @@ graph = helper.make_graph(
 )
 
 modelproto = helper.make_model(graph, producer_name="simple-model")
-onnx.save(modelproto, "simple-model.onnx")
 
 
 def expected_output(input_data, indices0, indices1, care_set0, care_set1, in_bits):
@@ -235,7 +234,6 @@ input_dict = {
 }
 
 model = ModelWrapper(modelproto)
-model.save("after_wrap.onnx")
 
 model.set_tensor_datatype("general_input", DataType.BINARY)
 model.set_tensor_datatype("LUTin0", DataType.BINARY)

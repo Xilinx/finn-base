@@ -192,7 +192,6 @@ def test_logicnets_verilog():
     )
 
     modelproto = helper.make_model(graph, producer_name="simple-model")
-    onnx.save(modelproto, "simple-model.onnx")
 
     def expected_output(input_data, indices0, indices1, care_set0, care_set1, in_bits):
 
@@ -239,7 +238,6 @@ def test_logicnets_verilog():
     }
 
     model = ModelWrapper(modelproto)
-    model.save("after_wrap.onnx")
 
     model.set_tensor_datatype("general_input", DataType.BINARY)
     model.set_tensor_datatype("LUTin0", DataType.BINARY)
@@ -261,13 +259,10 @@ def test_logicnets_verilog():
     model.set_tensor_datatype("general_output", DataType.BINARY)
 
     model = model.transform(InferShapes())
-    model.save("after-shape.onnx")
 
     model = model.transform(InferDataTypes())
-    model.save("after-datatypes.onnx")
 
     model = model.transform(GiveUniqueNodeNames())
-    model.save("after-uniquenames.onnx")
 
     care_set_dict = {
         "care_set0": care_set0_data,
