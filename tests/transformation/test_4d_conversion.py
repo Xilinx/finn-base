@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 import onnx
 
@@ -26,7 +28,7 @@ def generate_random_input(model):
 def set_all_initializers(model):
     """Sets all initializers of the graph to a random value."""
     for n in model.graph.node:
-        if len(n.input) > 1:
+        if len(n.input) > 1 and n.name != "TopK1":
             init_name = n.input[1]
             init_shape = model.get_tensor_shape(init_name)
             init_val = gen_finn_dt_tensor(DataType.FLOAT32, init_shape)
@@ -189,11 +191,153 @@ def create_arbitrary_model(invalid=False):
     return model
 
 
-def test_4d_conversion():
+def create_arbitrary_model_vgg():
+    """
+    Creates arbitrary model for testing the 3D to 4D transform.
+    This model is based on a subpart of VGG10.
+    """
+    Conv1_node = onnx.helper.make_node(
+        "Conv",
+        inputs=["in1_conv1", "in2_conv1"],
+        outputs=["out1_conv1"],
+        name="Conv1",
+        dilations=[1],
+        group=1,
+        kernel_shape=[3],
+        pads=[1, 1],
+        strides=[1],
+    )
+
+    Div1_node = onnx.helper.make_node(
+        "Div", inputs=["out1_conv1", "in2_div1"], outputs=["out1_div1"], name="Div1"
+    )
+
+    MaxPool1_node = onnx.helper.make_node(
+        "MaxPool",
+        inputs=["out1_div1"],
+        outputs=["out1_maxpool1"],
+        name="MaxPool1",
+        kernel_shape=[2],
+        pads=[0, 0],
+        strides=[2],
+    )
+
+    Flatten1_node = onnx.helper.make_node(
+        "Flatten",
+        inputs=["out1_maxpool1"],
+        outputs=["out1_flatten1"],
+        name="Flatten1",
+        axis=1,
+    )
+
+    MatMul1_node = onnx.helper.make_node(
+        "MatMul",
+        inputs=["out1_flatten1", "in2_matmul1"],
+        outputs=["out1_matmul1"],
+        name="MatMul1",
+    )
+
+    TopK1_node = onnx.helper.make_node(
+        "TopK",
+        inputs=["out1_matmul1", "in2topk1"],
+        outputs=["out1_topk1", "out2_topk1"],
+        name="TopK1",
+        axis=-1,
+        largest=1,
+        sorted=1,
+    )
+
+    # Inputs and outputs
+    in1_conv1 = onnx.helper.make_tensor_value_info(
+        "in1_conv1", onnx.TensorProto.FLOAT, [1, 64, 16]
+    )
+    out2_topk1 = onnx.helper.make_tensor_value_info(
+        "out2_topk1", onnx.TensorProto.INT64, [1, 3]
+    )
+
+    # Value infos
+    out1_conv1 = onnx.helper.make_tensor_value_info(
+        "out1_conv1", onnx.TensorProto.FLOAT, [1, 64, 16]
+    )
+    out1_div1 = onnx.helper.make_tensor_value_info(
+        "out1_div1", onnx.TensorProto.FLOAT, [1, 64, 16]
+    )
+    out1_maxpool1 = onnx.helper.make_tensor_value_info(
+        "out1_maxpool1", onnx.TensorProto.FLOAT, [1, 64, 8]
+    )
+    out1_flatten1 = onnx.helper.make_tensor_value_info(
+        "out1_flatten1", onnx.TensorProto.FLOAT, [1, 512]
+    )
+    out1_matmul1 = onnx.helper.make_tensor_value_info(
+        "out1_matmul1", onnx.TensorProto.FLOAT, [1, 24]
+    )
+    out1_topk1 = onnx.helper.make_tensor_value_info(
+        "out1_topk1", onnx.TensorProto.FLOAT, [1, 3]
+    )
+
+    # Initializers
+    in2_conv1 = onnx.helper.make_tensor_value_info(
+        "in2_conv1", onnx.TensorProto.FLOAT, [64, 64, 3]
+    )
+    in2_div1 = onnx.helper.make_tensor_value_info(
+        "in2_div1", onnx.TensorProto.FLOAT, [1]
+    )
+    in2_matmul1 = onnx.helper.make_tensor_value_info(
+        "in2_matmul1", onnx.TensorProto.FLOAT, [512, 24]
+    )
+    in2topk1 = onnx.helper.make_tensor_value_info(
+        "in2topk1", onnx.TensorProto.FLOAT, [1]
+    )
+
+    list_of_nodes = [
+        Conv1_node,
+        Div1_node,
+        MaxPool1_node,
+        Flatten1_node,
+        MatMul1_node,
+        TopK1_node,
+    ]
+    list_of_value_infos = [
+        out1_conv1,
+        out1_div1,
+        out1_maxpool1,
+        out1_flatten1,
+        out1_matmul1,
+        out1_topk1,
+        in2_conv1,
+        in2_div1,
+        in2_matmul1,
+        in2topk1,
+    ]
+
+    graph = onnx.helper.make_graph(
+        nodes=list_of_nodes,
+        name="4d_conversion_test_graph",
+        inputs=[in1_conv1],
+        outputs=[out2_topk1],
+        value_info=list_of_value_infos,
+    )
+    onnx_model = onnx.helper.make_model(graph, producer_name="4d_conversion_test-model")
+    model = ModelWrapper(onnx_model)
+
+    # Fixed TopK initializer (K=3)
+    model.set_initializer("in2topk1", np.array([3]))
+
+    return model
+
+
+@pytest.mark.parametrize("test_model", ["Quartz", "VGG"])
+def test_4d_conversion(test_model):
     """
     Test for the 3D to 4D transformation with a valid graph.
     """
-    model = create_arbitrary_model(invalid=False)
+
+    if test_model == "Quartz":
+        model = create_arbitrary_model(invalid=False)
+    elif test_model == "VGG":
+        model = create_arbitrary_model_vgg()
+    else:
+        raise Exception("Unknown test_model in test_4d_conversion")
 
     # Inputs
     input_dict = generate_random_input(model)
