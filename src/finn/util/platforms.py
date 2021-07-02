@@ -29,10 +29,19 @@
 import numpy as np
 from abc import abstractmethod
 
-DC = -1  # explicit value for don't care
+# contains the amount of available FPGA resources for several
+# Xilinx platforms, as well as certain resource limit guidelines
+# for creating designs that can achieve timing closure
+
+# explicit value for res types/costs we don't care about
+DONT_CARE = -1
+# recommended resource limits from Xilinx for timing closure
+# respectively for LUT, FF, BRAM_18K, URAM, DSP res types
 DEFAULT_RES_LIMITS = np.array([0.7, 0.5, 0.80, 0.80, 0.80])
 DEFAULT_AVG_CONSTRAINTS = [((2, 3, 4), 0.7)]  #
 
+# resources required to instantiate certain infrastructure components
+# such as memory controllers and network interfaces
 DDR_RESOURCE_REQUIREMENTS = {
     "LUT": 33256,
     "FF": 44889,
@@ -139,9 +148,9 @@ class Platform:
 
     @property
     def compute_connection_cost(self):
-        x = np.full((self.nslr * self.ndevices, self.nslr * self.ndevices), DC)
+        x = np.full((self.nslr * self.ndevices, self.nslr * self.ndevices), DONT_CARE)
         # build connection cost matrix for one device's SLRs
-        xlocal = np.full((self.nslr, self.nslr), DC)
+        xlocal = np.full((self.nslr, self.nslr), DONT_CARE)
         for i in range(self.nslr):
             for j in range(self.nslr):
                 if i == j:
