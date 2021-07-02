@@ -103,7 +103,7 @@ def _generate_verilog(model, indices):
     if input_tensor_name is None:
         raise Exception(
             "General Input tensorName not found. The input tensor has to contain "
-            "the keyword *input* on the TensorName, and has to be the only one "
+            "the keyword input on the TensorName, and has to be the only one "
             "following that rule in the entire ONNX model.\n"
         )
 
@@ -242,17 +242,17 @@ class GenLogicNetsVerilog(Transformation):
     can be accessed using the tensor name that is considered in the ONNX
     model.
 
-    - The care_set represents which input combinations are
+    -The care_set represents which input combinations are
     considered by the LUT. The care_set is a dictionary that maps the
     actual care_set data into the tensorName used in the ONNX mode for every
     BinaryTruthTable operation.
 
-    - The sparsity indexes represent which signals incoming into the
+    -The sparsity indexes represent which signals incoming into the
     BinaryTruthTable operation are relevant. The sparsity indexes are formed
     through a dictionary that maps the actual index values into tensorName
     used in every Gather node inside the ONNX model.
 
-    - The code_dir is used to return the path of the generated verilog source
+    -The code_dir is used to return the path of the generated verilog source
     code."""
 
     def __init__(self, care_set, indices):

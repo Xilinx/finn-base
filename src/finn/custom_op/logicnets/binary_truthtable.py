@@ -46,9 +46,8 @@ def binary_truthtable(input, care_set, bits):
     combination of inputs 010 is 1. The input is a vector size x, representing
     x-bits binary input.
 
-    **************************************************************************
     The MSB in the input numpy array represents the LSB in the LUT.
-    **************************************************************************
+
 
     An example is presented:
 
@@ -56,7 +55,6 @@ def binary_truthtable(input, care_set, bits):
     care_set = [1, 2]
 
     Possible combinations[2:0]:      A   B   C  | Results
-                                    ---------------------
                                     0   0   0   |    0
                                     0   0   1   |    1
                                     0   1   0   |    1

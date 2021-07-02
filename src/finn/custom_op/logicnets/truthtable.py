@@ -48,9 +48,9 @@ def _truthtable(input, care_set, results, in_bits):
     every output to every combination in the care_set. Thus, the length of care_set
     and results must be the same. All the arrays are numpy arrays
 
-    **************************************************************************
+
     The MSB in the input numpy array represents the LSB in the LUT.
-    **************************************************************************
+
 
     An example is presented:
     in_bits = 3
@@ -70,7 +70,6 @@ def _truthtable(input, care_set, results, in_bits):
     results vector, which in this case is '1'
 
     Possible combinations[2:0]:     input[0:2]  |  results[0:2]
-                                   -------------------------------
                                     0   0   0   |    0    0    0
                                     0   0   1   |    0    1    1
                                     0   1   0   |    0    0    0
