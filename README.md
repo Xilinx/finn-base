@@ -1,4 +1,4 @@
-## <img src=https://raw.githubusercontent.com/Xilinx/finn/master/docs/img/finn-logo.png width=128/> Core Components for Quantized Neural Network Inference
+## <img src=https://raw.githubusercontent.com/Xilinx/finn/github-pages/docs/img/finn-logo.png width=128/> Core Components for Quantized Neural Network Inference
 
 [![Gitter](https://badges.gitter.im/xilinx-finn/community.svg)](https://gitter.im/xilinx-finn/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![ReadTheDocs](https://readthedocs.org/projects/finn-base/badge/?version=latest&style=plastic)](http://finn-base.readthedocs.io/)
