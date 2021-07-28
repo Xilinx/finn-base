@@ -50,6 +50,39 @@ _move_through_nodes = ["Quant"]
 _move_through_nodes_if_scalar = ["Mul", "Div", "Sub", "Add"]
 
 
+class ConvertToNHWCAndClean(Transformation):
+    """
+    Converts data layout dependent nodes to NHWC nodes and inserts transformations.
+    Then it tries to eliminate as many transformations as possible and moves the
+    still existing ones as far upstream as possible.
+    ToDo: Implement downstream transformation? It's currently not really needed.
+    """
+
+    def apply(self, model):
+        model = model.transform(InsertNHWCDomainsAndTrafos())
+        max_tries = 100
+        for i in range(max_tries):
+            # Apply RemoveConsecutiveChanFirstAndChanLastTrafos
+            model_unchanged = True
+            previous_model_string = model.model.SerializeToString()
+            model = model.transform(RemoveConsecutiveChanFirstAndChanLastTrafos())
+            new_model_string = model.model.SerializeToString()
+            if not (previous_model_string == new_model_string):
+                model_unchanged = False
+
+            # Apply MoveChanLastUpstream
+            previous_model_string = model.model.SerializeToString()
+            model = model.transform(MoveChanLastUpstream())
+            new_model_string = model.model.SerializeToString()
+            if not (previous_model_string == new_model_string):
+                model_unchanged = False
+
+            if model_unchanged:
+                break
+
+        return model, False
+
+
 class InsertNHWCDomainsAndTrafos(Transformation):
     """Inserts NHWC domain, where required and also inserts required transposes."""
 
@@ -133,7 +166,7 @@ class InsertNHWCDomainsAndTrafos(Transformation):
                 # Set modified flag
                 graph_modified = True
 
-        return (model, graph_modified)
+        return model, graph_modified
 
 
 class RemoveConsecutiveChanFirstAndChanLastTrafos(Transformation):
@@ -191,7 +224,7 @@ class RemoveConsecutiveChanFirstAndChanLastTrafos(Transformation):
 
                             # ToDo: Figure out if the tensors,
                             #  which are now "hanging in the air" must get removed.
-        return (model, graph_modified)
+        return model, graph_modified
 
 
 class MoveChanLastUpstream(Transformation):
@@ -259,6 +292,6 @@ class MoveChanLastUpstream(Transformation):
                             graph.node.remove(n)
 
                             graph_modified = True
-                        return (model, graph_modified)
+                        return model, graph_modified
 
-        return (model, graph_modified)
+        return model, graph_modified
