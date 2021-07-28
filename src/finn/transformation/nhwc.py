@@ -225,8 +225,6 @@ class MoveChanLastUpstream(Transformation):
                         second_inp_shape = model.get_tensor_shape(predecessor.input[1])
                         if second_inp_shape == [1] or second_inp_shape == []:
                             move_through_valid |= True
-                            print(predecessor)
-                            print(f"predecessor.input={predecessor.input}")
 
                     # Apply move through trafo if possible
                     if move_through_valid:
