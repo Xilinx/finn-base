@@ -27,10 +27,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+import onnxruntime as rt
 from copy import deepcopy
 from onnx import TensorProto, helper
 
-from finn.core.onnx_exec import execute_node
 from finn.custom_op.base import CustomOp
 
 
@@ -60,7 +60,8 @@ class NhwcWrappedOp(CustomOp):
         intermediate_node.domain = ""
 
         # Create an intermediate context
-        intermediate_context = {}
+        # intermediate_context = {}
+        input_dict = {}
         input_tensor_list = []
         output_tensor_list = []
 
@@ -79,7 +80,7 @@ class NhwcWrappedOp(CustomOp):
             tensor = helper.make_tensor_value_info(
                 input, TensorProto.FLOAT, nchw_array.shape
             )
-            intermediate_context[input] = nchw_array
+            input_dict[input] = nchw_array
             input_tensor_list.append(tensor)
 
         output = intermediate_node.output[0]
@@ -89,16 +90,17 @@ class NhwcWrappedOp(CustomOp):
         tensor = helper.make_tensor_value_info(
             output, TensorProto.FLOAT, nchw_array.shape
         )
-        intermediate_context[output] = nchw_array
         output_tensor_list.append(tensor)
 
-        # Execute the intermediate node with the transposed inputs / outputs
+        # Execute the intermediate node with onnxruntime,
+        # using the transposed inputs / outputs
         intermediate_graph = helper.make_graph(
             [intermediate_node], "test_model", input_tensor_list, output_tensor_list
         )
-
-        execute_node(intermediate_node, intermediate_context, intermediate_graph)
-        output_onnx = intermediate_context[output]
+        intermediate_model = helper.make_model(intermediate_graph)
+        sess = rt.InferenceSession(intermediate_model.SerializeToString())
+        output_list = sess.run(None, input_dict)
+        output_onnx = output_list[0]
 
         # Transpose the output back to channel last and save it in the external context.
         output_onnx = output_onnx.transpose(self._to_chan_last_args)
