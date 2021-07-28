@@ -27,16 +27,22 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import finn.custom_op.registry as registry
+from finn.custom_op.general.nhwc_wrapper import NhwcWrappedOp
 
 
 def execute_custom_node(node, context, graph):
     """Call custom implementation to execute a single custom node.
     Input/output provided via context."""
-    op_type = node.op_type
-    try:
-        # lookup op_type in registry of CustomOps
-        inst = registry.getCustomOp(node)
-        inst.execute_node(context, graph)
-    except KeyError:
-        # exception if op_type is not supported
-        raise Exception("Custom op_type %s is currently not supported." % op_type)
+    # ToDo: This could also be moved here: execute_node function in finn.core.onnx_exec
+    if node.domain == "qonnx.nhwc":
+        nhwc_node = NhwcWrappedOp(node)
+        nhwc_node.execute_node(context, graph)
+    else:
+        op_type = node.op_type
+        try:
+            # lookup op_type in registry of CustomOps
+            inst = registry.getCustomOp(node)
+            inst.execute_node(context, graph)
+        except KeyError:
+            # exception if op_type is not supported
+            raise Exception("Custom op_type %s is currently not supported." % op_type)
