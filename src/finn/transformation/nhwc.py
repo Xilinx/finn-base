@@ -32,13 +32,22 @@ from onnx import TensorProto, helper
 from finn.transformation.base import Transformation
 from finn.util.basic import get_by_name
 
-# Standard ONNX nodes which require a nchw data format to function properly
+# ToDo: Should these parameters move into a parent class for all NHWC trafos?
+# ToDo: I also need some of these parameters in the nhwc wrapper,
+#  so maybe this should get moved to a location, where both, the ops and the trafos
+#  can access it.
+# Standard ONNX nodes which require a NHWC data format to function properly
 _nchw_node_types = ["Conv", "MaxPool", "BatchNormalization"]
 _to_chan_last_args = (0, 2, 3, 1)
 _to_chan_first_args = (0, 3, 1, 2)
 
-# Nodes, which do not modify the shape of the tensor, only the values.
+# Nodes, which do not modify the shape of the tensor
+# And modify all values in the same way.
 _move_through_nodes = ["Quant"]
+
+# Nodes, which do not modify the shape of the tensor,
+# And modify all values in the same way, if the second tensor is a scalar.
+_move_through_nodes_if_scalar = ["Mul", "Div", "Sub", "Add"]
 
 
 class InsertNHWCDomainsAndTrafos(Transformation):
@@ -186,10 +195,7 @@ class RemoveConsecutiveChanFirstAndChanLastTrafos(Transformation):
 
 
 class MoveChanLastUpstream(Transformation):
-    """Moves channel last transformations further upstream.
-    Currently supported nodes to move along: Quant
-    ToDo: Support more nodes, like Mul, Sub, Div.
-    """
+    """Moves channel last transformations further upstream."""
 
     def apply(self, model):
         graph = model.graph
@@ -202,6 +208,9 @@ class MoveChanLastUpstream(Transformation):
                 perm = get_by_name(n.attribute, "perm")
                 if list(_to_chan_last_args) == perm.ints:
                     predecessors = model.find_direct_predecessors(n)
+                    # Check if we reached the top of the graph
+                    if predecessors is None:
+                        continue
                     assert len(predecessors) == 1, (
                         "Transpose nodes should only have one input, "
                         "I don't think more than one would even be possible."
@@ -209,7 +218,18 @@ class MoveChanLastUpstream(Transformation):
                     predecessor = predecessors[0]
 
                     # Check if we can simply move through the previous node
-                    if predecessor.op_type in _move_through_nodes:
+                    move_through_valid = predecessor.op_type in _move_through_nodes
+                    # Check if we have a node, which applies a scalar change,
+                    # then we can also move through.
+                    if predecessor.op_type in _move_through_nodes_if_scalar:
+                        second_inp_shape = model.get_tensor_shape(predecessor.input[1])
+                        if second_inp_shape == [1] or second_inp_shape == []:
+                            move_through_valid |= True
+                            print(predecessor)
+                            print(f"predecessor.input={predecessor.input}")
+
+                    # Apply move through trafo if possible
+                    if move_through_valid:
                         # Input tensors are always input 0
                         inp = predecessor.input[0]
                         if isinstance(model.get_initializer(inp), type(None)):
@@ -231,7 +251,7 @@ class MoveChanLastUpstream(Transformation):
 
                             graph_modified = True
                         else:
-                            # Explicitly apply the transpose to the initalizer
+                            # Explicitly apply the transpose to the initializer
                             # of the previous node
                             target_tensor = model.get_initializer(inp)
                             target_tensor = target_tensor.transpose(perm.ints)
@@ -241,5 +261,6 @@ class MoveChanLastUpstream(Transformation):
                             graph.node.remove(n)
 
                             graph_modified = True
+                        return (model, graph_modified)
 
         return (model, graph_modified)
