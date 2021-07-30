@@ -106,6 +106,82 @@ class NhwcWrappedOp(CustomOp):
         output_onnx = output_onnx.transpose(self._to_chan_last_args)
         context[node.output[0]] = output_onnx
 
+
+class Conv(NhwcWrappedOp):
+    # ToDo: Fill in these methods
+    def get_nodeattr_types(self):
+        """Returns a dict of permitted attributes for node, where:
+        ret_dict[attribute_name] = (dtype, require, default_value, <allowed_values>)
+        - dtype indicates which member of the ONNX AttributeProto
+        will be utilized
+        - require indicates whether this attribute is required
+        - default_val indicates the default value that will be used if the
+        attribute is not set
+        - <allowed_values> (if specified) indicates that this attribute can only
+        be set to one of the values in the set <allowed_values>. If not specified,
+        all values permitted by dtype are allowed.
+        """
+        raise NotImplementedError()
+        pass
+
+    def make_shape_compatible_op(self, model):
+        """Returns a standard ONNX op which is compatible with this CustomOp
+        for performing shape inference."""
+        raise NotImplementedError()
+        pass
+
+    def infer_node_datatype(self, model):
+        """Set the DataType annotations corresponding to the outputs of this
+        node."""
+        raise NotImplementedError()
+        pass
+
+    def verify_node(self):
+        """Verifies that all attributes the node needs are there and
+        that particular attributes are set correctly. Also checks if
+        the number of inputs is equal to the expected number."""
+        raise NotImplementedError()
+        pass
+
+
+class MaxPool(NhwcWrappedOp):
+    # ToDo: Fill in these methods
+    def get_nodeattr_types(self):
+        """Returns a dict of permitted attributes for node, where:
+        ret_dict[attribute_name] = (dtype, require, default_value, <allowed_values>)
+        - dtype indicates which member of the ONNX AttributeProto
+        will be utilized
+        - require indicates whether this attribute is required
+        - default_val indicates the default value that will be used if the
+        attribute is not set
+        - <allowed_values> (if specified) indicates that this attribute can only
+        be set to one of the values in the set <allowed_values>. If not specified,
+        all values permitted by dtype are allowed.
+        """
+        raise NotImplementedError()
+        pass
+
+    def make_shape_compatible_op(self, model):
+        """Returns a standard ONNX op which is compatible with this CustomOp
+        for performing shape inference."""
+        raise NotImplementedError()
+        pass
+
+    def infer_node_datatype(self, model):
+        """Set the DataType annotations corresponding to the outputs of this
+        node."""
+        raise NotImplementedError()
+        pass
+
+    def verify_node(self):
+        """Verifies that all attributes the node needs are there and
+        that particular attributes are set correctly. Also checks if
+        the number of inputs is equal to the expected number."""
+        raise NotImplementedError()
+        pass
+
+
+class BatchNormalization(NhwcWrappedOp):
     # ToDo: Fill in these methods
     def get_nodeattr_types(self):
         """Returns a dict of permitted attributes for node, where:

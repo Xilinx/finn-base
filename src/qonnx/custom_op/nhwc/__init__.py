@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Xilinx, Inc.
+# Copyright (c) 2021 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import finn.custom_op.registry as registry
+from qonnx.custom_op.nhwc.wrapped_ops import BatchNormalization, Conv, MaxPool
 
+custom_op = dict()
 
-def execute_custom_node(node, context, graph):
-    """Call custom implementation to execute a single custom node.
-    Input/output provided via context."""
-    op_type = node.op_type
-    try:
-        # lookup op_type in registry of CustomOps
-        inst = registry.getCustomOp(node)
-        inst.execute_node(context, graph)
-    except KeyError:
-        # exception if op_type is not supported
-        raise Exception("Custom op_type %s is currently not supported." % op_type)
+custom_op["Conv"] = Conv
+custom_op["MaxPool"] = MaxPool
+custom_op["BatchNormalization"] = BatchNormalization

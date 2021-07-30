@@ -32,8 +32,9 @@ from onnx import TensorProto, helper
 from finn.transformation.base import Transformation
 from finn.util.basic import get_by_name
 
+# ToDo: Similarly to the ops, this should maybe get moved from finn-base into qonnx.
 # ToDo: Should these parameters move into a parent class for all NHWC trafos?
-# ToDo: I also need some of these parameters in the nhwc wrapper,
+# ToDo: I also need some of these parameters in the nhwc op wrappers,
 #  so maybe this should get moved to a location, where both, the ops and the trafos
 #  can access it.
 # Standard ONNX nodes which require a NHWC data format to function properly
@@ -162,7 +163,7 @@ class InsertNHWCDomainsAndTrafos(Transformation):
                     n.output[i] = outp_trans_in
 
                 # Modify domain
-                n.domain = "qonnx.nhwc"
+                n.domain = "qonnx.custom_op.nhwc"
                 # Set modified flag
                 graph_modified = True
 

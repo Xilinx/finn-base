@@ -98,7 +98,8 @@ def execute_node(node, context, graph, return_full_exec_context=False):
                 if tname != model_oname:
                     context[node.name + "_" + tname] = ret[tname]
     else:
-        if is_finn_op(node.domain) or node.domain == "qonnx.nhwc":
+        # ToDo: Have a proper function for detecting qonnx ops.
+        if is_finn_op(node.domain) or node.domain == "qonnx.custom_op.nhwc":
             ex_cu_node.execute_custom_node(node, context, graph)
         else:
             # onnxruntime unfortunately does not implement run_node as defined by ONNX,
