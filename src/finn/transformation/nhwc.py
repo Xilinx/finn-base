@@ -30,6 +30,7 @@
 from onnx import TensorProto, helper
 
 from finn.transformation.base import Transformation
+from finn.transformation.general import RemoveUnusedTensors
 from finn.util.basic import get_by_name
 
 # ToDo: Similarly to the ops, this should maybe get moved from finn-base into qonnx.
@@ -51,6 +52,24 @@ _move_through_nodes = ["Quant"]
 _move_through_nodes_if_scalar = ["Mul", "Div", "Sub", "Add"]
 
 
+def applyTrafoAndCheckForChange(model, transformation):
+    """
+    Applies a transformation and checks if the model changed in any way.
+    Returns:
+        The transformed model
+        Boolean indicating if the model has changed.
+    """
+    previous_model_string = model.model.SerializeToString()
+    model = model.transform(transformation())
+    new_model_string = model.model.SerializeToString()
+    if previous_model_string == new_model_string:
+        model_changed = False
+    else:
+        model_changed = True
+
+    return model, model_changed
+
+
 class ConvertToNHWCAndClean(Transformation):
     """
     Converts data layout dependent nodes to NHWC nodes and inserts transformations.
@@ -64,21 +83,42 @@ class ConvertToNHWCAndClean(Transformation):
         max_tries = 100
         for i in range(max_tries):
             # Apply RemoveConsecutiveChanFirstAndChanLastTrafos
-            model_unchanged = True
-            previous_model_string = model.model.SerializeToString()
-            model = model.transform(RemoveConsecutiveChanFirstAndChanLastTrafos())
-            new_model_string = model.model.SerializeToString()
-            if not (previous_model_string == new_model_string):
-                model_unchanged = False
+            model_changed = False
+            model, m_changed = applyTrafoAndCheckForChange(
+                model, RemoveConsecutiveChanFirstAndChanLastTrafos
+            )
+            model_changed |= m_changed
 
             # Apply MoveChanLastUpstream
-            previous_model_string = model.model.SerializeToString()
-            model = model.transform(MoveChanLastUpstream())
-            new_model_string = model.model.SerializeToString()
-            if not (previous_model_string == new_model_string):
-                model_unchanged = False
+            model, m_changed = applyTrafoAndCheckForChange(model, MoveChanLastUpstream)
+            model_changed |= m_changed
 
-            if model_unchanged:
+            # Run RemoveConsecutiveChanFirstAndChanLastTrafos again,
+            # if something changed in the previous trafo
+            if m_changed:
+                model, m_changed = applyTrafoAndCheckForChange(
+                    model, RemoveConsecutiveChanFirstAndChanLastTrafos
+                )
+                model_changed |= m_changed
+
+            # Apply MoveChanLastDownStream
+            model, m_changed = applyTrafoAndCheckForChange(
+                model, MoveChanFirstDownstream
+            )
+            model_changed |= m_changed
+
+            # Run RemoveConsecutiveChanFirstAndChanLastTrafos again,
+            # if something changed in the previous trafo
+            if m_changed:
+                model, m_changed = applyTrafoAndCheckForChange(
+                    model, RemoveConsecutiveChanFirstAndChanLastTrafos
+                )
+                model_changed |= m_changed
+
+            # Do some cleanup
+            if model_changed:
+                model = model.transform(RemoveUnusedTensors())
+            else:
                 break
 
         return model, False
@@ -294,5 +334,57 @@ class MoveChanLastUpstream(Transformation):
 
                             graph_modified = True
                         return model, graph_modified
+
+        return model, graph_modified
+
+
+class MoveChanFirstDownstream(Transformation):
+    """
+    Moves channel first transformations further downstream.
+    """
+
+    def apply(self, model):
+        graph = model.graph
+        node_ind = 0
+        graph_modified = False
+        # Find transpose nodes, which are "to chan first" trafos
+        for n in graph.node:
+            node_ind += 1
+            if n.op_type == "Transpose":
+                perm = get_by_name(n.attribute, "perm")
+                if list(_to_chan_first_args) == perm.ints:
+                    successors = model.find_direct_successors(n)
+                    assert (
+                        len(successors) == 1
+                    ), "Transpose nodes should only have one output"
+                    successor = successors[0]
+
+                    # Check if we can simply move through the next node
+                    move_through_valid = successor.op_type in _move_through_nodes
+                    # Check if we have a node, which applies a scalar change,
+                    # then we can also move through.
+                    if successor.op_type in _move_through_nodes_if_scalar:
+                        second_inp_shape = model.get_tensor_shape(successor.input[1])
+                        if second_inp_shape == [1] or second_inp_shape == []:
+                            move_through_valid |= True
+                    # Apply move through trafo if possible
+                    if move_through_valid:
+                        # Collect all tensors connecting n and successor
+                        # and surrounding nodes
+                        tensor_1 = n.input[0]
+                        tensor_2 = n.output[0]
+                        tensor_3 = successor.output[0]
+                        # Now connect the tensors to the nodes again,
+                        # but in different order
+                        successor.input[0] = tensor_1
+                        successor.output[0] = tensor_2
+                        n.input[0] = tensor_2
+                        n.output[0] = tensor_3
+
+                        # Change the shape of the middle tensor
+                        target_shape = model.get_tensor_shape(tensor_1)
+                        model.set_tensor_shape(tensor_2, target_shape)
+
+                        graph_modified = True
 
         return model, graph_modified
