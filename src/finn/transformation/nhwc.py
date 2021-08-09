@@ -75,10 +75,10 @@ class ConvertToNHWCAndClean(Transformation):
     Converts data layout dependent nodes to NHWC nodes and inserts transformations.
     Then it tries to eliminate as many transformations as possible and moves the
     still existing ones as far upstream as possible.
-    ToDo: Implement downstream transformation? It's currently not really needed.
     """
 
     def apply(self, model):
+        model = model.transform(FuseTransposeIntoQuantInit())
         model = model.transform(InsertNHWCDomainsAndTrafos())
         max_tries = 100
         for i in range(max_tries):
@@ -125,7 +125,9 @@ class ConvertToNHWCAndClean(Transformation):
 
 
 class InsertNHWCDomainsAndTrafos(Transformation):
-    """Inserts NHWC domain, where required and also inserts required transposes."""
+    """
+    Inserts NHWC domain, where required and also inserts required transposes.
+    """
 
     def apply(self, model):
         graph = model.graph
@@ -211,9 +213,11 @@ class InsertNHWCDomainsAndTrafos(Transformation):
 
 
 class RemoveConsecutiveChanFirstAndChanLastTrafos(Transformation):
-    """Remove two consecutive transformations, which would do:
+    """
+    Remove two consecutive transformations, which would do:
     (NHWC -> NCHW) -> (NCHW -> NHWC)
-    Or more concrete, the first converts to channels and the scond to channels last.
+    Or more concrete, the first converts to channels first
+    and the second to channels last.
     """
 
     def apply(self, model):
@@ -269,7 +273,9 @@ class RemoveConsecutiveChanFirstAndChanLastTrafos(Transformation):
 
 
 class MoveChanLastUpstream(Transformation):
-    """Moves channel last transformations further upstream."""
+    """
+    Moves channel last transformations further upstream.
+    """
 
     def apply(self, model):
         graph = model.graph
@@ -386,5 +392,47 @@ class MoveChanFirstDownstream(Transformation):
                         model.set_tensor_shape(tensor_2, target_shape)
 
                         graph_modified = True
+                        return model, graph_modified
+
+        return model, graph_modified
+
+
+class FuseTransposeIntoQuantInit(Transformation):
+    """
+    Fueses a Transpose node into the initalizer of a Quant node.
+    """
+
+    def apply(self, model):
+        graph = model.graph
+        node_ind = 0
+        graph_modified = False
+        # Find transpose nodes, which have Quant node with initilizer upstream.
+        for n in graph.node:
+            node_ind += 1
+            if n.op_type == "Transpose":
+                perm = get_by_name(n.attribute, "perm")
+                predecessors = model.find_direct_predecessors(n)
+                # Check if we reached the top of the graph
+                if predecessors is None:
+                    continue
+                assert len(predecessors) == 1, (
+                    "Transpose nodes should only have one input, "
+                    "I don't think more than one would even be possible."
+                )
+                predecessor = predecessors[0]
+                if predecessor.op_type == "Quant":
+                    inp = predecessor.input[0]
+                    if not isinstance(model.get_initializer(inp), type(None)):
+                        # Explicitly apply the transpose to the initializer
+                        # of the previous node
+                        target_tensor = model.get_initializer(inp)
+                        target_tensor = target_tensor.transpose(perm.ints)
+                        model.set_initializer(inp, target_tensor)
+                        # Reconnect predecessor and delete transpose node
+                        predecessor.output[0] = n.output[0]
+                        graph.node.remove(n)
+
+                        graph_modified = True
+                        return model, graph_modified
 
         return model, graph_modified
