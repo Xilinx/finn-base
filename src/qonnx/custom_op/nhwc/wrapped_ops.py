@@ -32,6 +32,8 @@ from copy import deepcopy
 from onnx import TensorProto, helper
 
 from finn.custom_op.base import CustomOp
+from finn.custom_op.general.im2col import compute_conv_output_dim
+from finn.custom_op.general.maxpoolnhwc import compute_pool_output_dim
 
 
 class NhwcWrappedOp(CustomOp):
@@ -108,7 +110,6 @@ class NhwcWrappedOp(CustomOp):
 
 
 class Conv(NhwcWrappedOp):
-    # ToDo: Fill in these methods
     def get_nodeattr_types(self):
         """Returns a dict of permitted attributes for node, where:
         ret_dict[attribute_name] = (dtype, require, default_value, <allowed_values>)
@@ -121,15 +122,78 @@ class Conv(NhwcWrappedOp):
         be set to one of the values in the set <allowed_values>. If not specified,
         all values permitted by dtype are allowed.
         """
-        raise NotImplementedError()
-        pass
+        return {
+            # stride and shape of convolution kernel
+            "kernel_shape": ("ints", True, []),
+            "strides": ("ints", True, []),
+            # dilation factor applied to the conv kernel
+            "dilations": ("ints", True, []),
+            # amount of padding to be inserted before/after each non-dummy spatial dim
+            # i.e. [H_begin, W_begin, H_end, W_end]
+            "pads": ("ints", True, [0, 0, 0, 0]),  # default: no padding
+            "group": ("i", True, 1),
+        }
 
     def make_shape_compatible_op(self, model):
         """Returns a standard ONNX op which is compatible with this CustomOp
         for performing shape inference."""
-        raise NotImplementedError()
-        pass
+        # Modified version of: Im2Col.make_shape_compatible_op
+        # From file: src/finn/custom_op/general/im2col.py
+        k_h, k_w = self.get_nodeattr("kernel_shape")
+        stride_h, stride_w = self.get_nodeattr("strides")
+        dilation_h, dilation_w = self.get_nodeattr("dilations")
+        # Get the input shape from the previous tensor
+        ishape = model.get_tensor_shape(self.onnx_node.input[0])
+        pad = self.get_nodeattr("pads")  # padding: [H_begin, W_begin, H_end, W_end]
+        pad_h = pad[0] + pad[2]
+        pad_w = pad[1] + pad[3]
+        assert (
+            len(ishape) == 4
+        ), "Unexpected input shape for nhwc.Conv (currently only supports 4D inputs)"
+        # NHWC per definition of this op.
+        ifm_dim_h = ishape[1]
+        ifm_dim_w = ishape[2]
 
+        # check that kernel tensor also respects any existing dummy dimensions
+        # ToDo: This should change when 3D tensors are supported.
+        if ifm_dim_h == 1:
+            kernel_1d = k_h == 1
+            pad_1d = pad_h == 0
+            assert (
+                kernel_1d and pad_1d
+            ), "Unexpected kernel shape and padding for input image\
+                     of dimensions (N, 1, W, C)"
+        if ifm_dim_w == 1:
+            kernel_1d = k_w == 1
+            pad_1d = pad_w == 0
+            assert (
+                kernel_1d and pad_1d
+            ), "Unexpected kernel shape padding for input image\
+                     of dimensions (N, H, 1, C)"
+
+        ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride_h, pad_h, dilation_h)
+        ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride_w, pad_w, dilation_w)
+
+        # Get the number of output channels form the shape of the weight tensor.
+        out_ch = model.get_tensor_shape(self.onnx_node.input[1])
+        out_ch = out_ch[0]
+
+        # implement tensor with correct shape
+        values = np.random.randn(1, ofm_dim_h, ofm_dim_w, out_ch).astype(np.float32)
+        return helper.make_node(
+            "Constant",
+            inputs=[],
+            outputs=[self.onnx_node.output[0]],
+            value=helper.make_tensor(
+                name="const_tensor",
+                data_type=TensorProto.FLOAT,
+                dims=values.shape,
+                vals=values.flatten().astype(float),
+            ),
+            name=self.onnx_node.name,
+        )
+
+    # ToDo: Fill in these methods
     def infer_node_datatype(self, model):
         """Set the DataType annotations corresponding to the outputs of this
         node."""
@@ -145,7 +209,6 @@ class Conv(NhwcWrappedOp):
 
 
 class MaxPool(NhwcWrappedOp):
-    # ToDo: Fill in these methods
     def get_nodeattr_types(self):
         """Returns a dict of permitted attributes for node, where:
         ret_dict[attribute_name] = (dtype, require, default_value, <allowed_values>)
@@ -158,15 +221,49 @@ class MaxPool(NhwcWrappedOp):
         be set to one of the values in the set <allowed_values>. If not specified,
         all values permitted by dtype are allowed.
         """
-        raise NotImplementedError()
-        pass
+        return {
+            # stride and shape of MaxPool kernel
+            "kernel_shape": ("ints", True, []),
+            "strides": ("ints", True, []),
+            # amount of padding to be inserted before/after each non-dummy spatial dim
+            # i.e. [H_begin, W_begin, H_end, W_end]
+            "pads": ("ints", True, [0, 0, 0, 0]),  # default: no padding
+        }
 
     def make_shape_compatible_op(self, model):
         """Returns a standard ONNX op which is compatible with this CustomOp
         for performing shape inference."""
-        raise NotImplementedError()
-        pass
+        # Taken from file src/finn/custom_op/general/maxpoolnhwc.py
+        # and function: MaxPoolNHWC.make_shape_compatible_op
+        node = self.onnx_node
+        iname = node.input[0]
+        ishape = model.get_tensor_shape(iname)
+        kernel_shape = self.get_nodeattr("kernel_shape")
+        pads = self.get_nodeattr("pads")
+        strides = self.get_nodeattr("strides")
+        assert len(kernel_shape) == 2, "Non-2D MaxPoolNHWC not supported"
+        assert pads[0] == pads[2], "Uneven padding not supported"
+        assert pads[1] == pads[3], "Uneven padding not supported"
+        (n, hi, wi, c) = ishape
+        ho = compute_pool_output_dim(hi, kernel_shape[0], strides[0], pads[0])
+        wo = compute_pool_output_dim(wi, kernel_shape[1], strides[1], pads[2])
+        oshape = (n, ho, wo, c)
+        # implement tensor with correct shape
+        values = np.random.randn(*oshape).astype(np.float32)
+        return helper.make_node(
+            "Constant",
+            inputs=[],
+            outputs=[self.onnx_node.output[0]],
+            value=helper.make_tensor(
+                name="const_tensor",
+                data_type=TensorProto.FLOAT,
+                dims=values.shape,
+                vals=values.flatten().astype(float),
+            ),
+            name=self.onnx_node.name,
+        )
 
+    # ToDo: Fill in these methods
     def infer_node_datatype(self, model):
         """Set the DataType annotations corresponding to the outputs of this
         node."""
@@ -182,7 +279,6 @@ class MaxPool(NhwcWrappedOp):
 
 
 class BatchNormalization(NhwcWrappedOp):
-    # ToDo: Fill in these methods
     def get_nodeattr_types(self):
         """Returns a dict of permitted attributes for node, where:
         ret_dict[attribute_name] = (dtype, require, default_value, <allowed_values>)
@@ -195,15 +291,38 @@ class BatchNormalization(NhwcWrappedOp):
         be set to one of the values in the set <allowed_values>. If not specified,
         all values permitted by dtype are allowed.
         """
-        raise NotImplementedError()
+        return {
+            # The epsilon value to use to avoid division by zero.
+            "epsilon": ("f", True, 1e-05),
+            # Factor used in computing the running mean and variance.
+            # e.g., running_mean = running_mean * momentum + mean * (1 - momentum).
+            "momentum": ("f", True, 0.9),
+        }
         pass
 
     def make_shape_compatible_op(self, model):
         """Returns a standard ONNX op which is compatible with this CustomOp
         for performing shape inference."""
-        raise NotImplementedError()
-        pass
+        # For BatchNorm the output shape should be the same as the input shape.
+        # Get the output shape from the input
+        out_shape = model.get_tensor_shape(self.onnx_node.input[0])
 
+        # implement tensor with correct shape
+        values = np.random.randn(*out_shape).astype(np.float32)
+        return helper.make_node(
+            "Constant",
+            inputs=[],
+            outputs=[self.onnx_node.output[0]],
+            value=helper.make_tensor(
+                name="const_tensor",
+                data_type=TensorProto.FLOAT,
+                dims=values.shape,
+                vals=values.flatten().astype(float),
+            ),
+            name=self.onnx_node.name,
+        )
+
+    # ToDo: Fill in these methods
     def infer_node_datatype(self, model):
         """Set the DataType annotations corresponding to the outputs of this
         node."""
