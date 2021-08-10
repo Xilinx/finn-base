@@ -27,10 +27,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+import warnings
 from onnx import TensorProto, helper
 
+import finn.util.basic as util
 from finn.transformation.base import Transformation
 from finn.transformation.general import RemoveUnusedTensors
+from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
 
 # ToDo: Similarly to the ops, this should maybe get moved from finn-base into qonnx.
@@ -115,9 +118,16 @@ class ConvertToNHWCAndClean(Transformation):
                 )
                 model_changed |= m_changed
 
+            # Apply AbsorbFlattenIntoMatMul
+            model, m_changed = applyTrafoAndCheckForChange(
+                model, AbsorbFlattenIntoMatMul
+            )
+            model_changed |= m_changed
+
             # Do some cleanup
             if model_changed:
                 model = model.transform(RemoveUnusedTensors())
+                model = model.transform(InferShapes())
             else:
                 break
 
@@ -436,3 +446,125 @@ class FuseTransposeIntoQuantInit(Transformation):
                         return model, graph_modified
 
         return model, graph_modified
+
+
+class AbsorbFlattenIntoMatMul(Transformation):
+    """
+    Removes a flatten node if it is in front of a MatMul node.
+    For an NHWC-Conv to FC transition, the preceding transpose is absorbed.
+    The flatten operation can also be implemented by a reshape node.
+    """
+
+    def apply(self, model):
+        graph = model.graph
+        graph_modified = False
+        node_ind = 0
+        for n in graph.node:
+            node_ind += 1
+            # also support implicit flatten via reshape, e.g. reshape(1,-1)
+            if n.op_type == "Flatten" or n.op_type == "Reshape":
+                ishape = model.get_tensor_shape(n.input[0])
+                oshape = model.get_tensor_shape(n.output[0])
+                if ishape is None or oshape is None:
+                    continue
+                if len(oshape) == 2 and ishape[0] == oshape[0]:
+                    producer = model.find_producer(n.input[0])
+                    if producer.op_type == "Transpose":
+                        # transpose + flatten, absorb into following node
+                        transp_node = producer
+                        # check if transpose converts NHWC to NCHW
+                        perms = get_by_name(transp_node.attribute, "perm").ints
+                        if list(_to_chan_first_args) == perms:
+                            producer = model.find_producer(transp_node.input[0])
+                            consumer = model.find_consumer(n.output[0])
+                            if consumer.op_type == "MatMul":
+                                b_shape = model.get_tensor_shape(consumer.input[1])
+                                mw = b_shape[0]
+                                mh = b_shape[1]
+                                (b, h, w, c) = model.get_tensor_shape(
+                                    transp_node.input[0]
+                                )
+                                # Get the weight initilizer
+                                quant_node = model.find_producer(consumer.input[1])
+                                if quant_node.op_type == "Quant":
+                                    W = model.get_initializer(quant_node.input[0])
+                                else:
+                                    warnings.warn(
+                                        f"Could not find weight initializer for "
+                                        f"MatMul: {consumer.name}"
+                                    )
+                                    continue
+                                W_new = W.reshape(c, h, w, mh)
+                                W_new = W_new.transpose((1, 2, 0, 3))
+                                W_new = W_new.reshape(mw, mh)
+                                model.set_initializer(quant_node.input[0], W_new)
+                                # remove transpose & flatten nodes
+                                consumer.input[0] = transp_node.input[0]
+                                graph.node.remove(n)
+                                graph.node.remove(transp_node)
+
+                                # Remove the shape from all downstream nodes
+                                downstream_tensor = consumer.output[0]
+                                remove_tensor_shape(model, downstream_tensor)
+                                running = True
+                                while running:
+                                    next_node = model.find_consumer(downstream_tensor)
+                                    # Check if we reached the last node and therefore
+                                    # the output tensor, the output tensor
+                                    # needs to keep its shape!
+                                    next_next_node = model.find_direct_successors(
+                                        next_node
+                                    )
+                                    if next_next_node is None:
+                                        running = False
+                                        break
+                                    downstream_tensor = next_node.output[0]
+                                    remove_tensor_shape(model, downstream_tensor)
+
+                                # Insert a flattening node behind the MatMul
+                                out_tensor = consumer.output[0]
+                                # Intermediat tensor
+                                inp_tensor = helper.make_tensor_value_info(
+                                    model.make_new_valueinfo_name(),
+                                    TensorProto.FLOAT,
+                                    None,
+                                )
+                                graph.value_info.append(inp_tensor)
+                                inp_tensor_name = inp_tensor.name
+
+                                # Attach to MatMul output
+                                consumer.output[0] = inp_tensor_name
+
+                                # Flatten node
+                                flat_node = helper.make_node(
+                                    "Flatten",
+                                    [inp_tensor_name],
+                                    [out_tensor],
+                                    axis=1,
+                                )
+                                graph.node.insert(node_ind, flat_node)
+
+                                graph_modified = True
+                            else:
+                                warnings.warn(
+                                    "Could not absorb transpose->flatten \
+                                    into subsequent node"
+                                )
+        return model, graph_modified
+
+
+# ToDo: This should be supported by finn-base,
+#  see issue: https://github.com/Xilinx/finn-base/issues/40
+
+
+def remove_tensor_shape(model, tensor_name):
+    """Removes the ValueInfoProto from a tensor with given name."""
+    # find what container tis tensor's ValueInfo lives in
+    # if not found anywhere, we assume it's a new value_info
+    target_container = model.graph.value_info
+    if util.get_by_name(model.graph.input, tensor_name) is not None:
+        target_container = model.graph.input
+    if util.get_by_name(model.graph.output, tensor_name) is not None:
+        target_container = model.graph.output
+    # remove from target container and add new
+    util.remove_by_name(target_container, tensor_name)
