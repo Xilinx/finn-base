@@ -334,7 +334,7 @@ class MaxPool(NhwcWrappedOp):
     def verify_node(self):
         node = self.onnx_node
 
-        verification_successful = False
+        verification_successful = True
         info_messages = []
 
         wrapper_info = NhwcWrappedOp.verify_node(self)
