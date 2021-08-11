@@ -211,6 +211,7 @@ class Conv(NhwcWrappedOp):
     def verify_node(self):
         node = self.onnx_node
 
+        verification_successful = True
         info_messages = []
 
         wrapper_info = NhwcWrappedOp.verify_node(self)
@@ -227,6 +228,8 @@ class Conv(NhwcWrappedOp):
                     node.op_type, num_of_attr
                 )
             )
+            verification_successful = False
+
         # verify that all necessary attributes exist
         try:
             self.get_nodeattr("dilations")
@@ -241,6 +244,7 @@ class Conv(NhwcWrappedOp):
                 Conv needs the following attributes:
                 dilations, group, kernel_shape, pads, strides"""
             )
+            verification_successful = False
 
         # verify that attributes have the correct datatype.
         try:
@@ -250,16 +254,26 @@ class Conv(NhwcWrappedOp):
             assert isinstance(self.get_nodeattr("pads"), RepeatedScalarContainer)
             assert isinstance(self.get_nodeattr("strides"), RepeatedScalarContainer)
             assert isinstance(self.get_nodeattr("dilations"), RepeatedScalarContainer)
-            assert isinstance(self.get_nodeattr("group"), RepeatedScalarContainer)
+            assert isinstance(self.get_nodeattr("group"), int)
             info_messages.append("All attributes are of the correct type")
         except Exception:
             info_messages.append("One or more attributes are of the wrong datatype")
+            verification_successful = False
 
         # verify the number of inputs
         if len(node.input) == 2:
             info_messages.append("The number of inputs is correct")
         else:
             info_messages.append("{} needs 2 data inputs".format(node.op_type))
+            verification_successful = False
+
+        if not verification_successful:
+            raise RuntimeError(
+                f"Verification of node {node.name} failed, please check the "
+                f"attached info messages: {info_messages}"
+            )
+
+        return info_messages
 
 
 class MaxPool(NhwcWrappedOp):
@@ -320,6 +334,7 @@ class MaxPool(NhwcWrappedOp):
     def verify_node(self):
         node = self.onnx_node
 
+        verification_successful = False
         info_messages = []
 
         wrapper_info = NhwcWrappedOp.verify_node(self)
@@ -336,6 +351,8 @@ class MaxPool(NhwcWrappedOp):
                     node.op_type, num_of_attr
                 )
             )
+            verification_successful = False
+
         # verify that all necessary attributes exist
         try:
             self.get_nodeattr("kernel_shape")
@@ -348,6 +365,7 @@ class MaxPool(NhwcWrappedOp):
                 MaxPool needs the following attributes:
                 kernel_shape, pads, strides"""
             )
+            verification_successful = False
 
         # verify that attributes have the correct datatype.
         try:
@@ -359,12 +377,20 @@ class MaxPool(NhwcWrappedOp):
             info_messages.append("All attributes are of the correct type")
         except Exception:
             info_messages.append("One or more attributes are of the wrong datatype")
+            verification_successful = False
 
         # verify the number of inputs
         if len(node.input) == 1:
             info_messages.append("The number of inputs is correct")
         else:
             info_messages.append("{} needs 1 data input".format(node.op_type))
+            verification_successful = False
+
+        if not verification_successful:
+            raise RuntimeError(
+                f"Verification of node {node.name} failed, please check the "
+                f"attached info messages: {info_messages}"
+            )
 
         return info_messages
 
@@ -416,6 +442,7 @@ class BatchNormalization(NhwcWrappedOp):
     def verify_node(self):
         node = self.onnx_node
 
+        verification_successful = True
         info_messages = []
 
         wrapper_info = NhwcWrappedOp.verify_node(self)
@@ -432,6 +459,8 @@ class BatchNormalization(NhwcWrappedOp):
                     node.op_type, num_of_attr
                 )
             )
+            verification_successful = False
+
         # verify that all necessary attributes exist
         try:
             self.get_nodeattr("epsilon")
@@ -443,6 +472,7 @@ class BatchNormalization(NhwcWrappedOp):
                 BatchNormalization needs the following attributes:
                 epsilon, momentum"""
             )
+            verification_successful = False
 
         # verify that attributes have the correct datatype.
         try:
@@ -451,11 +481,19 @@ class BatchNormalization(NhwcWrappedOp):
             info_messages.append("All attributes are of the correct type")
         except Exception:
             info_messages.append("One or more attributes are of the wrong datatype")
+            verification_successful = False
 
         # verify the number of inputs
         if len(node.input) == 5:
             info_messages.append("The number of inputs is correct")
         else:
             info_messages.append("{} needs 5 data inputs".format(node.op_type))
+            verification_successful = False
+
+        if not verification_successful:
+            raise RuntimeError(
+                f"Verification of node {node.name} failed, please check "
+                f"the attached info messages: {info_messages}"
+            )
 
         return info_messages
