@@ -118,9 +118,9 @@ class ConvertToNHWCAndClean(Transformation):
                 )
                 model_changed |= m_changed
 
-            # Apply AbsorbFlattenIntoMatMul
+            # Apply AbsorbChanFirstIntoMatMul
             model, m_changed = applyTrafoAndCheckForChange(
-                model, AbsorbFlattenIntoMatMul
+                model, AbsorbChanFirstIntoMatMul
             )
             model_changed |= m_changed
 
@@ -140,6 +140,8 @@ class InsertNHWCDomainsAndTrafos(Transformation):
     """
 
     def apply(self, model):
+        # ToDo: Add a check that all tensors have shape settings,
+        #  otherwise some of the NHWC shape inference breaks
         graph = model.graph
         node_ind = 0
         graph_modified = False
@@ -448,11 +450,19 @@ class FuseTransposeIntoQuantInit(Transformation):
         return model, graph_modified
 
 
-class AbsorbFlattenIntoMatMul(Transformation):
+class AbsorbChanFirstIntoMatMul(Transformation):
     """
-    Removes a flatten node if it is in front of a MatMul node.
-    For an NHWC-Conv to FC transition, the preceding transpose is absorbed.
-    The flatten operation can also be implemented by a reshape node.
+    Removes a transpose to channels first node if it is in front of a Flatten and
+    MatMul node.
+
+    The channels first transpose is fused into the initializer of the Quant node acting
+    as a weight tensor for the MatMul node.
+    Reshape nodes with shape [1, -1] are also supported instead of Flatten nodes.
+    Independent of whether the flattening operation was performed by a Flatten node
+    or a Resphape node, a Flatten node will be reinserted in-front of the MatMul node.
+
+    Note: This transformation removes some of the tensor shapes on the down-stream path.
+     Thus running shape inference afterwards is advised.
     """
 
     def apply(self, model):
@@ -503,11 +513,12 @@ class AbsorbFlattenIntoMatMul(Transformation):
                                 graph.node.remove(n)
                                 graph.node.remove(transp_node)
 
+                                # ToDo: Find out if this is still required.
                                 # Remove the shape from all downstream nodes
                                 downstream_tensor = consumer.output[0]
                                 remove_tensor_shape(model, downstream_tensor)
-                                running = True
-                                while running:
+                                max_nodes = 10000
+                                for i in range(max_nodes):
                                     next_node = model.find_consumer(downstream_tensor)
                                     # Check if we reached the last node and therefore
                                     # the output tensor, the output tensor
@@ -516,30 +527,36 @@ class AbsorbFlattenIntoMatMul(Transformation):
                                         next_node
                                     )
                                     if next_next_node is None:
-                                        running = False
                                         break
                                     downstream_tensor = next_node.output[0]
                                     remove_tensor_shape(model, downstream_tensor)
+                                else:
+                                    warnings.warn(
+                                        f"Could not find end of graph after "
+                                        f"iterating over {max_nodes} nodes "
+                                        f"and starting at node "
+                                        f"with name: {consumer.name}"
+                                    )
 
-                                # Insert a flattening node behind the MatMul
-                                out_tensor = consumer.output[0]
-                                # Intermediat tensor
-                                inp_tensor = helper.make_tensor_value_info(
+                                # Insert a Flatten node in front of the MatMul
+                                inp_tensor_name = consumer.input[0]
+                                # Intermediate tensor
+                                out_tensor = helper.make_tensor_value_info(
                                     model.make_new_valueinfo_name(),
                                     TensorProto.FLOAT,
                                     None,
                                 )
-                                graph.value_info.append(inp_tensor)
-                                inp_tensor_name = inp_tensor.name
+                                graph.value_info.append(out_tensor)
+                                out_tensor_name = out_tensor.name
 
                                 # Attach to MatMul output
-                                consumer.output[0] = inp_tensor_name
+                                consumer.input[0] = out_tensor_name
 
                                 # Flatten node
                                 flat_node = helper.make_node(
                                     "Flatten",
                                     [inp_tensor_name],
-                                    [out_tensor],
+                                    [out_tensor_name],
                                     axis=1,
                                 )
                                 graph.node.insert(node_ind, flat_node)
