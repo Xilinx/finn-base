@@ -547,8 +547,6 @@ class AbsorbChanFirstIntoMatMul(Transformation):
 
 # ToDo: This should be supported by finn-base,
 #  see issue: https://github.com/Xilinx/finn-base/issues/40
-
-
 def remove_tensor_shape(model, tensor_name):
     """Removes the ValueInfoProto from a tensor with given name."""
     # find what container tis tensor's ValueInfo lives in
