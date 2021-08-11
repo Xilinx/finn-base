@@ -41,6 +41,12 @@ class NhwcWrappedOp(CustomOp):
     _to_chan_last_args = (0, 2, 3, 1)
     _to_chan_first_args = (0, 3, 1, 2)
 
+    def infer_node_datatype(self, model):
+        # data type stays the same for all supported nodes
+        node = self.onnx_node
+        dtype = model.get_tensor_datatype(node.input[0])
+        model.set_tensor_datatype(node.output[0], dtype)
+
     def execute_node(self, context, graph):
         node = self.onnx_node
 
@@ -194,12 +200,6 @@ class Conv(NhwcWrappedOp):
         )
 
     # ToDo: Fill in these methods
-    def infer_node_datatype(self, model):
-        """Set the DataType annotations corresponding to the outputs of this
-        node."""
-        raise NotImplementedError()
-        pass
-
     def verify_node(self):
         """Verifies that all attributes the node needs are there and
         that particular attributes are set correctly. Also checks if
@@ -264,12 +264,6 @@ class MaxPool(NhwcWrappedOp):
         )
 
     # ToDo: Fill in these methods
-    def infer_node_datatype(self, model):
-        """Set the DataType annotations corresponding to the outputs of this
-        node."""
-        raise NotImplementedError()
-        pass
-
     def verify_node(self):
         """Verifies that all attributes the node needs are there and
         that particular attributes are set correctly. Also checks if
@@ -323,12 +317,6 @@ class BatchNormalization(NhwcWrappedOp):
         )
 
     # ToDo: Fill in these methods
-    def infer_node_datatype(self, model):
-        """Set the DataType annotations corresponding to the outputs of this
-        node."""
-        raise NotImplementedError()
-        pass
-
     def verify_node(self):
         """Verifies that all attributes the node needs are there and
         that particular attributes are set correctly. Also checks if
