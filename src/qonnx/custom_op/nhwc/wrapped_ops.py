@@ -29,6 +29,7 @@
 import numpy as np
 import onnxruntime as rt
 from copy import deepcopy
+from google.protobuf.pyext._message import RepeatedScalarContainer
 from onnx import TensorProto, helper
 
 from finn.custom_op.base import CustomOp
@@ -201,11 +202,54 @@ class Conv(NhwcWrappedOp):
 
     # ToDo: Fill in these methods
     def verify_node(self):
-        """Verifies that all attributes the node needs are there and
-        that particular attributes are set correctly. Also checks if
-        the number of inputs is equal to the expected number."""
-        raise NotImplementedError()
-        pass
+        node = self.onnx_node
+
+        info_messages = []
+
+        # verify number of attributes
+        num_of_attr = 5
+        if len(node.attribute) == num_of_attr:
+            info_messages.append("The number of attributes is correct")
+        else:
+            info_messages.append(
+                """The number of attributes is incorrect,
+            {} should have {} attributes""".format(
+                    node.op_type, num_of_attr
+                )
+            )
+        # verify that all necessary attributes exist
+        try:
+            self.get_nodeattr("dilations")
+            self.get_nodeattr("group")
+            self.get_nodeattr("kernel_shape")
+            self.get_nodeattr("pads")
+            self.get_nodeattr("strides")
+            info_messages.append("All necessary attributes exist")
+        except Exception:
+            info_messages.append(
+                """The necessary attributes do not exist.
+                Conv needs the following attributes:
+                dilations, group, kernel_shape, pads, strides"""
+            )
+
+        # verify that attributes have the correct datatype.
+        try:
+            assert isinstance(
+                self.get_nodeattr("kernel_shape"), RepeatedScalarContainer
+            )
+            assert isinstance(self.get_nodeattr("pads"), RepeatedScalarContainer)
+            assert isinstance(self.get_nodeattr("strides"), RepeatedScalarContainer)
+            assert isinstance(self.get_nodeattr("dilations"), RepeatedScalarContainer)
+            assert isinstance(self.get_nodeattr("group"), RepeatedScalarContainer)
+            info_messages.append("All attributes are of the correct type")
+        except Exception:
+            info_messages.append("One or more attributes are of the wrong datatype")
+
+        # verify the number of inputs
+        if len(node.input) == 2:
+            info_messages.append("The number of inputs is correct")
+        else:
+            info_messages.append("{} needs 2 data inputs".format(node.op_type))
 
 
 class MaxPool(NhwcWrappedOp):
@@ -265,11 +309,52 @@ class MaxPool(NhwcWrappedOp):
 
     # ToDo: Fill in these methods
     def verify_node(self):
-        """Verifies that all attributes the node needs are there and
-        that particular attributes are set correctly. Also checks if
-        the number of inputs is equal to the expected number."""
-        raise NotImplementedError()
-        pass
+        node = self.onnx_node
+
+        info_messages = []
+
+        # verify number of attributes
+        num_of_attr = 3
+        if len(node.attribute) == num_of_attr:
+            info_messages.append("The number of attributes is correct")
+        else:
+            info_messages.append(
+                """The number of attributes is incorrect,
+            {} should have {} attributes""".format(
+                    node.op_type, num_of_attr
+                )
+            )
+        # verify that all necessary attributes exist
+        try:
+            self.get_nodeattr("kernel_shape")
+            self.get_nodeattr("pads")
+            self.get_nodeattr("strides")
+            info_messages.append("All necessary attributes exist")
+        except Exception:
+            info_messages.append(
+                """The necessary attributes do not exist.
+                MaxPool needs the following attributes:
+                kernel_shape, pads, strides"""
+            )
+
+        # verify that attributes have the correct datatype.
+        try:
+            assert isinstance(
+                self.get_nodeattr("kernel_shape"), RepeatedScalarContainer
+            )
+            assert isinstance(self.get_nodeattr("pads"), RepeatedScalarContainer)
+            assert isinstance(self.get_nodeattr("strides"), RepeatedScalarContainer)
+            info_messages.append("All attributes are of the correct type")
+        except Exception:
+            info_messages.append("One or more attributes are of the wrong datatype")
+
+        # verify the number of inputs
+        if len(node.input) == 1:
+            info_messages.append("The number of inputs is correct")
+        else:
+            info_messages.append("{} needs 1 data input".format(node.op_type))
+
+        return info_messages
 
 
 class BatchNormalization(NhwcWrappedOp):
@@ -316,10 +401,46 @@ class BatchNormalization(NhwcWrappedOp):
             name=self.onnx_node.name,
         )
 
-    # ToDo: Fill in these methods
     def verify_node(self):
-        """Verifies that all attributes the node needs are there and
-        that particular attributes are set correctly. Also checks if
-        the number of inputs is equal to the expected number."""
-        raise NotImplementedError()
-        pass
+        node = self.onnx_node
+
+        info_messages = []
+
+        # verify number of attributes
+        num_of_attr = 2
+        if len(node.attribute) == num_of_attr:
+            info_messages.append("The number of attributes is correct")
+        else:
+            info_messages.append(
+                """The number of attributes is incorrect,
+            {} should have {} attributes""".format(
+                    node.op_type, num_of_attr
+                )
+            )
+        # verify that all necessary attributes exist
+        try:
+            self.get_nodeattr("epsilon")
+            self.get_nodeattr("momentum")
+            info_messages.append("All necessary attributes exist")
+        except Exception:
+            info_messages.append(
+                """The necessary attributes do not exist.
+                BatchNormalization needs the following attributes:
+                epsilon, momentum"""
+            )
+
+        # verify that attributes have the correct datatype.
+        try:
+            assert isinstance(self.get_nodeattr("epsilon"), float)
+            assert isinstance(self.get_nodeattr("momentum"), float)
+            info_messages.append("All attributes are of the correct type")
+        except Exception:
+            info_messages.append("One or more attributes are of the wrong datatype")
+
+        # verify the number of inputs
+        if len(node.input) == 5:
+            info_messages.append("The number of inputs is correct")
+        else:
+            info_messages.append("{} needs 5 data inputs".format(node.op_type))
+
+        return info_messages
