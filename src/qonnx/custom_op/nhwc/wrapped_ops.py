@@ -48,20 +48,28 @@ class NhwcWrappedOp(CustomOp):
         dtype = model.get_tensor_datatype(node.input[0])
         model.set_tensor_datatype(node.output[0], dtype)
 
-    def execute_node(self, context, graph):
+    def verify_node(self):
+        # Check general compatibility
         node = self.onnx_node
-
-        # Check compatibility
-        # ToDo: This should maybe go into the verify section?
+        assert (
+            node.op_type in self._nchw_node_types
+        ), f"{node.op_type} is not supported by the NHWC wrapper op."
         assert (
             len(node.input) > 0
         ), "The NHWC wrapper op only supports nodes with inputs."
         assert (
             len(node.output) == 1
         ), "The NHWC wrapper op only supports nodes with exactly one output."
-        assert (
-            node.op_type in self._nchw_node_types
-        ), f"{node.op_type} is not supported by the NHWC wrapper op."
+
+        result = [
+            "ONNX OP-type is supported by NHWC wrapper for node execution.",
+            "Number of inputs and outputs is valid for node execution.",
+        ]
+
+        return result
+
+    def execute_node(self, context, graph):
+        node = self.onnx_node
 
         # Create an intermediate node and remove the domain
         # This enables us to use onnxrutime to execute this node.
@@ -200,11 +208,13 @@ class Conv(NhwcWrappedOp):
             name=self.onnx_node.name,
         )
 
-    # ToDo: Fill in these methods
     def verify_node(self):
         node = self.onnx_node
 
         info_messages = []
+
+        wrapper_info = NhwcWrappedOp.verify_node(self)
+        info_messages.extend(wrapper_info)
 
         # verify number of attributes
         num_of_attr = 5
@@ -307,11 +317,13 @@ class MaxPool(NhwcWrappedOp):
             name=self.onnx_node.name,
         )
 
-    # ToDo: Fill in these methods
     def verify_node(self):
         node = self.onnx_node
 
         info_messages = []
+
+        wrapper_info = NhwcWrappedOp.verify_node(self)
+        info_messages.extend(wrapper_info)
 
         # verify number of attributes
         num_of_attr = 3
@@ -405,6 +417,9 @@ class BatchNormalization(NhwcWrappedOp):
         node = self.onnx_node
 
         info_messages = []
+
+        wrapper_info = NhwcWrappedOp.verify_node(self)
+        info_messages.extend(wrapper_info)
 
         # verify number of attributes
         num_of_attr = 2
