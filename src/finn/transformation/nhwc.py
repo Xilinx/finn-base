@@ -513,31 +513,6 @@ class AbsorbChanFirstIntoMatMul(Transformation):
                                 graph.node.remove(n)
                                 graph.node.remove(transp_node)
 
-                                # ToDo: Find out if this is still required.
-                                # Remove the shape from all downstream nodes
-                                downstream_tensor = consumer.output[0]
-                                remove_tensor_shape(model, downstream_tensor)
-                                max_nodes = 10000
-                                for i in range(max_nodes):
-                                    next_node = model.find_consumer(downstream_tensor)
-                                    # Check if we reached the last node and therefore
-                                    # the output tensor, the output tensor
-                                    # needs to keep its shape!
-                                    next_next_node = model.find_direct_successors(
-                                        next_node
-                                    )
-                                    if next_next_node is None:
-                                        break
-                                    downstream_tensor = next_node.output[0]
-                                    remove_tensor_shape(model, downstream_tensor)
-                                else:
-                                    warnings.warn(
-                                        f"Could not find end of graph after "
-                                        f"iterating over {max_nodes} nodes "
-                                        f"and starting at node "
-                                        f"with name: {consumer.name}"
-                                    )
-
                                 # Insert a Flatten node in front of the MatMul
                                 inp_tensor_name = consumer.input[0]
                                 # Intermediate tensor
