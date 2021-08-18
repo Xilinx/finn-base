@@ -151,14 +151,15 @@ class InsertNHWCDomainsAndTrafos(Transformation):
             if (n.op_type in _nchw_node_types) and (n.domain == ""):
                 running_node_index = node_ind
                 # Insert transformation nodes for input nodes
-                input_nodes = n.input
+                input_tensors = n.input
                 # Skip for BatchNorm and 2D input tensors,
                 # these contain only channels and need no transpose.
-                NCHW_shape = model.get_tensor_shape(input_nodes[0])
+                # ToDo: Also support these BatchNorms
+                NCHW_shape = model.get_tensor_shape(input_tensors[0])
                 if n.op_type == "BatchNormalization" and len(NCHW_shape) == 2:
                     continue
 
-                for i, inp in enumerate(input_nodes):
+                for i, inp in enumerate(input_tensors):
                     # Skip higher "order" inputs of the Batch-Norm,
                     # these don't need a transpose.
                     if n.op_type == "BatchNormalization" and i > 0:
@@ -170,7 +171,7 @@ class InsertNHWCDomainsAndTrafos(Transformation):
                         len(NCHW_shape) == 4
                     ), "NCHW to NHWC conversion is only available for 4D tensors."
                     NHWC_shape = [NCHW_shape[idx] for idx in _to_chan_last_args]
-                    # Intermediat tensor
+                    # Intermediate tensor
                     inp_trans_out = helper.make_tensor_value_info(
                         model.make_new_valueinfo_name(),
                         TensorProto.FLOAT,
@@ -190,8 +191,8 @@ class InsertNHWCDomainsAndTrafos(Transformation):
                     n.input[i] = inp_trans_out
 
                 # Insert transformation nodes for output nodes
-                output_ndes = n.output
-                for i, outp in enumerate(output_ndes):
+                output_tensors = n.output
+                for i, outp in enumerate(output_tensors):
                     NCHW_shape = model.get_tensor_shape(outp)
                     assert (
                         len(NCHW_shape) == 4
