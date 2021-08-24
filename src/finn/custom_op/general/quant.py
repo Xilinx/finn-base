@@ -165,10 +165,16 @@ class Quant(CustomOp):
         zero_zeropt = np.all(zeropt == 0.0)
         assert zero_zeropt, "Only zero_point=0 Quant nodes supported for now"
         if unit_scale and zero_zeropt:
-            if signed:
-                finn_dt = DataType["INT" + str(bitwidth)]
+            if bitwidth == 1:
+                if signed:
+                    finn_dt = DataType["BIPOLAR"]
+                else:
+                    finn_dt = DataType["BINARY"]
             else:
-                finn_dt = DataType["UINT" + str(bitwidth)]
+                if signed:
+                    finn_dt = DataType["INT" + str(bitwidth)]
+                else:
+                    finn_dt = DataType["UINT" + str(bitwidth)]
         else:
             if signed:
                 finn_dt = DataType["SCALEDINT" + str(bitwidth)]
