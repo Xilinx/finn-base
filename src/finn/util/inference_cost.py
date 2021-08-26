@@ -66,17 +66,24 @@ def compute_mem_bits(inf_cost_dict, filter_string="mem_w"):
 
 
 def inference_cost(
-    model_filename, output_json="inference_cost.json", preprocess=True, save_final=True
+    model_filename,
+    *,
+    output_json=None,
+    output_onnx=None,
+    preprocess=True,
+    discount_sparsity=True
 ):
     """Print the inference cost estimate metric for given ONNX model.
     Supports the Quant op for weight/activation quantization.
 
     :param model_filename: Filename for ONNX model
-    :param output_json: Filename for output JSON with detailed inference cost dict
+    :param output_json: Optional JSON filename to save the inference cost dict
+    :param output_onnx: Optional ONNX filename to save the final model after any
+        preprocessing
     :param preprocess: If set, run preprocessing steps such as shape inference,
         datatype inference and constant folding. Strongly recommended.
-    :param save_final: If set, save the final ONNX model after any preprocessing
-        as final.onnx
+    :param discount_sparsity: If set, will discount op cost of MAC ops with a
+        constant zero weight, and the mem cost of constant zero weights.
     """
     print("Inference cost for " + model_filename)
     model = ModelWrapper(model_filename)
@@ -86,15 +93,16 @@ def inference_cost(
             qnt_node.domain = "finn.custom_op.general"
         model = model.transform(InferShapes())
         model = model.transform(GiveUniqueParameterTensors())
+        model = model.transform(InferDataTypes())
         model = model.transform(FoldConstants())
         model = model.transform(RemoveUnusedTensors())
         model = model.transform(RemoveStaticGraphInputs())
         model = model.transform(InferDataTypes())
     model = model.transform(GiveUniqueNodeNames())
     model = model.transform(GiveReadableTensorNames())
-    if save_final:
-        model.save("final.onnx")
-    ret = model.analysis(infca.inference_cost)
+    if output_onnx is not None:
+        model.save(output_onnx)
+    ret = model.analysis(lambda x: infca.inference_cost(x, discount_sparsity))
     bops = compute_bops(ret)
     mem_w_bits = compute_mem_bits(ret, "mem_w")
     mem_o_bits = compute_mem_bits(ret, "mem_o")
@@ -105,6 +113,10 @@ def inference_cost(
     if "unsupported" in ret:
         ret["unsupported"] = str(ret["unsupported"])
     print(json.dumps(ret, sort_keys=True, indent=2))
+
+    if output_json is not None:
+        with open(output_json, "w") as f:
+            json.dump(ret, f, sort_keys=True, indent=2)
 
 
 def main():
