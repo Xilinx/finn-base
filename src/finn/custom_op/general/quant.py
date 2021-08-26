@@ -27,8 +27,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-import onnx.helper as helper
 
+import onnx.helper as helper
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
 
@@ -97,14 +97,19 @@ def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow):
     # Scaling
     y_int = inp_tensor / scale
     y_int = y_int + zeropt
-    # Clamping
-    min_int_val = min_int(signed, narrow, bitwidth)
-    max_int_val = max_int(signed, narrow, bitwidth)
-    y_int = np.where(y_int > max_int_val, max_int_val.astype(y_int.dtype), y_int)
-    y_int = np.where(y_int < min_int_val, min_int_val.astype(y_int.dtype), y_int)
-    # Rounding
-    y_int = np.round(y_int)
-
+    if bitwidth == 1 and signed:
+        # BUG: 1-bit Quant ops currently not exported correctly
+        # manually convert to bipolar values
+        y_ones = np.ones(y_int.shape, dtype=y_int.dtype)
+        y_int = np.where(y_int >= 0.0, y_ones, -y_ones)
+    else:
+        # Clamping
+        min_int_val = min_int(signed, narrow, bitwidth)
+        max_int_val = max_int(signed, narrow, bitwidth)
+        y_int = np.where(y_int > max_int_val, max_int_val.astype(y_int.dtype), y_int)
+        y_int = np.where(y_int < min_int_val, min_int_val.astype(y_int.dtype), y_int)
+        # Rounding
+        y_int = np.round(y_int)
     # Re-scaling
     out_tensor = y_int - zeropt
     out_tensor = out_tensor * scale
