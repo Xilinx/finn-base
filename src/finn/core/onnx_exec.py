@@ -108,7 +108,9 @@ def execute_node(node, context, graph, return_full_exec_context=False):
             # graph.value_info as well as graph.output or graph.input
             # nodes with multiple outputs that are a mix of value_info and
             # input/outputs may get them reordered below
+            # note: a node's input may (also) be a top-level input or output
             node_inputs = list(filter(lambda x: x.name in node.input, graph.input))
+            node_inputs += list(filter(lambda x: x.name in node.input, graph.output))
             node_inputs += list(
                 filter(lambda x: x.name in node.input, graph.value_info)
             )
