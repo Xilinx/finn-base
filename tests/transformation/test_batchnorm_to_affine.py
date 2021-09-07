@@ -64,7 +64,7 @@ def test_batchnorm_to_affine_shufflenet():
     op_types = list(map(lambda x: x.op_type, new_model.graph.node))
     assert "BatchNormalization" not in op_types
     produced = oxe.execute_onnx(new_model, input_dict)[oname]
-    assert np.isclose(expected, produced).all()
+    assert np.isclose(expected, produced, atol=1e-05).all()
     os.remove(export_onnx_path)
 
 
