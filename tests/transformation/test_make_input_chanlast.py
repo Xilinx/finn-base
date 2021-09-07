@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Xilinx, Inc.
+# Copyright (c) 2021 Xilinx, Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,21 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# predefined lists of strings to have a cannonical way of expresing data layout
-# annotations
 
-NHWC = ["N", "H", "W", "C"]
-NCHW = ["N", "C", "H", "W"]
-NCW = ["N", "C", "W"]
-NWC = ["N", "W", "C"]
-NC = ["N", "C"]
-UNKNOWN = []
+from pkgutil import get_data
+
+import finn.core.data_layout as data_layout
+from finn.core.modelwrapper import ModelWrapper
+from finn.transformation.make_input_chanlast import MakeInputChannelsLast
 
 
-def is_channels_last(layout):
-    return layout[-1] == "C"
-
-
-def get_channels_last_layout_for_ndims(ndims):
-    return {4: NHWC, 3: NWC, 2: NC}[ndims]
-
-
-def get_channels_first_layout_for_ndims(ndims):
-    return {4: NCHW, 3: NCW, 2: NC}[ndims]
+def test_make_input_chanlast():
+    # load the onnx model
+    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
+    model = ModelWrapper(raw_m)
+    iname = model.graph.input[0].name
+    assert tuple(model.get_tensor_shape(iname)) == (1, 1, 28, 28)
+    model = model.transform(MakeInputChannelsLast())
+    assert model.graph.node[0].op_type == "Transpose"
+    assert tuple(model.get_tensor_shape(iname)) == (1, 28, 28, 1)
+    assert model.get_tensor_layout(iname) == data_layout.NHWC
