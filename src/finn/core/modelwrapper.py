@@ -217,7 +217,11 @@ class ModelWrapper:
         vi_names += [(x.name, x) for x in graph.output]
         vi_names += [(x.name, x) for x in graph.value_info]
         try:
-            vi_ind = [x[0] for x in vi_names].index(tensor_name)
+            vi_t_names = [x[0] for x in vi_names]
+            assert vi_t_names.count(tensor_name) <= 1, (
+                "Multiple ValueInfoProto found for " + tensor_name
+            )
+            vi_ind = vi_t_names.index(tensor_name)
             vi = vi_names[vi_ind][1]
             return vi
         except ValueError:
@@ -230,7 +234,11 @@ class ModelWrapper:
         vi_names += [(x.name, x) for x in graph.output]
         vi_names += [(x.name, x) for x in graph.value_info]
         try:
-            vi_ind = [x[0] for x in vi_names].index(tensor_name)
+            vi_t_names = [x[0] for x in vi_names]
+            assert vi_t_names.count(tensor_name) <= 1, (
+                "Multiple ValueInfoProto found for " + tensor_name
+            )
+            vi_ind = vi_t_names.index(tensor_name)
             vi = vi_names[vi_ind][1]
             dims = [x.dim_value for x in vi.type.tensor_type.shape.dim]
             return dims
@@ -240,6 +248,8 @@ class ModelWrapper:
     def set_tensor_shape(self, tensor_name, tensor_shape, dtype=TensorProto.FLOAT):
         """Assigns shape in ValueInfoProto for tensor with given name."""
         new_vi = oh.make_tensor_value_info(tensor_name, dtype, tensor_shape)
+        # call get_tensor_shape to catch multiple ValueInfoProto cases
+        self.get_tensor_shape(tensor_name)
         # find what container tis tensor's ValueInfo lives in
         # if not found anywhere, we assume it's a new value_info
         target_container = self.graph.value_info
