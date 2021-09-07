@@ -94,7 +94,7 @@ class QuantAvgPool2d(CustomOp):
     def infer_node_datatype(self, model):
         node = self.onnx_node
         bw = self.get_nodeattr("obits")
-        if bw in [2, 4, 8, 16, 32]:
+        if bw in range(2, 33):
             if self.get_nodeattr("signed") == 0:
                 dtype = DataType["UINT%d" % bw]
             else:
