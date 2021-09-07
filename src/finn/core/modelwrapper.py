@@ -58,7 +58,9 @@ class ModelWrapper:
         is made internally.
         """
         if isinstance(onnx_model_proto, str):
-            assert os.path.isfile(onnx_model_proto), f"File not found: {onnx_model_proto}"
+            assert os.path.isfile(
+                onnx_model_proto
+            ), f"File not found: {onnx_model_proto}"
             self._model_proto = onnx.load(onnx_model_proto)
         elif isinstance(onnx_model_proto, bytes):
             self._model_proto = onnx.load_from_string(onnx_model_proto)
