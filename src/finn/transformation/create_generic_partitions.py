@@ -143,21 +143,11 @@ class PartitionFromLambda(Transformation):
 
             # remove redundant input and output value_info entries
             for i in p_in_vi:
-                # the tensor can be both an input and value_info, so we also have to
-                # ensure that the tensor is not a relevant value_info before removing
-                if (
-                    i in p_model.graph.value_info
-                    and p_model.find_producer(i.name) is None
-                ):
+                if i in p_model.graph.value_info:
                     p_model.graph.value_info.remove(i)
 
             for o in p_out_vi:
-                # the tensor can both an output and value_info, so we also have to
-                # ensure that the tensor is not a relevant value_info before removing
-                if (
-                    o in p_model.graph.value_info
-                    and p_model.find_consumers(o.name) is None
-                ):
+                if o in p_model.graph.value_info:
                     p_model.graph.value_info.remove(o)
 
             # save partition model

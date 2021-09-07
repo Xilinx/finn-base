@@ -46,13 +46,10 @@ def test_infer_datatypes():
     # this model has no DataType info, so add some DataType annotation
     # to make things a bit more exciting
     model.set_tensor_datatype("global_in", DataType.UINT8)
-    # manual non-float annotations on regular ONNX nodes won't disappear
-    # (InferDataTypes assumes they've been put there with good reason)
-    model.set_tensor_datatype("MaxPool_1_out0", DataType.INT4)
-    # MatMul with int weights + inputs will have int output datatype
-    model.set_tensor_datatype("MatMul_0_param0", DataType.UINT8)
+    # Conv with int weights + inputs will have int output datatype
+    model.set_tensor_datatype("Conv_0_param0", DataType.INT4)
     model = model.transform(InferDataTypes())
     assert model.get_tensor_datatype("global_in") == DataType.UINT8
-    assert model.get_tensor_datatype("Reshape_0_out0") == DataType.INT4
-    assert model.get_tensor_datatype("MatMul_0_out0") == DataType.INT32
+    assert model.get_tensor_datatype("Conv_0_out0") == DataType.INT32
+    assert model.get_tensor_datatype("Relu_0_out0") == DataType.FLOAT32
     assert model.get_tensor_datatype("global_out") == DataType.FLOAT32

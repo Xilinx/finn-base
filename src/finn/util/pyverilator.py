@@ -72,7 +72,7 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
         sim.start_vcd_trace(trace_file)
 
     for outp in io_dict["outputs"]:
-        sim.io[outp + sname + "TREADY"] = 1
+        _write_signal(sim, outp + sname + "TREADY", 1)
 
     # observe if output is completely calculated
     # total_cycle_count will contain the number of cycles the calculation ran
@@ -89,11 +89,13 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
     while not (output_done):
         for inp in io_dict["inputs"]:
             inputs = io_dict["inputs"][inp]
-            sim.io[inp + sname + "TVALID"] = 1 if len(inputs) > 0 else 0
-            sim.io[inp + sname + "TDATA"] = inputs[0] if len(inputs) > 0 else 0
+            _write_signal(sim, inp + sname + "TVALID", 1 if len(inputs) > 0 else 0)
+            _write_signal(
+                sim, inp + sname + "TDATA", inputs[0] if len(inputs) > 0 else 0
+            )
             if (
-                sim.io[inp + sname + "TREADY"] == 1
-                and sim.io[inp + sname + "TVALID"] == 1
+                _read_signal(sim, inp + sname + "TREADY") == 1
+                and _read_signal(sim, inp + sname + "TVALID") == 1
             ):
                 inputs = inputs[1:]
             io_dict["inputs"][inp] = inputs
@@ -101,15 +103,13 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
         for outp in io_dict["outputs"]:
             outputs = io_dict["outputs"][outp]
             if (
-                sim.io[outp + sname + "TVALID"] == 1
-                and sim.io[outp + sname + "TREADY"] == 1
+                _read_signal(sim, outp + sname + "TREADY") == 1
+                and _read_signal(sim, outp + sname + "TVALID") == 1
             ):
-                outputs = outputs + [sim.io[outp + sname + "TDATA"]]
-                output_count += 1
+                outputs = outputs + [_read_signal(sim, outp + sname + "TDATA")]
             io_dict["outputs"][outp] = outputs
 
-        sim.io.ap_clk = 1
-        sim.io.ap_clk = 0
+        toggle_clk(sim)
 
         total_cycle_count = total_cycle_count + 1
 

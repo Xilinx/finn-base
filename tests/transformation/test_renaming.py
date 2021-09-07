@@ -26,9 +26,13 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pytest
+
 import numpy as np
 import onnx
 import onnx.numpy_helper as np_helper
+import os
+import urllib.request as ureq
 from pkgutil import get_data
 
 import finn.core.onnx_exec as oxe
@@ -72,3 +76,26 @@ def test_renaming():
     assert np.isclose(
         np_helper.to_array(output_tensor), output_dict["global_out"], atol=1e-3
     ).all()
+
+
+def test_rename_multi_io_tinyyolov3():
+    download_url = (
+        "https://github.com/onnx/models/raw/master/vision/object_detection_segmentation"
+    )
+    download_url += "/tiny-yolov3/model/tiny-yolov3-11.onnx"
+    export_onnx_path = download_url.split("/")[-1]
+    ureq.urlretrieve(download_url, export_onnx_path)
+    if not os.path.isfile(export_onnx_path):
+        pytest.skip("Couldn't download ONNX model, skipping")
+    model = ModelWrapper(export_onnx_path)
+    model = model.transform(GiveUniqueNodeNames())
+    model = model.transform(GiveReadableTensorNames())
+    assert len(model.graph.input) == 2
+    assert model.graph.input[0].name == "global_in"
+    assert model.graph.input[1].name == "global_in_1"
+    assert len(model.graph.output) == 3
+    assert model.graph.output[0].name == "global_out"
+    assert model.graph.output[1].name == "global_out_1"
+    assert model.graph.output[2].name == "global_out_2"
+    model.save("dbg.onnx")
+    os.remove(export_onnx_path)
