@@ -546,13 +546,7 @@ class ModelWrapper:
     def set_tensor_layout(self, tensor_name, data_layout):
         """Sets the data layout annotation of tensor with given name. See
         get_tensor_layout for examples."""
-        tensor_shape = self.get_tensor_shape(tensor_name)
         assert type(data_layout) == list, "data_layout must be a list"
-        if tensor_shape is not None:
-            assert len(tensor_shape) == len(
-                data_layout
-            ), """Mismatch between number
-            of dimensions of tensor shape and data layout annotation."""
         graph = self._model_proto.graph
         qnt_annotations = graph.quantization_annotation
         ret = util.get_by_name(qnt_annotations, tensor_name, "tensor_name")
