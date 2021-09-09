@@ -131,13 +131,13 @@ class PartitionFromLambda(Transformation):
                 to_check = next_to_check
 
             # set p graph in/out to be p_in/p_out
-            for x in p_model.graph.input:
-                p_model.graph.input.remove(x)
+            while len(p_model.graph.input) > 0:
+                p_model.graph.input.pop()
             for i in p_in_vi:
                 p_model.graph.input.append(i)
 
-            for x in p_model.graph.output:
-                p_model.graph.output.remove(x)
+            while len(p_model.graph.output) > 0:
+                p_model.graph.output.pop()
             for o in p_out_vi:
                 p_model.graph.output.append(o)
 
