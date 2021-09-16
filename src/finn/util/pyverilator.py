@@ -143,7 +143,10 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
 
 
 def pyverilate_stitched_ip(
-    model, read_internal_signals=True, disable_common_warnings=True
+    model,
+    read_internal_signals=True,
+    disable_common_warnings=True,
+    extra_verilator_args=[],
 ):
     """Given a model with stitched IP, return a PyVerilator sim object.
     Trace depth is also controllable, see get_rtlsim_trace_depth()
@@ -222,7 +225,7 @@ def pyverilate_stitched_ip(
         top_module_name=top_module_name,
         auto_eval=False,
         read_internal_signals=read_internal_signals,
-        extra_args=verilator_args,
+        extra_args=verilator_args + extra_verilator_args,
     )
     return sim
 
