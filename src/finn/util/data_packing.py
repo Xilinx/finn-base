@@ -281,11 +281,14 @@ def npy_to_rtlsim_input(input_file, input_dtype, pad_to_nbits, reverse_inner=Tru
         inp = np.load(input_file)
     else:
         raise Exception("input_file must be ndarray or filename for .npy")
-    packed_data = pack_innermost_dim_as_hex_string(
-        inp, input_dtype, pad_to_nbits, reverse_inner=reverse_inner
-    )
-    packed_data = packed_data.flatten()
-    packed_data = [int(x[2:], 16) for x in packed_data]
+    if inp.shape[-1] == 1 and input_dtype.is_integer():
+        packed_data = inp.flatten().astype(input_dtype.to_numpy_dt())
+    else:
+        packed_data = pack_innermost_dim_as_hex_string(
+            inp, input_dtype, pad_to_nbits, reverse_inner=reverse_inner
+        )
+        packed_data = packed_data.flatten()
+        packed_data = [int(x[2:], 16) for x in packed_data]
     return packed_data
 
 
