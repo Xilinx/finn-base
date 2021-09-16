@@ -63,35 +63,40 @@ def _infer_node_data_layout(model, node):
     """Infer output data layout annotation(s) for a particular node.
     Returns True if any changes were made."""
     old_layouts = list(map(lambda x: model.get_tensor_layout(x), node.output))
-    if is_finn_op(node.domain):
-        # try to guess based on number of output dims
-        for o in node.output:
-            ndims = len(model.get_tensor_shape(o))
-            new_layout = _dims_to_layout(model, node, ndims)
-            model.set_tensor_layout(o, new_layout)
-    else:
-        if node.op_type == "Transpose":
-            # grab input annotation and switch it around using perm
-            perm = get_by_name(node.attribute, "perm").ints
-            inp_layout = model.get_tensor_layout(node.input[0])
-            out_layout = [inp_layout[i] for i in perm]
-            model.set_tensor_layout(node.output[0], out_layout)
-        elif node.op_type == "Unsqueeze":
-            inp_layout = model.get_tensor_layout(node.input[0])
-            # add dummy dimension at the output
-            out_layout = inp_layout + ["x"]
-            model.set_tensor_layout(node.output[0], out_layout)
-        elif node.op_type == "Squeeze":
-            inp_layout = model.get_tensor_layout(node.input[0])
-            assert inp_layout[-1] == "x"
-            # remove dummy dimension
-            out_layout = inp_layout[:-1]
-            model.set_tensor_layout(node.output[0], out_layout)
-        else:
+    try:
+        if is_finn_op(node.domain):
             # try to guess based on number of output dims
             for o in node.output:
                 ndims = len(model.get_tensor_shape(o))
-                model.set_tensor_layout(o, _dims_to_layout(model, node, ndims))
+                new_layout = _dims_to_layout(model, node, ndims)
+                model.set_tensor_layout(o, new_layout)
+        else:
+            if node.op_type == "Transpose":
+                # grab input annotation and switch it around using perm
+                perm = get_by_name(node.attribute, "perm").ints
+                inp_layout = model.get_tensor_layout(node.input[0])
+                out_layout = [inp_layout[i] for i in perm]
+                model.set_tensor_layout(node.output[0], out_layout)
+            elif node.op_type == "Unsqueeze":
+                inp_layout = model.get_tensor_layout(node.input[0])
+                # add dummy dimension at the output
+                out_layout = inp_layout + ["x"]
+                model.set_tensor_layout(node.output[0], out_layout)
+            elif node.op_type == "Squeeze":
+                inp_layout = model.get_tensor_layout(node.input[0])
+                assert inp_layout[-1] == "x"
+                # remove dummy dimension
+                out_layout = inp_layout[:-1]
+                model.set_tensor_layout(node.output[0], out_layout)
+            else:
+                # try to guess based on number of output dims
+                for o in node.output:
+                    ndims = len(model.get_tensor_shape(o))
+                    model.set_tensor_layout(o, _dims_to_layout(model, node, ndims))
+    except Exception:
+        for o in node.output:
+            model.set_tensor_layout(o, DataLayout.UNKNOWN)
+
     # compare old and new output dtypes to see if anything changed
     new_layouts = list(map(lambda x: model.get_tensor_layout(x), node.output))
     graph_modified = new_layouts != old_layouts

@@ -131,33 +131,23 @@ class PartitionFromLambda(Transformation):
                 to_check = next_to_check
 
             # set p graph in/out to be p_in/p_out
-            for x in p_model.graph.input:
-                p_model.graph.input.remove(x)
+            while len(p_model.graph.input) > 0:
+                p_model.graph.input.pop()
             for i in p_in_vi:
                 p_model.graph.input.append(i)
 
-            for x in p_model.graph.output:
-                p_model.graph.output.remove(x)
+            while len(p_model.graph.output) > 0:
+                p_model.graph.output.pop()
             for o in p_out_vi:
                 p_model.graph.output.append(o)
 
             # remove redundant input and output value_info entries
             for i in p_in_vi:
-                # the tensor can be both an input and value_info, so we also have to
-                # ensure that the tensor is not a relevant value_info before removing
-                if (
-                    i in p_model.graph.value_info
-                    and p_model.find_producer(i.name) is None
-                ):
+                if i in p_model.graph.value_info:
                     p_model.graph.value_info.remove(i)
 
             for o in p_out_vi:
-                # the tensor can both an output and value_info, so we also have to
-                # ensure that the tensor is not a relevant value_info before removing
-                if (
-                    o in p_model.graph.value_info
-                    and p_model.find_consumers(o.name) is None
-                ):
+                if o in p_model.graph.value_info:
                     p_model.graph.value_info.remove(o)
 
             # save partition model

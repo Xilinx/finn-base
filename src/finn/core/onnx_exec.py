@@ -51,7 +51,7 @@ def execute_node(node, context, graph, return_full_exec_context=False):
 
     Input/output provided via context."""
 
-    if node.op_type == "GenericPartition":
+    if node.op_type in ["GenericPartition", "StreamingDataflowPartition"]:
         partition_node = getCustomOp(node)
         model = ModelWrapper(partition_node.get_nodeattr("model"))
         inp_ctx = dict(filter(lambda x: x[0] in node.input, context.items()))
@@ -71,32 +71,6 @@ def execute_node(node, context, graph, return_full_exec_context=False):
             for tname in ret.keys():
                 if tname not in [x.name for x in model.graph.output]:
                     context[node.name + "_" + tname] = ret[tname]
-    elif node.op_type == "StreamingDataflowPartition":
-        sdp_node = getCustomOp(node)
-        model = ModelWrapper(sdp_node.get_nodeattr("model"))
-        inp_ctx = dict(filter(lambda x: x[0] in node.input, context.items()))
-        # input may have been renamed in partition
-        assert len(inp_ctx) == 1
-        old_iname = node.input[0]
-        new_iname = model.graph.input[0].name
-        if old_iname != new_iname:
-            inp_ctx[new_iname] = inp_ctx[old_iname]
-            del inp_ctx[old_iname]
-        ret = execute_onnx(model, inp_ctx, return_full_exec_context)
-        # if the model was in ip-stitched rtlsim mode, may get annotation
-        # for numbet of elapsed cycles, save again
-        if model.get_metadata_prop("exec_mode") == "rtlsim":
-            model.save(sdp_node.get_nodeattr("model"))
-        # output may have been renamed in partition
-        assert len(model.graph.output) == 1
-        node_oname = node.output[0]
-        model_oname = model.graph.output[0].name
-        context[node_oname] = ret[model_oname]
-        # prefix and insert exec context entries
-        if return_full_exec_context:
-            for tname in ret.keys():
-                if tname != model_oname:
-                    context[node.name + "_" + tname] = ret[tname]
     else:
         if is_finn_op(node.domain):
             ex_cu_node.execute_custom_node(node, context, graph)
@@ -108,7 +82,9 @@ def execute_node(node, context, graph, return_full_exec_context=False):
             # graph.value_info as well as graph.output or graph.input
             # nodes with multiple outputs that are a mix of value_info and
             # input/outputs may get them reordered below
+            # note: a node's input may (also) be a top-level input or output
             node_inputs = list(filter(lambda x: x.name in node.input, graph.input))
+            node_inputs += list(filter(lambda x: x.name in node.input, graph.output))
             node_inputs += list(
                 filter(lambda x: x.name in node.input, graph.value_info)
             )

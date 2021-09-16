@@ -29,7 +29,7 @@
 import finn.custom_op.registry as registry
 from finn.core.datatype import DataType
 from finn.transformation.base import Transformation
-from finn.util.basic import is_finn_op
+from finn.util.basic import get_by_name, is_finn_op
 
 
 def _infer_node_datatype(model, node):
@@ -41,8 +41,19 @@ def _infer_node_datatype(model, node):
         "Flatten",
         "Slice",
         "Gather",
+        "GatherElements",
+        "GatherND",
         "Identity",
+        "Expand",
+        "Flatten",
         "MaxPool",
+        "GlobalMaxPool",
+        "Scatter",
+        "ScatterElements",
+        "ScatterND",
+        "Squeeze",
+        "Unsqueeze",
+        "Tile",
     ]
     idtypes = list(map(lambda x: model.get_tensor_datatype(x), node.input))
     odtypes = list(map(lambda x: model.get_tensor_datatype(x), node.output))
@@ -73,6 +84,16 @@ def _infer_node_datatype(model, node):
                 else:
                     odtype = DataType.UINT32
                 model.set_tensor_datatype(node.output[0], odtype)
+        elif node.op_type in ["Resize", "Upsample"]:
+            mode = get_by_name(node.attribute, "mode").s
+            if mode is None:
+                mode = "nearest"
+            else:
+                mode = mode.decode("UTF-8")
+            if mode == "nearest":
+                # set output dtype = input dtype
+                idtype = model.get_tensor_datatype(node.input[0])
+                model.set_tensor_datatype(node.output[0], idtype)
         elif node.op_type in dt_identity_optypes:
             # set output dtype = input dtype
             idtype = model.get_tensor_datatype(node.input[0])
