@@ -107,6 +107,7 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
                 and _read_signal(sim, outp + sname + "TVALID") == 1
             ):
                 outputs = outputs + [_read_signal(sim, outp + sname + "TDATA")]
+                output_count += 1
             io_dict["outputs"][outp] = outputs
 
         toggle_clk(sim)
