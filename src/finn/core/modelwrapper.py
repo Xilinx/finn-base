@@ -345,13 +345,17 @@ class ModelWrapper:
                 visit_list.append(current_producer)
                 if found:
                     return visit_list
-                else:
+                elif len(current_producer.input) > 0:
                     current_tensor = current_producer.input[0]
+                else:
+                    return None
 
     def find_consumer(self, tensor_name):
         """Finds and returns the node that consumes the tensor with given name.
         Currently only works for linear graphs."""
-        all_inputs = [x.input[0] for x in self._model_proto.graph.node]
+        all_inputs = [
+            x.input[0] for x in self._model_proto.graph.node if len(x.input) > 0
+        ]
         try:
             consumer_ind = all_inputs.index(tensor_name)
             return self._model_proto.graph.node[consumer_ind]
