@@ -353,14 +353,10 @@ class ModelWrapper:
     def find_consumer(self, tensor_name):
         """Finds and returns the node that consumes the tensor with given name.
         Currently only works for linear graphs."""
-        all_inputs = [
-            x.input[0] for x in self._model_proto.graph.node if len(x.input) > 0
-        ]
-        try:
-            consumer_ind = all_inputs.index(tensor_name)
-            return self._model_proto.graph.node[consumer_ind]
-        except ValueError:
-            return None
+        for node in self.graph.node:
+            if len(node.input) > 0 and node.input[0] == tensor_name:
+                return node
+        return None
 
     def find_consumers(self, tensor_name):
         """Finds and returns a list of the nodes that consume tensor with
