@@ -31,6 +31,7 @@ import onnx
 from pkgutil import get_data
 
 import finn.core.data_layout as DataLayout
+from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 
 
@@ -166,3 +167,37 @@ def test_modelwrapper_detect_forks_n_joins():
     assert not model.is_join_node(Round_node)
     assert not model.is_join_node(Ceil_node)
     assert model.is_join_node(Add_node)
+
+
+def test_modelwrapper_setting_unsetting_datatypes():
+    # Set and unset some datatypes and check for expected return values
+    raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
+    model = ModelWrapper(raw_m)
+
+    test_node = model.graph.node[0]
+    test_tensor = test_node.output[0]
+
+    ret = model.get_tensor_datatype(test_tensor)
+    assert (
+        ret == DataType["FLOAT32"]
+    ), "Tensor datatype should be float32 for no initalization."
+
+    model.set_tensor_datatype(test_tensor, None)
+    ret = model.get_tensor_datatype(test_tensor)
+    assert ret == DataType["FLOAT32"], "An unset datatype should return float32."
+
+    model.set_tensor_datatype(test_tensor, DataType["INT3"])
+    ret = model.get_tensor_datatype(test_tensor)
+    assert ret == DataType["INT3"], "Tensor datatype should follow setting."
+
+    model.set_tensor_datatype(test_tensor, None)
+    ret = model.get_tensor_datatype(test_tensor)
+    assert ret == DataType["FLOAT32"], "An unset datatype should return float32."
+
+    model.set_tensor_datatype(test_tensor, DataType["BIPOLAR"])
+    ret = model.get_tensor_datatype(test_tensor)
+    assert ret == DataType["BIPOLAR"], "Tensor datatype should follow setting."
+
+    model.set_tensor_datatype(test_tensor, None)
+    ret = model.get_tensor_datatype(test_tensor)
+    assert ret == DataType["FLOAT32"], "An unset datatype should return float32."
