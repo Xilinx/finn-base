@@ -190,6 +190,10 @@ def test_modelwrapper_setting_unsetting_datatypes():
     ret = model.get_tensor_datatype(test_tensor)
     assert ret == DataType["INT3"], "Tensor datatype should follow setting."
 
+    model.set_tensor_datatype(test_tensor, DataType["UINT4"])
+    ret = model.get_tensor_datatype(test_tensor)
+    assert ret == DataType["UINT4"], "Tensor datatype should follow setting."
+
     model.set_tensor_datatype(test_tensor, None)
     ret = model.get_tensor_datatype(test_tensor)
     assert ret == DataType["FLOAT32"], "An unset datatype should return float32."
@@ -197,7 +201,3 @@ def test_modelwrapper_setting_unsetting_datatypes():
     model.set_tensor_datatype(test_tensor, DataType["BIPOLAR"])
     ret = model.get_tensor_datatype(test_tensor)
     assert ret == DataType["BIPOLAR"], "Tensor datatype should follow setting."
-
-    model.set_tensor_datatype(test_tensor, None)
-    ret = model.get_tensor_datatype(test_tensor)
-    assert ret == DataType["FLOAT32"], "An unset datatype should return float32."
