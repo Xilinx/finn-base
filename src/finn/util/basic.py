@@ -88,8 +88,12 @@ def get_rtlsim_trace_depth():
     """
 
     try:
-        return int(os.environ["RTLSIM_TRACE_DEPTH"])
-    except KeyError:
+        return int(os.getenv("RTLSIM_TRACE_DEPTH", default="1"))
+    except ValueError:
+        warnings.warn(
+            "Failed to convert the value of RTLSIM_TRACE_DEPTH"
+            " variable to integer. Using default value '1' instead."
+        )
         return 1
 
 
@@ -97,10 +101,7 @@ def get_remote_vivado():
     """Return the address of the remote Vivado synthesis server as set by the,
     REMOTE_VIVADO environment variable, otherwise return None"""
 
-    try:
-        return os.environ["REMOTE_VIVADO"]
-    except KeyError:
-        return None
+    return os.getenv("REMOTE_VIVADO", default=None)
 
 
 def get_num_default_workers():
@@ -108,31 +109,41 @@ def get_num_default_workers():
     via the NUM_DEFAULT_WORKERS environment variable. If the env.var. is
     undefined, the default value of 1 is returned.
     """
-
     try:
-        return int(os.environ["NUM_DEFAULT_WORKERS"])
-    except KeyError:
+        return int(os.getenv("NUM_DEFAULT_WORKERS", default="1"))
+    except ValueError:
+        warnings.warn(
+            "Failed to convert the value of NUM_DEFAULT_WORKERS"
+            " variable to integer. Using default value '1' instead."
+        )
         return 1
 
 
 def get_finn_root():
     "Return the root directory that FINN is cloned into."
 
-    try:
-        return os.environ["FINN_ROOT"]
-    except KeyError:
+    finn_root = os.getenv("FINN_ROOT", None)
+
+    if not finn_root:
         raise Exception(
             """Environment variable FINN_ROOT must be set
-        correctly. Please ensure you have launched the Docker contaier correctly.
+        correctly. Please ensure you have launched the Docker container correctly.
         """
         )
+
+    return finn_root
 
 
 def get_execution_error_thresh():
     "Return the max error that is allowed for rounding in FINN execution."
+
     try:
-        return float(os.environ["ERROR_THRESH"])
-    except KeyError:
+        return float(os.getenv("ERROR_THRESH", default="1e-2"))
+    except ValueError:
+        warnings.warn(
+            "Failed to convert the value of ERROR_THRESH"
+            " variable to float. Using default value '1e-2' instead."
+        )
         return 1e-2
 
 
@@ -140,10 +151,14 @@ def get_sanitize_quant_tensors():
     """Return whether tensors with quantization annotations should be sanitized.
     Enabled by default, disabling will yield faster ONNX execution but may give
     incorrect results. Use with caution."""
+
     try:
-        return int(os.environ["SANITIZE_QUANT_TENSORS"])
-    except KeyError:
-        # enabled by default
+        return int(os.getenv("SANITIZE_QUANT_TENSORS", default="1"))
+    except ValueError:
+        warnings.warn(
+            "Failed to convert the value of SANITIZE_QUANT_TENSORS"
+            " variable to integer. Using default value '1' instead."
+        )
         return 1
 
 
@@ -151,17 +166,19 @@ def make_build_dir(prefix=""):
     """Creates a folder with given prefix to be used as a build dir.
     Use this function instead of tempfile.mkdtemp to ensure any generated files
     will survive on the host after the FINN Docker container exits."""
-    try:
-        tmpdir = tempfile.mkdtemp(prefix=prefix)
-        newdir = tmpdir.replace("/tmp", os.environ["FINN_BUILD_DIR"])
-        os.makedirs(newdir)
-        return newdir
-    except KeyError:
+
+    finn_build_dir = os.getenv("FINN_BUILD_DIR", None)
+    if finn_build_dir is None:
         raise Exception(
             """Environment variable FINN_BUILD_DIR must be set
         correctly. Please ensure you have launched the Docker contaier correctly.
         """
         )
+
+    tmpdir = tempfile.mkdtemp(prefix=prefix)
+    newdir = tmpdir.replace("/tmp", os.environ["FINN_BUILD_DIR"])
+    os.makedirs(newdir)
+    return newdir
 
 
 def get_by_name(container, name, name_field="name"):
@@ -173,11 +190,8 @@ def get_by_name(container, name, name_field="name"):
     inds = [i for i, e in enumerate(names) if e == name]
     if len(inds) > 1:
         raise Exception("Found multiple get_by_name matches, undefined behavior")
-    elif len(inds) == 0:
-        return None
-    else:
-        ind = inds[0]
-        return container[ind]
+
+    return None if len(inds) == 0 else container[inds[0]]
 
 
 def remove_by_name(container, name, name_field="name"):
@@ -187,10 +201,10 @@ def remove_by_name(container, name, name_field="name"):
         container.remove(item)
 
 
-def random_string(stringLength=6):
+def random_string(string_length=6):
     """Randomly generate a string of letters and digits."""
-    lettersAndDigits = string.ascii_letters + string.digits
-    return "".join(random.choice(lettersAndDigits) for i in range(stringLength))
+    letters_and_digits = string.ascii_letters + string.digits
+    return "".join(random.choice(letters_and_digits) for i in range(string_length))
 
 
 def interleave_matrix_outer_dim_from_partitions(matrix, n_partitions):
@@ -457,8 +471,8 @@ def launch_process_helper(args, proc_env=None, cwd=None):
     """Helper function to launch a process in a way that facilitates logging
     stdout/stderr with Python loggers.
     Returns (cmd_out, cmd_err)."""
-    if proc_env is None:
-        proc_env = os.environ.copy()
+    proc_env = proc_env or os.environ.copy()
+
     with subprocess.Popen(
         args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=proc_env, cwd=cwd
     ) as proc:
