@@ -29,8 +29,7 @@
 
 import os
 import subprocess
-
-from finn.util.basic import which
+from shutil import which
 
 
 class CallHLS:
