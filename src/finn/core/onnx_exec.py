@@ -45,7 +45,7 @@ from finn.util.basic import (
 )
 
 
-def execute_node(node, context, graph, return_full_exec_context=False):
+def execute_node(node, context, graph, return_full_exec_context=False, opset_version=9):
     """Executes a single node by using onnxruntime, with custom function or
     if dataflow partition by using remote execution or rtlsim.
 
@@ -99,6 +99,7 @@ def execute_node(node, context, graph, return_full_exec_context=False):
                 outputs=node_outputs,
             )
             node_model = helper.make_model(node_graph)
+            node_model.opset_import[0].version = opset_version
             input_dict = dict()
             for inp in node.input:
                 input_dict[inp] = context[inp]
@@ -180,6 +181,8 @@ def execute_onnx(
     # if set to "rtlsim" execute model using pyverilator
     model_exec_mode = model.get_metadata_prop("exec_mode")
     if (model_exec_mode is None) or (model_exec_mode == ""):
+        # extract opset version for node-by-node execution
+        opset_version = model.model.opset_import[0].version
         # execute the model node by node
         # we can simply walk down the list since the ONNX spec guarantees that it is
         # topologically sorted
@@ -199,7 +202,9 @@ def execute_onnx(
                 execution_context = sanitize_quant_values(
                     model, node.input, execution_context
                 )
-            execute_node(node, execution_context, graph, return_full_exec_context)
+            execute_node(
+                node, execution_context, graph, return_full_exec_context, opset_version
+            )
             if get_sanitize_quant_tensors() != 0:
                 # round output values to quantization annotation
                 execution_context = sanitize_quant_values(
