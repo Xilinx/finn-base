@@ -39,52 +39,53 @@ from finn.util.data_packing import (
 
 
 def test_array2hexstring():
-    assert array2hexstring([1, 1, 1, 0], DataType.BINARY, 4) == "0xe"
-    assert array2hexstring([1, 1, 1, 0], DataType.BINARY, 8) == "0x0e"
-    assert array2hexstring([1, 1, 1, -1], DataType.BIPOLAR, 8) == "0x0e"
-    assert array2hexstring([3, 3, 3, 3], DataType.UINT2, 8) == "0xff"
-    assert array2hexstring([1, 3, 3, 1], DataType.UINT2, 8) == "0x7d"
-    assert array2hexstring([1, -1, 1, -1], DataType.INT2, 8) == "0x77"
-    assert array2hexstring([1, 1, 1, -1], DataType.INT4, 16) == "0x111f"
-    assert array2hexstring([-1], DataType.FLOAT32, 32) == "0xbf800000"
-    assert array2hexstring([17.125], DataType.FLOAT32, 32) == "0x41890000"
-    assert array2hexstring([1, 1, 0, 1], DataType.BINARY, 4, reverse=True) == "0xb"
-    assert array2hexstring([1, 1, 1, 0], DataType.BINARY, 8, reverse=True) == "0x07"
+    assert array2hexstring([1, 1, 1, 0], DataType["BINARY"], 4) == "0xe"
+    assert array2hexstring([1, 1, 1, 0], DataType["BINARY"], 8) == "0x0e"
+    assert array2hexstring([1, 1, 1, -1], DataType["BIPOLAR"], 8) == "0x0e"
+    assert array2hexstring([3, 3, 3, 3], DataType["UINT2"], 8) == "0xff"
+    assert array2hexstring([1, 3, 3, 1], DataType["UINT2"], 8) == "0x7d"
+    assert array2hexstring([1, -1, 1, -1], DataType["INT2"], 8) == "0x77"
+    assert array2hexstring([1, 1, 1, -1], DataType["INT4"], 16) == "0x111f"
+    assert array2hexstring([-1], DataType["FLOAT32"], 32) == "0xbf800000"
+    assert array2hexstring([17.125], DataType["FLOAT32"], 32) == "0x41890000"
+    assert array2hexstring([1, 1, 0, 1], DataType["BINARY"], 4, reverse=True) == "0xb"
+    assert array2hexstring([1, 1, 1, 0], DataType["BINARY"], 8, reverse=True) == "0x07"
 
 
 def test_pack_innermost_dim_as_hex_string():
     A = [[1, 1, 1, 0], [0, 1, 1, 0]]
     eA = np.asarray(["0x0e", "0x06"])
-    assert (pack_innermost_dim_as_hex_string(A, DataType.BINARY, 8) == eA).all()
+    assert (pack_innermost_dim_as_hex_string(A, DataType["BINARY"], 8) == eA).all()
     B = [[[3, 3], [3, 3]], [[1, 3], [3, 1]]]
     eB = np.asarray([["0x0f", "0x0f"], ["0x07", "0x0d"]])
-    assert (pack_innermost_dim_as_hex_string(B, DataType.UINT2, 8) == eB).all()
+    assert (pack_innermost_dim_as_hex_string(B, DataType["UINT2"], 8) == eB).all()
     C = [[[3, 3], [3, 3]], [[1, 3], [3, 1]]]
     eC = np.asarray([["0x0f", "0x0f"], ["0x0d", "0x07"]])
     assert (
-        pack_innermost_dim_as_hex_string(C, DataType.UINT2, 8, reverse_inner=True) == eC
+        pack_innermost_dim_as_hex_string(C, DataType["UINT2"], 8, reverse_inner=True)
+        == eC
     ).all()
 
 
 def test_finnpy_to_packed_bytearray():
     A = [[1, 1, 1, 0], [0, 1, 1, 0]]
     eA = np.asarray([[14], [6]], dtype=np.uint8)
-    assert (finnpy_to_packed_bytearray(A, DataType.BINARY) == eA).all()
+    assert (finnpy_to_packed_bytearray(A, DataType["BINARY"]) == eA).all()
     B = [[[3, 3], [3, 3]], [[1, 3], [3, 1]]]
     eB = np.asarray([[[15], [15]], [[7], [13]]], dtype=np.uint8)
-    assert (finnpy_to_packed_bytearray(B, DataType.UINT2) == eB).all()
+    assert (finnpy_to_packed_bytearray(B, DataType["UINT2"]) == eB).all()
     C = [1, 7, 2, 5]
     eC = np.asarray([23, 37], dtype=np.uint8)
-    assert (finnpy_to_packed_bytearray(C, DataType.UINT4) == eC).all()
+    assert (finnpy_to_packed_bytearray(C, DataType["UINT4"]) == eC).all()
     D = [[1, 7, 2, 5], [2, 5, 1, 7]]
     eD = np.asarray([[23, 37], [37, 23]], dtype=np.uint8)
-    assert (finnpy_to_packed_bytearray(D, DataType.UINT4) == eD).all()
+    assert (finnpy_to_packed_bytearray(D, DataType["UINT4"]) == eD).all()
     E = [[-4, 0, -4, -4]]
     eE = np.asarray(
         [[255, 255, 255, 252, 0, 0, 0, 0, 255, 255, 255, 252, 255, 255, 255, 252]],
         dtype=np.uint8,
     )
-    assert (finnpy_to_packed_bytearray(E, DataType.INT32) == eE).all()
+    assert (finnpy_to_packed_bytearray(E, DataType["INT32"]) == eE).all()
 
 
 def test_finnpy_to_packed_bytearray_fastmode_binary():
@@ -99,9 +100,9 @@ def test_finnpy_to_packed_bytearray_fastmode_binary():
         assert (ret_fast == ret_slow).all()
 
     for i in range(5):
-        test_fast_vs_slow_random(DataType.BIPOLAR, (1, 8))
-        test_fast_vs_slow_random(DataType.BINARY, (1, 16))
-        test_fast_vs_slow_random(DataType.BIPOLAR, (10, 600))
+        test_fast_vs_slow_random(DataType["BIPOLAR"], (1, 8))
+        test_fast_vs_slow_random(DataType["BINARY"], (1, 16))
+        test_fast_vs_slow_random(DataType["BIPOLAR"], (10, 600))
 
 
 def test_packed_bytearray_to_finnpy():
@@ -109,22 +110,22 @@ def test_packed_bytearray_to_finnpy():
     eA = [[1, 1, 1, 0], [0, 1, 1, 0]]
     eA = np.asarray(eA, dtype=np.float32)
     shapeA = eA.shape
-    assert (packed_bytearray_to_finnpy(A, DataType.BINARY, shapeA) == eA).all()
+    assert (packed_bytearray_to_finnpy(A, DataType["BINARY"], shapeA) == eA).all()
     B = np.asarray([[[15], [15]], [[7], [13]]], dtype=np.uint8)
     eB = [[[3, 3], [3, 3]], [[1, 3], [3, 1]]]
     eB = np.asarray(eB, dtype=np.float32)
     shapeB = eB.shape
-    assert (packed_bytearray_to_finnpy(B, DataType.UINT2, shapeB) == eB).all()
+    assert (packed_bytearray_to_finnpy(B, DataType["UINT2"], shapeB) == eB).all()
     C = np.asarray([23, 37], dtype=np.uint8)
     eC = [1, 7, 2, 5]
     eC = np.asarray(eC, dtype=np.float32)
     shapeC = eC.shape
-    assert (packed_bytearray_to_finnpy(C, DataType.UINT4, shapeC) == eC).all()
+    assert (packed_bytearray_to_finnpy(C, DataType["UINT4"], shapeC) == eC).all()
     D = np.asarray([[23, 37], [37, 23]], dtype=np.uint8)
     eD = [[1, 7, 2, 5], [2, 5, 1, 7]]
     eD = np.asarray(eD, dtype=np.float32)
     shapeD = eD.shape
-    assert (packed_bytearray_to_finnpy(D, DataType.UINT4, shapeD) == eD).all()
+    assert (packed_bytearray_to_finnpy(D, DataType["UINT4"], shapeD) == eD).all()
     E = np.asarray(
         [[255, 255, 255, 252, 0, 0, 0, 0, 255, 255, 255, 252, 255, 255, 255, 252]],
         dtype=np.uint8,
@@ -132,7 +133,7 @@ def test_packed_bytearray_to_finnpy():
     eE = [[-4, 0, -4, -4]]
     eE = np.asarray(eE, dtype=np.float32)
     shapeE = eE.shape
-    assert (packed_bytearray_to_finnpy(E, DataType.INT32, shapeE) == eE).all()
+    assert (packed_bytearray_to_finnpy(E, DataType["INT32"], shapeE) == eE).all()
     F = np.asarray(
         [[252, 255, 255, 255, 0, 0, 0, 0, 252, 255, 255, 255, 252, 255, 255, 255]],
         dtype=np.uint8,
@@ -142,7 +143,7 @@ def test_packed_bytearray_to_finnpy():
     shapeF = eF.shape
     assert (
         packed_bytearray_to_finnpy(
-            F, DataType.INT32, shapeF, reverse_inner=True, reverse_endian=True
+            F, DataType["INT32"], shapeF, reverse_inner=True, reverse_endian=True
         )
         == eF
     ).all()

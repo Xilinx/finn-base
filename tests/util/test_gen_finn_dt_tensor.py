@@ -33,7 +33,7 @@ from finn.core.datatype import DataType
 def test_finn_tensor_generator():
     # bipolar
     shape_bp = [2, 2]
-    dt_bp = DataType.BIPOLAR
+    dt_bp = DataType["BIPOLAR"]
     tensor_bp = util.gen_finn_dt_tensor(dt_bp, shape_bp)
     # test shape
     for i in range(len(shape_bp)):
@@ -50,7 +50,7 @@ def test_finn_tensor_generator():
 
     # binary
     shape_b = [4, 2, 3]
-    dt_b = DataType.BINARY
+    dt_b = DataType["BINARY"]
     tensor_b = util.gen_finn_dt_tensor(dt_b, shape_b)
     # test shape
     for i in range(len(shape_b)):
@@ -67,7 +67,7 @@ def test_finn_tensor_generator():
 
     # ternary
     shape_t = [7, 1, 3, 1]
-    dt_t = DataType.TERNARY
+    dt_t = DataType["TERNARY"]
     tensor_t = util.gen_finn_dt_tensor(dt_t, shape_t)
     # test shape
     for i in range(len(shape_t)):
@@ -84,7 +84,7 @@ def test_finn_tensor_generator():
 
     # int2
     shape_int2 = [7, 4]
-    dt_int2 = DataType.INT2
+    dt_int2 = DataType["INT2"]
     tensor_int2 = util.gen_finn_dt_tensor(dt_int2, shape_int2)
     # test shape
     for i in range(len(shape_int2)):

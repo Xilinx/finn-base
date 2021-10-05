@@ -81,7 +81,7 @@ def test_onnx_exec_internal_rounding():
 
     model = onnx.helper.make_model(graph, producer_name="mul-model")
     model = ModelWrapper(model)
-    idt = DataType.INT2
+    idt = DataType["INT2"]
     model.set_tensor_datatype("inp0", idt)
     model.set_tensor_datatype("inp1", idt)
     model.transform(InferShapes())

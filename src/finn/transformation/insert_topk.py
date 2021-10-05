@@ -90,6 +90,6 @@ class InsertTopK(Transformation):
             # set quantization annotation for indices
             # minimal output dtype for TopK indices dependens on num. classes
             # assuming UINT32 is large enough for now (FINN has currently no
-            # DataType.INT64)
-            model.set_tensor_datatype(topk_indices.name, DataType.UINT32)
+            # DataType["INT64"])
+            model.set_tensor_datatype(topk_indices.name, DataType["UINT32"])
             return (model, True)

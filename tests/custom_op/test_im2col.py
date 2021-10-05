@@ -69,9 +69,9 @@ def execution_im2col(
     ]
 
     # test datatype inference
-    assert model.get_tensor_datatype("outp") is DataType.FLOAT32
+    assert model.get_tensor_datatype("outp") == DataType["FLOAT32"]
     model = model.transform(InferDataTypes())
-    assert model.get_tensor_datatype("outp") is idt
+    assert model.get_tensor_datatype("outp") == idt
 
     # prepare input data
     input_dict = {"inp": x}
@@ -112,7 +112,7 @@ def execution_im2col(
 # dilation_w  | 2    | 2    | 2    | 2
 def test_im2col_dilations():
     case_id = 0
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 2
     stride_h = 1
@@ -191,7 +191,7 @@ def test_im2col_dilations():
     )
 
     case_id = 1
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 2
     stride_h = 1
@@ -261,7 +261,7 @@ def test_im2col_dilations():
     )
 
     case_id = 2
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 2
     stride_h = 1
@@ -351,7 +351,7 @@ def test_im2col_dilations():
     )
 
     case_id = 3
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 2
     stride_h = 2
@@ -421,7 +421,7 @@ def test_im2col_dilations():
     )
 
     case_id = 4
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 3
     k_W = 3
     stride_h = 2
@@ -484,7 +484,7 @@ def test_im2col_dilations():
     )
 
     case_id = 5
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 1
     stride_h = 1
@@ -528,7 +528,7 @@ def test_im2col_dilations():
     )
 
     case_id = 6
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 1
     stride_h = 1
@@ -572,7 +572,7 @@ def test_im2col_dilations():
     )
 
     case_id = 7
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 1
     stride_h = 1
@@ -624,7 +624,7 @@ def test_im2col_dilations():
     )
 
     case_id = 8
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 1
     stride_h = 2
@@ -668,7 +668,7 @@ def test_im2col_dilations():
     )
 
     case_id = 9
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 3
     k_W = 1
     stride_h = 2
@@ -712,7 +712,7 @@ def test_im2col_dilations():
     )
 
     case_id = 10
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 2
     stride_h = 1
@@ -792,7 +792,7 @@ def test_im2col_dilations():
     )
 
     case_id = 11
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 1
     stride_h = 2
@@ -836,7 +836,7 @@ def test_im2col_dilations():
     )
 
     case_id = 12
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 2
     stride_h = 1
@@ -921,7 +921,7 @@ def test_im2col_dilations():
     )
 
     case_id = 13
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_H = 2
     k_W = 3
     stride_h = 1
@@ -1012,7 +1012,7 @@ def test_im2col_dilations():
 def test_im2col():
     case_id = 0
     # bipolar inputs with following im2col parameters
-    idt = DataType.BIPOLAR
+    idt = DataType["BIPOLAR"]
     k_h = 2
     k_w = 2
     stride_h = 1
@@ -1110,7 +1110,7 @@ def test_im2col():
     )
 
     case_id = 1
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_h = 2
     k_w = 2
     stride_h = 1
@@ -1174,7 +1174,7 @@ def test_im2col():
     )
 
     case_id = 2
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_h = 2
     k_w = 2
     stride_h = 1
@@ -1258,7 +1258,7 @@ def test_im2col():
     )
 
     case_id = 3
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_h = 2
     k_w = 2
     stride_h = 1
@@ -1325,7 +1325,7 @@ def test_im2col():
     )
 
     case_id = 4
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_h = 3
     k_w = 2
     stride_h = 1
@@ -1386,7 +1386,7 @@ def test_im2col():
     )
 
     case_id = 5
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_h = 3
     k_w = 2
     stride_h = 1
@@ -1467,7 +1467,7 @@ def test_im2col():
     )
 
     case_id = 6
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_h = 3
     k_w = 1
     stride_h = 1
@@ -1506,7 +1506,7 @@ def test_im2col():
     )
 
     case_id = 7
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_h = 3
     k_w = 1
     stride_h = 1
@@ -1553,7 +1553,7 @@ def test_im2col():
     )
 
     case_id = 8
-    idt = DataType.INT8
+    idt = DataType["INT8"]
     k_h = 3
     k_w = 1
     stride_h = 2
@@ -1593,7 +1593,7 @@ def test_im2col():
 
 
 def test_im2col_infer_shapes():
-    idt = DataType.BIPOLAR
+    idt = DataType["BIPOLAR"]
     k_h = 2
     k_w = 2
     stride_h = 1

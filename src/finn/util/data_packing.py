@@ -49,13 +49,13 @@ def array2hexstring(array, dtype, pad_to_nbits, prefix="0x", reverse=False):
 
     Examples:
 
-    array2hexstring([1, 1, 1, 0], DataType.BINARY, 4) = "0xe"
+    array2hexstring([1, 1, 1, 0], DataType["BINARY"], 4) = "0xe"
 
-    array2hexstring([1, 1, 1, 0], DataType.BINARY, 8) = "0x0e"
+    array2hexstring([1, 1, 1, 0], DataType["BINARY"], 8) = "0x0e"
 
-    array2hexstring([1, 1, 0, 1], DataType.BINARY, 4, reverse=True) = "0xb"
+    array2hexstring([1, 1, 0, 1], DataType["BINARY"], 4, reverse=True) = "0xb"
 
-    array2hexstring([1, 1, 1, 0], DataType.BINARY, 8, reverse=True) = "0x07"
+    array2hexstring([1, 1, 1, 0], DataType["BINARY"], 8, reverse=True) = "0x07"
     """
     if pad_to_nbits < 4:
         pad_to_nbits = 4
@@ -65,10 +65,10 @@ def array2hexstring(array, dtype, pad_to_nbits, prefix="0x", reverse=False):
         array = np.asarray(array, dtype=np.float32)
     # ensure one-dimensional array to pack
     assert array.ndim == 1, "The given array is not one-dimensional."
-    if dtype == DataType.BIPOLAR:
+    if dtype == DataType["BIPOLAR"]:
         # convert bipolar values to binary
         array = (array + 1) / 2
-        dtype = DataType.BINARY
+        dtype = DataType["BINARY"]
     # reverse prior to packing, if desired
     if reverse:
         array = np.flip(array, -1)
@@ -130,13 +130,13 @@ def pack_innermost_dim_as_hex_string(
 
     eA = ["0e", "06"]
 
-    pack_innermost_dim_as_hex_string(A, DataType.BINARY, 8) == eA
+    pack_innermost_dim_as_hex_string(A, DataType["BINARY"], 8) == eA
 
     B = [[[3, 3], [3, 3]], [[1, 3], [3, 1]]]
 
     eB = [[ "0f", "0f"], ["07", "0d"]]
 
-    pack_innermost_dim_as_hex_string(B, DataType.UINT2, 8) == eB
+    pack_innermost_dim_as_hex_string(B, DataType["UINT2"], 8) == eB
     """
 
     if type(ndarray) != np.ndarray or ndarray.dtype != np.float32:
@@ -202,7 +202,7 @@ def unpack_innermost_dim_from_hex_string(
         # interpret output values correctly
 
         # interpret values as bipolar
-        if dtype == DataType.BIPOLAR:
+        if dtype == DataType["BIPOLAR"]:
             ar_list = [2 * x - 1 for x in ar_list]
         # interpret values as signed values
         elif dtype.name.startswith("INT"):
@@ -250,7 +250,7 @@ def numpy_to_hls_code(
         if type(x) == str or type(x) == np.str_ or type(x) == np.str:
             return '%s("%s", 16)' % (hls_dtype, x)
         elif type(x) == np.float32:
-            if dtype == DataType.FLOAT32:
+            if dtype == DataType["FLOAT32"]:
                 return str(x)
             else:
                 return str(int(x))
@@ -345,7 +345,7 @@ def finnpy_to_packed_bytearray(
         if out_is_bit and no_pad and double_reverse:
             in_as_int8 = ndarray.astype(np.int8)
             # bipolar -> binary if needed
-            if dtype == DataType.BIPOLAR:
+            if dtype == DataType["BIPOLAR"]:
                 in_as_int8 = (in_as_int8 + 1) // 2
             # reverse inner
             in_as_int8 = np.flip(in_as_int8, axis=-1)

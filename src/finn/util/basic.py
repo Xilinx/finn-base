@@ -305,16 +305,16 @@ def gen_finn_dt_tensor(finn_dt, tensor_shape):
     """Generates random tensor in given shape and with given FINN DataType."""
     if type(tensor_shape) == list:
         tensor_shape = tuple(tensor_shape)
-    if finn_dt == DataType.BIPOLAR:
+    if finn_dt == DataType["BIPOLAR"]:
         tensor_values = np.random.randint(2, size=tensor_shape)
         tensor_values = 2 * tensor_values - 1
-    elif finn_dt == DataType.BINARY:
+    elif finn_dt == DataType["BINARY"]:
         tensor_values = np.random.randint(2, size=tensor_shape)
-    elif "INT" in finn_dt.name or finn_dt == DataType.TERNARY:
+    elif "INT" in finn_dt.name or finn_dt == DataType["TERNARY"]:
         tensor_values = np.random.randint(
             finn_dt.min(), high=finn_dt.max() + 1, size=tensor_shape
         )
-    elif finn_dt == DataType.FLOAT32:
+    elif finn_dt == DataType["FLOAT32"]:
         tensor_values = np.random.randn(*tensor_shape)
     else:
         raise ValueError(
@@ -364,7 +364,7 @@ def sanitize_quant_values(model, node_tensors, execution_context, check_values=F
         dtype = model.get_tensor_datatype(tensor)
         # floats don't need sanitization, skip to next
         # introduces less quicker runtime
-        if dtype == DataType.FLOAT32:
+        if dtype == DataType["FLOAT32"]:
             continue
         current_values = execution_context[tensor]
         updated_values = current_values
