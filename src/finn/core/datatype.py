@@ -28,7 +28,187 @@
 
 
 import numpy as np
+from abc import ABC, abstractmethod
 from enum import Enum, auto
+
+
+class NewDataType(ABC):
+    "Base class for FINN data types."
+
+    @abstractmethod
+    def bitwidth(self):
+        """Returns the number of bits required for this DataType."""
+        pass
+
+    @abstractmethod
+    def min(self):
+        """Returns the smallest possible value allowed by this DataType."""
+        pass
+
+    @abstractmethod
+    def max(self):
+        """Returns the largest possible value allowed by this DataType."""
+        pass
+
+    @abstractmethod
+    def allowed(self, value):
+        """Check whether given value is allowed for this DataType.
+
+        * value (float32): value to be checked"""
+        pass
+
+    @abstractmethod
+    def get_num_possible_values(self):
+        """Returns the number of possible values this DataType can take. Only
+        implemented for integer types for now."""
+        pass
+
+    def signed(self):
+        """Returns whether this DataType can represent negative numbers."""
+        return self.min() < 0
+
+    @abstractmethod
+    def is_integer(self):
+        """Returns whether this DataType represents integer values only."""
+        pass
+
+    @abstractmethod
+    def get_hls_datatype_str(self):
+        """Returns the corresponding Vivado HLS datatype name."""
+        pass
+
+    @abstractmethod
+    def to_numpy_dt(self):
+        pass
+
+
+class FloatType(NewDataType):
+    def bitwidth(self):
+        return 32
+
+    def min(self):
+        return np.finfo(np.float32).min
+
+    def max(self):
+        return np.finfo(np.float32).max
+
+    def allowed(self, value):
+        return True
+
+    def get_num_possible_values(self):
+        raise Exception("Undefined for FloatType")
+
+    def is_integer(self):
+        return False
+
+    def get_hls_datatype_str(self):
+        return "float"
+
+    def to_numpy_dt(self):
+        return np.float32
+
+
+class IntType(NewDataType):
+    def __init__(self, bitwidth, signed):
+        super().__init__()
+        self._bitwidth = bitwidth
+        self._signed = signed
+
+    def bitwidth(self):
+        return self._bitwidth
+
+    def min(self):
+        unsigned_min = 0
+        signed_min = -(2 ** (self.bitwidth() - 1))
+        return signed_min if self._signed else unsigned_min
+
+    def max(self):
+        unsigned_max = (2 ** (self.bitwidth())) - 1
+        signed_max = (2 ** (self.bitwidth() - 1)) - 1
+        return signed_max if self._signed else unsigned_max
+
+    def allowed(self, value):
+        return (
+            (self.min() <= value)
+            and (value <= self.max())
+            and float(value).is_integer()
+        )
+
+    def get_num_possible_values(self):
+        return abs(self.min()) + abs(self.max()) + 1
+
+    def is_integer(self):
+        return True
+
+    def get_hls_datatype_str(self):
+        if self.signed():
+            return "ap_int<%d>" % self.bitwidth()
+        else:
+            return "ap_uint<%d>" % self.bitwidth()
+
+    def to_numpy_dt(self):
+        if self.bitwidth() <= 8:
+            return np.int8 if self.signed() else np.uint8
+        elif self.bitwidth() <= 16:
+            return np.int16 if self.signed() else np.uint16
+        elif self.bitwidth() <= 32:
+            return np.int32 if self.signed() else np.uint32
+        elif self.bitwidth() <= 64:
+            return np.int64 if self.signed() else np.uint64
+        else:
+            raise Exception("Unknown numpy dtype for " + str(self))
+
+
+class BipolarType(NewDataType):
+    def bitwidth(self):
+        return 1
+
+    def min(self):
+        return -1
+
+    def max(self):
+        return +1
+
+    def allowed(self, value):
+        return value in [-1, +1]
+
+    def get_num_possible_values(self):
+        return 2
+
+    def is_integer(self):
+        return True
+
+    def get_hls_datatype_str(self):
+        return "ap_int<%d>" % self.bitwidth()
+
+    def to_numpy_dt(self):
+        return np.int8
+
+
+class TernaryType(NewDataType):
+    def bitwidth(self):
+        return 2
+
+    def min(self):
+        return -1
+
+    def max(self):
+        return +1
+
+    def allowed(self, value):
+        return value in [-1, 0, +1]
+
+    def get_num_possible_values(self):
+        return 3
+
+    def is_integer(self):
+        return True
+
+    def get_hls_datatype_str(self):
+        return "ap_int<%d>" % self.bitwidth()
+
+    def to_numpy_dt(self):
+        return np.int8
 
 
 class DataType(Enum):
