@@ -33,7 +33,7 @@ from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
 
 
-def trunc(inp_tensor, scale, zeropt, bitwidth):
+def trunc(inp_tensor, scale, zeropt, trunc_bit_width):
     # Port of TruncIntQuant class from Brevitas: https://bit.ly/3wzIpTR
 
     # Scaling
@@ -42,32 +42,31 @@ def trunc(inp_tensor, scale, zeropt, bitwidth):
     # Rounding
     y = np.round(y)
     # Truncate
-    # ToDo: Port stuff below
-    # output_bit_width = self.msb_clamp_bit_width_impl()
-    # trunc_bit_width = input_bit_width - output_bit_width
     # trunc_scale = 2.0 ** trunc_bit_width
-    # y = y / trunc_scale
+    # ToDo: do this proper
+    trunc_scale = 2.0 ** 6
+    y = y / trunc_scale
 
-    # To int, ToDo: Port
+    # To int
+    # ToDo: Check if this is correct
     # y = self.float_to_int_impl(y)
+    y = y.astype(np.int).astype(np.float32)
 
     # Rescale
     y = y - zeropt
     y = y * scale
 
-    # ToDo: Find out if the variables, which are commented out need to be
-    # export as well.
-    return y  # , scale, zero_point, output_bit_width
+    return y
 
 
 class Trunc(CustomOp):
     """Generic truncation operation for QONNX. Takes four inputs:
-    - input tensor to quantize
+    - input tensor to truncate
     - the scale
     - the zero-point
-    - the bit-width
+    - the truncation bit-width
 
-    The output is a tensor of the same shape as the input tensor, with quantized
+    The output is a tensor of the same shape as the input tensor, with truncated
     values.
     """
 
@@ -123,9 +122,9 @@ class Trunc(CustomOp):
         inp_tensor = context[node.input[0]]
         scale = context[node.input[1]]
         zeropt = context[node.input[2]]
-        bitwidth = context[node.input[3]]
+        trunc_bit_width = context[node.input[3]]
         # calculate output
-        ret = trunc(inp_tensor, scale, zeropt, bitwidth)
+        ret = trunc(inp_tensor, scale, zeropt, trunc_bit_width)
         # set context according to output name
         context[node.output[0]] = ret
 

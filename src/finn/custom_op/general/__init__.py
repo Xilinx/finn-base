@@ -33,6 +33,7 @@ from finn.custom_op.general.maxpoolnhwc import MaxPoolNHWC
 from finn.custom_op.general.multithreshold import MultiThreshold
 from finn.custom_op.general.quant import Quant
 from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
+from finn.custom_op.general.trunc import Trunc
 from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
 
 custom_op = dict()
@@ -45,3 +46,4 @@ custom_op["MultiThreshold"] = MultiThreshold
 custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
 custom_op["Im2Col"] = Im2Col
 custom_op["Quant"] = Quant
+custom_op["Trunc"] = Trunc
