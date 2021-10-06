@@ -27,8 +27,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-
 import onnx.helper as helper
+
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
 
@@ -208,6 +208,11 @@ class Quant(CustomOp):
         narrow = self.get_nodeattr("narrow")
         # calculate output
         ret = quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow)
+        # ensure output is ndarray (even if 0d)
+        # since numpy silently flattens 0d arrays to scalars
+        # more: https://github.com/numpy/numpy/issues/13105
+        if not isinstance(ret, np.ndarray):
+            ret = np.asarray(ret)
         # set context according to output name
         context[node.output[0]] = ret
 
