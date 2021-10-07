@@ -43,14 +43,14 @@ def trunc(inp_tensor, scale, zeropt, trunc_bit_width):
     y = np.round(y)
     # Truncate
     # trunc_scale = 2.0 ** trunc_bit_width
-    # ToDo: do this proper
+    # ToDo: Do this proper
     trunc_scale = 2.0 ** 6
     y = y / trunc_scale
 
     # To int
     # ToDo: Check if this is correct
     # y = self.float_to_int_impl(y)
-    y = y.astype(np.int).astype(np.float32)
+    y = y.astype(np.int64).astype(np.float32)
 
     # Rescale
     y = y - zeropt
