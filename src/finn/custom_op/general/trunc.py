@@ -112,9 +112,11 @@ class Trunc(CustomOp):
         return (scale, zeropt, bitwidth, finn_dt)
 
     def infer_node_datatype(self, model):
-        (scale, zeropt, bitwidth, finn_dt) = self.get_trunc_config(model)
+        # (scale, zeropt, bitwidth, finn_dt) = self.get_trunc_config(model)
         node = self.onnx_node
-        model.set_tensor_datatype(node.output[0], finn_dt)
+        finn_dt = model.get_tensor_datatype(node.input[0])
+        if finn_dt is not None:
+            model.set_tensor_datatype(node.output[0], finn_dt)
 
     def execute_node(self, context, graph):
         node = self.onnx_node
