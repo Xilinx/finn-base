@@ -247,6 +247,43 @@ class TernaryType(BaseDataType):
         return "TERNARY"
 
 
+class FixedPointType(IntType):
+    def __init__(self, bitwidth, intwidth):
+        super().__init__(bitwidth=bitwidth, signed=True)
+        self._intwidth = intwidth
+
+    def int_bits(self):
+        return self._intwidth
+
+    def frac_bits(self):
+        return self.bitwidth() - self.int_bits()
+
+    def scale_factor(self):
+        return 2 ** -(self.frac_bits())
+
+    def min(self):
+        return super().min() * self.scale_factor()
+
+    def max(self):
+        return super().max() * self.scale_factor()
+
+    def allowed(self, value):
+        int_value = value / self.scale_factor()
+        return super().allowed(int_value)
+
+    def is_integer(self):
+        return True
+
+    def get_hls_datatype_str(self):
+        return "ap_fixed<%d, %d>" % (self.bitwidth(), self.int_bits())
+
+    def to_numpy_dt(self):
+        return np.float32
+
+    def get_canonical_name(self):
+        return "FIXED<%d,%d>" % (self.bitwidth(), self.int_bits())
+
+
 def resolve_datatype(name):
     _special_types = {
         "BINARY": IntType(1, False),
@@ -262,6 +299,13 @@ def resolve_datatype(name):
     elif name.startswith("INT"):
         bitwidth = int(name.replace("INT", ""))
         return IntType(bitwidth, True)
+    elif name.startswith("FIXED"):
+        name = name.replace("FIXED<", "")
+        name = name.replace(">", "")
+        nums = name.split(",")
+        bitwidth = int(nums[0])
+        intwidth = int(nums[1])
+        return FixedPointType(bitwidth, intwidth)
     else:
         raise KeyError("Could not resolve DataType " + name)
 
