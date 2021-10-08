@@ -103,3 +103,19 @@ def test_finn_tensor_generator():
             does not match the desired Data type"""
 
     # import pdb; pdb.set_trace()
+
+    # fixed point
+    dt_t = DataType["FIXED<9,6>"]
+    tensor_t = util.gen_finn_dt_tensor(dt_t, shape_t)
+    # test shape
+    for i in range(len(shape_t)):
+        assert (
+            shape_t[i] == tensor_t.shape[i]
+        ), """Shape of generated tensor
+            does not match the desired shape"""
+    # test if elements are FINN datatype
+    for value in tensor_t.flatten():
+        assert dt_t.allowed(
+            value
+        ), """Data type of generated tensor
+            does not match the desired Data type"""
