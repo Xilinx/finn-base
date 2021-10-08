@@ -264,10 +264,10 @@ def numpy_to_hls_code(
         if type(x) == str or type(x) == np.str_ or type(x) == np.str:
             return '%s("%s", 16)' % (hls_dtype, x)
         elif type(x) == np.float32:
-            if dtype == DataType["FLOAT32"]:
-                return str(x)
-            else:
+            if dtype.is_integer():
                 return str(int(x))
+            else:
+                return str(x)
         else:
             raise Exception("Unsupported type for numpy_to_hls_code")
 

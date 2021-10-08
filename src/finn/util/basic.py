@@ -314,6 +314,12 @@ def gen_finn_dt_tensor(finn_dt, tensor_shape):
         tensor_values = np.random.randint(
             finn_dt.min(), high=finn_dt.max() + 1, size=tensor_shape
         )
+    elif "FIXED" in finn_dt.name:
+        int_dt = DataType["INT" + str(finn_dt.bitwidth())]
+        tensor_values = np.random.randint(
+            int_dt.min(), high=int_dt.max() + 1, size=tensor_shape
+        )
+        tensor_values = tensor_values * finn_dt.scale_factor()
     elif finn_dt == DataType["FLOAT32"]:
         tensor_values = np.random.randn(*tensor_shape)
     else:
