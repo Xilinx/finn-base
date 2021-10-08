@@ -88,6 +88,11 @@ class BaseDataType(ABC):
         pass
 
     @abstractmethod
+    def is_fixed_point(self):
+        "Returns whether this DataType represent fixed-point values only."
+        pass
+
+    @abstractmethod
     def get_hls_datatype_str(self):
         "Returns the corresponding Vivado HLS datatype name."
         pass
@@ -119,6 +124,9 @@ class FloatType(BaseDataType):
         raise Exception("Undefined for FloatType")
 
     def is_integer(self):
+        return False
+
+    def is_fixed_point(self):
         return False
 
     def get_hls_datatype_str(self):
@@ -162,6 +170,9 @@ class IntType(BaseDataType):
 
     def is_integer(self):
         return True
+
+    def is_fixed_point(self):
+        return False
 
     def get_hls_datatype_str(self):
         if self.signed():
@@ -208,6 +219,9 @@ class BipolarType(BaseDataType):
     def is_integer(self):
         return True
 
+    def is_fixed_point(self):
+        return False
+
     def get_hls_datatype_str(self):
         return "ap_int<1>"
 
@@ -237,6 +251,9 @@ class TernaryType(BaseDataType):
     def is_integer(self):
         return True
 
+    def is_fixed_point(self):
+        return False
+
     def get_hls_datatype_str(self):
         return "ap_int<2>"
 
@@ -250,6 +267,7 @@ class TernaryType(BaseDataType):
 class FixedPointType(IntType):
     def __init__(self, bitwidth, intwidth):
         super().__init__(bitwidth=bitwidth, signed=True)
+        assert intwidth < bitwidth, "FixedPointType violates intwidth < bitwidth"
         self._intwidth = intwidth
 
     def int_bits(self):
@@ -269,9 +287,12 @@ class FixedPointType(IntType):
 
     def allowed(self, value):
         int_value = value / self.scale_factor()
-        return super().allowed(int_value)
+        return IntType(self._bitwidth, True).allowed(int_value)
 
     def is_integer(self):
+        return False
+
+    def is_fixed_point(self):
         return True
 
     def get_hls_datatype_str(self):
@@ -303,8 +324,8 @@ def resolve_datatype(name):
         name = name.replace("FIXED<", "")
         name = name.replace(">", "")
         nums = name.split(",")
-        bitwidth = int(nums[0])
-        intwidth = int(nums[1])
+        bitwidth = int(nums[0].strip())
+        intwidth = int(nums[1].strip())
         return FixedPointType(bitwidth, intwidth)
     else:
         raise KeyError("Could not resolve DataType " + name)
