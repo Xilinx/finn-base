@@ -50,6 +50,9 @@ def test_array2hexstring():
     assert array2hexstring([17.125], DataType["FLOAT32"], 32) == "0x41890000"
     assert array2hexstring([1, 1, 0, 1], DataType["BINARY"], 4, reverse=True) == "0xb"
     assert array2hexstring([1, 1, 1, 0], DataType["BINARY"], 8, reverse=True) == "0x07"
+    # fixed point types
+    assert array2hexstring([17.125], DataType["FIXED<9,6>"], 12) == "0x089"
+    assert array2hexstring([-1.5], DataType["FIXED<4,2>"], 4) == "0xa"
 
 
 def test_pack_innermost_dim_as_hex_string():
@@ -86,6 +89,9 @@ def test_finnpy_to_packed_bytearray():
         dtype=np.uint8,
     )
     assert (finnpy_to_packed_bytearray(E, DataType["INT32"]) == eE).all()
+    F = [[17.125, -2.0], [-3.5, 11.25]]
+    eF = np.asarray([[1, 19, 240], [3, 200, 90]], dtype=np.uint8)
+    assert (finnpy_to_packed_bytearray(F, DataType["FIXED<9,6>"]) == eF).all()
 
 
 def test_finnpy_to_packed_bytearray_fastmode_binary():
@@ -147,3 +153,8 @@ def test_packed_bytearray_to_finnpy():
         )
         == eF
     ).all()
+    G = np.asarray([[1, 19, 240], [3, 200, 90]], dtype=np.uint8)
+    eG = [[17.125, -2.0], [-3.5, 11.25]]
+    eG = np.asarray(eG, dtype=np.float32)
+    shapeG = eG.shape
+    assert (packed_bytearray_to_finnpy(G, DataType["FIXED<9,6>"], shapeG) == eG).all()
