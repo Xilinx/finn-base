@@ -74,6 +74,12 @@ def array2hexstring(array, dtype, pad_to_nbits, prefix="0x", reverse=False):
         array = np.flip(array, -1)
     lineval = BitArray(length=0)
     bw = dtype.bitwidth()
+    # special handling for fixed point: rescale, then pack as integers
+    if dtype.is_fixed_point():
+        sf = dtype.scale_factor()
+        array = array / sf
+        # replace dtype with signed integer equivalent
+        dtype = DataType["INT" + str(bw)]
     for val in array:
         # ensure that this value is permitted by chosen dtype
         assert dtype.allowed(val), "This value is not permitted by chosen dtype."
@@ -179,6 +185,11 @@ def unpack_innermost_dim_from_hex_string(
     inner_dim_elems = out_shape[-1]
 
     array = []
+    if dtype.is_fixed_point():
+        # convert fixed point as signed integer
+        conv_dtype = DataType["INT" + str(targetBits)]
+    else:
+        conv_dtype = dtype
     for outer_elem in range(outer_dim_elems):
         ar_list = []
         ar_elem = data[0]
@@ -202,15 +213,18 @@ def unpack_innermost_dim_from_hex_string(
         # interpret output values correctly
 
         # interpret values as bipolar
-        if dtype == DataType["BIPOLAR"]:
+        if conv_dtype == DataType["BIPOLAR"]:
             ar_list = [2 * x - 1 for x in ar_list]
         # interpret values as signed values
-        elif dtype.name.startswith("INT"):
-            mask = 2 ** (dtype.bitwidth() - 1)
+        elif conv_dtype.name.startswith("INT"):
+            mask = 2 ** (conv_dtype.bitwidth() - 1)
             ar_list = [-(x & mask) + (x & ~mask) for x in ar_list]
 
         array.append(ar_list)
     array = np.asarray(array, dtype=np.float32).reshape(out_shape)
+    if dtype.is_fixed_point():
+        # convert signed integer to fixed point by applying scale
+        array = array * dtype.scale_factor()
     return array
 
 
