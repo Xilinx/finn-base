@@ -75,6 +75,20 @@ def test_datatypes():
     assert DataType["TERNARY"].signed()
 
 
+def test_datatypes_fixedpoint():
+    assert DataType["FIXED<4,2>"].allowed(0.5)
+    assert DataType["FIXED<4,2>"].to_numpy_dt() == np.float32
+    assert DataType["FIXED<4,2>"].signed()
+    assert DataType["FIXED<4,2>"].scale_factor() == 0.25
+    assert DataType["FIXED<4,2>"].min() == -2.0
+    assert DataType["FIXED<4,2>"].max() == 1.75
+    assert DataType["FIXED<4,2>"].allowed(1.5)
+    assert DataType["FIXED<4,2>"].allowed(-1.5)
+    assert DataType["FIXED<4,2>"].allowed(1.8) is False
+    assert DataType["FIXED<4,2>"].is_integer() is False
+    assert DataType["FIXED<4,2>"].is_fixed_point() is True
+
+
 def test_smallest_possible():
     assert get_smallest_possible(1) == DataType["BINARY"]
     assert get_smallest_possible(1.1) == DataType["FLOAT32"]
