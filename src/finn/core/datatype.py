@@ -342,15 +342,20 @@ class DataType(Enum, metaclass=DataTypeMeta):
     interested in smaller integers down to ternary and bipolar."""
 
 
+def get_accumulator_dt_cands():
+    cands = ["BINARY"]
+    cands += ["UINT%d" % x for x in range(32)]
+    cands += ["BIPOLAR", "TERNARY"]
+    cands += ["INT%d" % x for x in range(32)]
+    return cands
+
+
 def get_smallest_possible(value):
     """Returns smallest (fewest bits) possible DataType that can represent
     value. Prefers unsigned integers where possible."""
     if not int(value) == value:
         return DataType["FLOAT32"]
-    cands = ["BINARY"]
-    cands += ["UINT%d" % x for x in range(32)]
-    cands += ["BIPOLAR", "TERNARY"]
-    cands += ["INT%d" % x for x in range(32)]
+    cands = get_accumulator_dt_cands()
     for cand in cands:
         dt = DataType[cand]
         if (dt.min() <= value) and (value <= dt.max()):
