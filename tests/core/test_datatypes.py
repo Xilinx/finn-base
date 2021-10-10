@@ -28,7 +28,7 @@
 
 import numpy as np
 
-from finn.core.datatype import DataType, get_smallest_possible
+from finn.core.datatype import DataType
 
 
 def test_datatypes():
@@ -90,8 +90,8 @@ def test_datatypes_fixedpoint():
 
 
 def test_smallest_possible():
-    assert get_smallest_possible(1) == DataType["BINARY"]
-    assert get_smallest_possible(1.1) == DataType["FLOAT32"]
-    assert get_smallest_possible(-1) == DataType["BIPOLAR"]
-    assert get_smallest_possible(-3) == DataType["INT3"]
-    assert get_smallest_possible(-3.2) == DataType["FLOAT32"]
+    assert DataType.get_smallest_possible(1) == DataType["BINARY"]
+    assert DataType.get_smallest_possible(1.1) == DataType["FLOAT32"]
+    assert DataType.get_smallest_possible(-1) == DataType["BIPOLAR"]
+    assert DataType.get_smallest_possible(-3) == DataType["INT3"]
+    assert DataType.get_smallest_possible(-3.2) == DataType["FLOAT32"]
