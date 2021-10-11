@@ -344,9 +344,9 @@ class DataType(Enum, metaclass=DataTypeMeta):
     @staticmethod
     def get_accumulator_dt_cands():
         cands = ["BINARY"]
-        cands += ["UINT%d" % x for x in range(32)]
+        cands += ["UINT%d" % (x + 1) for x in range(64)]
         cands += ["BIPOLAR", "TERNARY"]
-        cands += ["INT%d" % x for x in range(32)]
+        cands += ["INT%d" % (x + 1) for x in range(64)]
         return cands
 
     @staticmethod
@@ -360,3 +360,4 @@ class DataType(Enum, metaclass=DataTypeMeta):
             dt = DataType[cand]
             if (dt.min() <= value) and (value <= dt.max()):
                 return dt
+        raise Exception("Could not find a suitable int datatype for " + str(value))
