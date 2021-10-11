@@ -91,7 +91,8 @@ def max_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
     return value
 
 
-def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow):
+def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow, rounding_mode):
+    # ToDo: Update this link, when the PR gets merged
     # Port of IntQuant class from Brevitas: https://bit.ly/2S6qvZJ
 
     # Scaling
@@ -109,12 +110,26 @@ def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow):
         y_int = np.where(y_int > max_int_val, max_int_val.astype(y_int.dtype), y_int)
         y_int = np.where(y_int < min_int_val, min_int_val.astype(y_int.dtype), y_int)
         # Rounding
-        y_int = np.round(y_int)
+        rounding_fx = resolve_rounding_mode(rounding_mode)
+        y_int = rounding_fx(y_int)
     # Re-scaling
     out_tensor = y_int - zeropt
     out_tensor = out_tensor * scale
 
     return out_tensor
+
+
+def resolve_rounding_mode(mode_string):
+    """Resolve the rounding mode string of Quant and Trunc ops
+    to the corresponding numpy functions."""
+    if mode_string == "ROUND":
+        return np.round
+    elif mode_string == "CEIL":
+        return np.ceil
+    elif mode_string == "FLOOR":
+        return np.floor
+    else:
+        raise ValueError(f"Could not resolve rounding mode called: {mode_string}")
 
 
 class Quant(CustomOp):
@@ -136,6 +151,9 @@ class Quant(CustomOp):
             # when signed=1, whether to use narrow range or not
             # (e.g. at 8b regular=[-128, 127] vs narrow=[-127, 127])
             "narrow": ("i", True, 1),
+            # The rounding mode, which is used for the quant function
+            # ToDo: This should be required (True) instead of optional (False)
+            "rounding_mode": ("s", False, "ROUND"),
         }
 
     def make_shape_compatible_op(self, model):
@@ -206,8 +224,9 @@ class Quant(CustomOp):
         # save attributes
         signed = self.get_nodeattr("signed")
         narrow = self.get_nodeattr("narrow")
+        rounding_mode = self.get_nodeattr("rounding_mode")
         # calculate output
-        ret = quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow)
+        ret = quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow, rounding_mode)
         # ensure output is ndarray (even if 0d)
         # since numpy silently flattens 0d arrays to scalars
         # more: https://github.com/numpy/numpy/issues/13105
