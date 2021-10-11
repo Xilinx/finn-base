@@ -72,10 +72,6 @@ class Trunc(CustomOp):
 
     def get_nodeattr_types(self):
         return {
-            # whether the quantization interval should be signed or not
-            # (e.g. at 8b unsigned=[0, 255] vs signed=[-128, 127])
-            # ToDo: Is the signed attribute really needed?
-            "signed": ("i", True, 1),
             # The rounding mode, which is used for the trunc function
             "rounding_mode": ("s", True, "FLOOR"),
         }
@@ -84,41 +80,102 @@ class Trunc(CustomOp):
         node = self.onnx_node
         return helper.make_node("Identity", [node.input[0]], [node.output[0]])
 
-    def get_trunc_config(self, model):
-        # ToDo: Get this to work properly
+    def get_trunc_dt(self, model):
         node = self.onnx_node
-        signed = self.get_nodeattr("signed")
+        # Find out what the sign is by looking upstream of the graph
+        # Check if the input of this node already has a FINN datatype
+        signed = None
+        inp_dt = model.get_tensor_datatype(node.input[0])
+        if inp_dt is not None and inp_dt is not DataType["FLOAT32"]:
+            signed = inp_dt.signed()
+        # Go further up the graph, since the datatype inference works top down
+        # these nodes should either be sign preserving ops or they already have a
+        # datatype defined for the output tensor.
+        curr_node = node
+        if signed is None:
+            while curr_node is not None:
+                if model.is_join_node(curr_node):
+                    raise RuntimeError(
+                        "Datatype Inference for the Trunc node only supports "
+                        "linear nodes in the upstream path."
+                    )
+                next_node = model.find_direct_predecessors(curr_node)
+                if next_node is None:
+                    raise RuntimeError(
+                        "Could not infere the Datatype for the Trunc node due to "
+                        "missing upstream ndoes."
+                    )
+                next_node = next_node[0]
+                out_dt = model.get_tensor_datatype(next_node.output[0])
+                if out_dt is not None and out_dt is not DataType["FLOAT32"]:
+                    signed = out_dt.signed()
+                    break
+                # Check if we are allowed to move on to the next op
+                sign_preserving_ops = ["Mul", "AveragePool", "Pad"]
+                if next_node.op_type not in sign_preserving_ops:
+                    raise RuntimeError(
+                        f"Could not infere the Datatype for the Trunc node, "
+                        f"because the sign of the input datatype could not be infered "
+                        f"from upstream nodes. And traversal further up the graph was "
+                        f"disallowed, since the next node type {next_node.op_type} "
+                        f"is not in the list of "
+                        f"sign preserving ops {sign_preserving_ops}."
+                    )
+                curr_node = next_node
+
+        if signed is None:
+            raise RuntimeError(
+                "Could not infere the Datatype for the Trunc node, "
+                "because the sign of the input datatype could not be infered "
+                "from upstream nodes."
+            )
+
         # scale, zero-point and bitwidth must be read from initializers
         scale = model.get_initializer(node.input[1])
         zeropt = model.get_initializer(node.input[2])
-        bitwidth = model.get_initializer(node.input[3])
-        assert scale is not None, "Found unspecified scale for Quant node: " + str(node)
+        output_bit_width = model.get_initializer(node.input[4])
+        bitwidth = output_bit_width
+        assert scale is not None, "Found unspecified scale for Trunc node: " + str(node)
         assert (
             zeropt is not None
-        ), "Found unspecified zero point for Quant node: " + str(node)
+        ), "Found unspecified zero point for Trunc node: " + str(node)
         assert (
             bitwidth is not None
-        ), "Found unspecified bitwidth for Quant node: " + str(node)
+        ), "Found unspecified output_bit_width for Trunc node: " + str(node)
         # extract the bitwidth (assume scalar)
-        assert bitwidth.ndim == 0, "Bitwidth must be scalar for Quant node: " + str(
+        assert bitwidth.ndim == 0, "Bitwidth must be scalar for Trunc node: " + str(
             node
         )
         bitwidth = bitwidth.item()
         assert (
             int(bitwidth) == bitwidth
-        ), "Bitwidth must be integer for Quant node: " + str(node)
+        ), "Bitwidth must be integer for Trunc node: " + str(node)
         bitwidth = int(bitwidth)
         # determine the FINN DataType
-        if signed:
-            finn_dt = DataType["INT" + str(bitwidth)]
+        unit_scale = np.all(scale == 1.0)
+        zero_zeropt = np.all(zeropt == 0.0)
+        assert zero_zeropt, "Only zero_point=0 Trunc nodes supported for now"
+        if unit_scale and zero_zeropt:
+            if bitwidth == 1:
+                if signed:
+                    finn_dt = DataType["BIPOLAR"]
+                else:
+                    finn_dt = DataType["BINARY"]
+            else:
+                if signed:
+                    finn_dt = DataType["INT" + str(bitwidth)]
+                else:
+                    finn_dt = DataType["UINT" + str(bitwidth)]
         else:
-            finn_dt = DataType["UINT" + str(bitwidth)]
-        return (scale, zeropt, bitwidth, finn_dt)
+            if signed:
+                finn_dt = DataType["SCALEDINT" + str(bitwidth)]
+            else:
+                finn_dt = DataType["SCALEDUINT" + str(bitwidth)]
+        return finn_dt
 
     def infer_node_datatype(self, model):
-        # (scale, zeropt, bitwidth, finn_dt) = self.get_trunc_config(model)
         node = self.onnx_node
-        finn_dt = model.get_tensor_datatype(node.input[0])
+        finn_dt = self.get_trunc_dt(model)
         if finn_dt is not None:
             model.set_tensor_datatype(node.output[0], finn_dt)
 
