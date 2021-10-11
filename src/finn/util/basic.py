@@ -366,13 +366,13 @@ def sanitize_quant_values(model, node_tensors, execution_context, check_values=F
     integers are indeed integers.
     """
 
-    for tensor in node_tensors:
-        dtype = model.get_tensor_datatype(tensor)
+    for tensor_name in node_tensors:
+        dtype = model.get_tensor_datatype(tensor_name)
         # floats don't need sanitization, skip to next
         # introduces less quicker runtime
         if dtype == DataType["FLOAT32"]:
             continue
-        current_values = execution_context[tensor]
+        current_values = execution_context[tensor_name]
         updated_values = current_values
         has_to_be_rounded = False
         # TODO: vectorize with numpy
@@ -385,7 +385,7 @@ def sanitize_quant_values(model, node_tensors, execution_context, check_values=F
             warnings.warn(
                 "The values of tensor {} can't be represented "
                 "with the set FINN datatype ({}), they will be rounded to match the "
-                "FINN datatype.".format(tensor, dtype)
+                "FINN datatype.".format(tensor_name, dtype.name)
             )
         # check if rounded values are not too far from original values
         max_error = max(np.abs(current_values - updated_values).flatten())
@@ -398,15 +398,15 @@ def sanitize_quant_values(model, node_tensors, execution_context, check_values=F
                         raise Exception(
                             """Values can't be represented with set
                                 finn datatype ({}) for input {}""".format(
-                                dtype, tensor
+                                dtype, tensor_name
                             )
                         )
-            execution_context[tensor] = updated_values
+            execution_context[tensor_name] = updated_values
         else:
             raise Exception(
                 """Rounding error is too high to match set FINN
             datatype ({}) for input {}""".format(
-                    dtype, tensor
+                    dtype, tensor_name
                 )
             )
     return execution_context
