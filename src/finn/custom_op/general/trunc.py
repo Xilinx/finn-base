@@ -48,7 +48,6 @@ def trunc(inp_tensor, scale, zeropt, input_bit_width, output_bit_width, rounding
     y = y / trunc_scale
 
     # To int
-    # ToDo: Check if this is correct
     rounding_fx = resolve_rounding_mode(rounding_mode)
     y = rounding_fx(y)
 
