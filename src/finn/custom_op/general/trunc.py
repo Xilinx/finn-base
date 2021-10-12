@@ -79,7 +79,7 @@ class Trunc(CustomOp):
         node = self.onnx_node
         return helper.make_node("Identity", [node.input[0]], [node.output[0]])
 
-    def get_trunc_dt(self, model):
+    def _get_signed_from_upstream(self, model):
         node = self.onnx_node
         # Find out what the sign is by looking upstream of the graph
         # Check if the input of this node already has a FINN datatype
@@ -129,6 +129,10 @@ class Trunc(CustomOp):
                 "from upstream nodes."
             )
 
+        return signed
+
+    def get_trunc_dt(self, model):
+        node = self.onnx_node
         # scale, zero-point and bitwidth must be read from initializers
         scale = model.get_initializer(node.input[1])
         zeropt = model.get_initializer(node.input[2])
@@ -155,6 +159,8 @@ class Trunc(CustomOp):
         zero_zeropt = np.all(zeropt == 0.0)
         assert zero_zeropt, "Only zero_point=0 Trunc nodes supported for now"
         if unit_scale and zero_zeropt:
+            # We need to find out if the upstream tensors are statically signed
+            signed = self._get_signed_from_upstream(model)
             if bitwidth == 1:
                 if signed:
                     finn_dt = DataType["BIPOLAR"]
@@ -166,10 +172,7 @@ class Trunc(CustomOp):
                 else:
                     finn_dt = DataType["UINT" + str(bitwidth)]
         else:
-            if signed:
-                finn_dt = DataType["SCALEDINT" + str(bitwidth)]
-            else:
-                finn_dt = DataType["SCALEDUINT" + str(bitwidth)]
+            finn_dt = DataType["FLOAT32"]
         return finn_dt
 
     def infer_node_datatype(self, model):
