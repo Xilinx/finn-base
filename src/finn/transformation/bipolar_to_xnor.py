@@ -53,8 +53,8 @@ class ConvertBipolarMatMulToXnorPopcount(Transformation):
                 mm_input = n.input[0]
                 mm_weight = n.input[1]
                 mm_output = n.output[0]
-                i_bp = model.get_tensor_datatype(mm_input) == DataType.BIPOLAR
-                w_bp = model.get_tensor_datatype(mm_weight) == DataType.BIPOLAR
+                i_bp = model.get_tensor_datatype(mm_input) == DataType["BIPOLAR"]
+                w_bp = model.get_tensor_datatype(mm_weight) == DataType["BIPOLAR"]
                 if i_bp and w_bp:
                     # find producing threshold node and adjust output to binary
                     def find_prod_mt(x):
@@ -69,7 +69,7 @@ class ConvertBipolarMatMulToXnorPopcount(Transformation):
                     if len(mt_chain) == 0:
                         if mm_input == graph.input[0].name:
                             # change input datatype to BINARY
-                            model.set_tensor_datatype(mm_input, DataType.BINARY)
+                            model.set_tensor_datatype(mm_input, DataType["BINARY"])
                             graph_modified = True
                             warnings.warn(
                                 """IMPORTANT: Changing graph input DataType
@@ -100,7 +100,7 @@ class ConvertBipolarMatMulToXnorPopcount(Transformation):
                         mt_inst.set_nodeattr("out_dtype", "BINARY")
                         mt_inst.set_nodeattr("out_scale", 1.0)
                         mt_inst.set_nodeattr("out_bias", 0.0)
-                        model.set_tensor_datatype(mm_input, DataType.BINARY)
+                        model.set_tensor_datatype(mm_input, DataType["BINARY"])
                     # change node type and domain
                     n.op_type = "XnorPopcountMatMul"
                     n.domain = "finn.custom_op.general"
@@ -109,14 +109,14 @@ class ConvertBipolarMatMulToXnorPopcount(Transformation):
                     # extract vector length (common matrix dim)
                     K = Wbin.shape[0]
                     model.set_initializer(mm_weight, Wbin)
-                    model.set_tensor_datatype(mm_weight, DataType.BINARY)
+                    model.set_tensor_datatype(mm_weight, DataType["BINARY"])
                     # make new output node with correct shape
                     mm_out_shape = model.get_tensor_shape(mm_output)
                     xnorpcout = oh.make_tensor_value_info(
                         model.make_new_valueinfo_name(), TensorProto.FLOAT, mm_out_shape
                     )
                     n.output[0] = xnorpcout.name
-                    model.set_tensor_datatype(xnorpcout.name, DataType.UINT32)
+                    model.set_tensor_datatype(xnorpcout.name, DataType["UINT32"])
                     # add mul-add nodes to produce correct dot product result
                     # need to derive P-N from P and K = P+N
                     # so we need 2*P-K

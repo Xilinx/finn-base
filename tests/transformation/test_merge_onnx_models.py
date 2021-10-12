@@ -47,9 +47,9 @@ def test_merge_onnx_models():
     raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model1 = ModelWrapper(raw_m)
     # the input for model1 comes from a uint8 vector so we set the finn datatype
-    # of the input tensor to DataType.UINT8 to verify that the datatypes are correctly
-    # preserved in the transformed model
-    model1.set_tensor_datatype(model1.graph.input[0].name, DataType.UINT8)
+    # of the input tensor to DataType["UINT8"] to verify that the datatypes are
+    # correctly preserved in the transformed model
+    model1.set_tensor_datatype(model1.graph.input[0].name, DataType["UINT8"])
     model1 = model1.transform(InferShapes())
     model1 = model1.transform(GiveUniqueNodeNames())
     model1 = model1.transform(GiveReadableTensorNames())
@@ -122,4 +122,4 @@ def test_merge_onnx_models():
             assert sparsity == set_sparsity
 
     # check if finn datatype of graph.input[0] is still set to UINT8
-    assert model_transformed.get_tensor_datatype("global_in") == DataType.UINT8
+    assert model_transformed.get_tensor_datatype("global_in") == DataType["UINT8"]

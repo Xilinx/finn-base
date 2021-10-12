@@ -20,7 +20,7 @@ def generate_random_input(model):
         input_node = model.graph.input[i]
         input_node_name = input_node.name
         input_node_shape = model.get_tensor_shape(input_node_name)
-        i_val = gen_finn_dt_tensor(DataType.FLOAT32, input_node_shape)
+        i_val = gen_finn_dt_tensor(DataType["FLOAT32"], input_node_shape)
         input_dict[input_node_name] = i_val
     return input_dict
 
@@ -31,7 +31,7 @@ def set_all_initializers(model):
         if len(n.input) > 1 and n.name != "TopK1":
             init_name = n.input[1]
             init_shape = model.get_tensor_shape(init_name)
-            init_val = gen_finn_dt_tensor(DataType.FLOAT32, init_shape)
+            init_val = gen_finn_dt_tensor(DataType["FLOAT32"], init_shape)
             model.set_initializer(init_name, init_val)
 
 

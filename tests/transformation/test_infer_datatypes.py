@@ -45,11 +45,11 @@ def test_infer_datatypes():
     model = model.transform(GiveReadableTensorNames())
     # this model has no DataType info, so add some DataType annotation
     # to make things a bit more exciting
-    model.set_tensor_datatype("global_in", DataType.UINT8)
+    model.set_tensor_datatype("global_in", DataType["UINT8"])
     # Conv with int weights + inputs will have int output datatype
-    model.set_tensor_datatype("Conv_0_param0", DataType.INT4)
+    model.set_tensor_datatype("Conv_0_param0", DataType["INT4"])
     model = model.transform(InferDataTypes())
-    assert model.get_tensor_datatype("global_in") == DataType.UINT8
-    assert model.get_tensor_datatype("Conv_0_out0") == DataType.INT32
-    assert model.get_tensor_datatype("Relu_0_out0") == DataType.FLOAT32
-    assert model.get_tensor_datatype("global_out") == DataType.FLOAT32
+    assert model.get_tensor_datatype("global_in") == DataType["UINT8"]
+    assert model.get_tensor_datatype("Conv_0_out0") == DataType["INT32"]
+    assert model.get_tensor_datatype("Relu_0_out0") == DataType["FLOAT32"]
+    assert model.get_tensor_datatype("global_out") == DataType["FLOAT32"]

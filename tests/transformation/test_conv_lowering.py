@@ -70,7 +70,7 @@ def test_conv_lowering_convmnist():
 
 
 # input datatype
-@pytest.mark.parametrize("idt", [DataType.INT2, DataType.INT4])
+@pytest.mark.parametrize("idt", [DataType["INT2"], DataType["INT4"]])
 # kernel size
 @pytest.mark.parametrize("k_h", [2, 3])
 @pytest.mark.parametrize("k_w", [2, 3, 1])
@@ -101,7 +101,7 @@ def test_dws_reg_conv_lowering(
         padding[3] = 0
 
     wdt = idt
-    odt = DataType.INT32
+    odt = DataType["INT32"]
     ofm_ch = ifm_ch
     pad_h = padding[0] + padding[2]
     pad_w = padding[1] + padding[3]
@@ -190,7 +190,7 @@ def test_dws_reg_conv_lowering(
 
 
 # input datatype
-@pytest.mark.parametrize("idt", [DataType.INT2, DataType.INT4])
+@pytest.mark.parametrize("idt", [DataType["INT2"], DataType["INT4"]])
 # kernel size
 @pytest.mark.parametrize("k_h", [2])
 @pytest.mark.parametrize("k_w", [2])
@@ -227,7 +227,7 @@ def test_non_equal_padding(
     idt, k_h, k_w, ifm_dim_h, ifm_dim_w, ifm_ch, stride, padding
 ):
     wdt = idt
-    odt = DataType.INT32
+    odt = DataType["INT32"]
     ofm_ch = ifm_ch
     pad_h = padding[0] + padding[2]
     pad_w = padding[1] + padding[3]
