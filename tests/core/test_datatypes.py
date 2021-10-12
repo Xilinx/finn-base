@@ -73,6 +73,7 @@ def test_datatypes():
     assert DataType["FLOAT32"].signed()
     assert DataType["BIPOLAR"].signed()
     assert DataType["TERNARY"].signed()
+    assert str(DataType["TERNARY"]) == "TERNARY"
 
 
 def test_datatypes_fixedpoint():
@@ -87,6 +88,7 @@ def test_datatypes_fixedpoint():
     assert DataType["FIXED<4,2>"].allowed(1.8) is False
     assert DataType["FIXED<4,2>"].is_integer() is False
     assert DataType["FIXED<4,2>"].is_fixed_point() is True
+    assert str(DataType["FIXED<4,2"]) == "FIXED<4,2>"
 
 
 def test_smallest_possible():

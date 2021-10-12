@@ -54,6 +54,12 @@ class BaseDataType(ABC):
     def name(self):
         return self.get_canonical_name()
 
+    def __repr__(self):
+        return self.get_canonical_name()
+
+    def __str__(self):
+        return self.get_canonical_name()
+
     @abstractmethod
     def bitwidth(self):
         "Returns the number of bits required for this DataType."
