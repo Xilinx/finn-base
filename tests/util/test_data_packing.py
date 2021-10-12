@@ -92,6 +92,11 @@ def test_finnpy_to_packed_bytearray():
     F = [[17.125, -2.0], [-3.5, 11.25]]
     eF = np.asarray([[1, 19, 240], [3, 200, 90]], dtype=np.uint8)
     assert (finnpy_to_packed_bytearray(F, DataType["FIXED<9,6>"]) == eF).all()
+    G = F
+    eG = np.asarray(
+        [[65, 137, 0, 0, 192, 0, 0, 0], [192, 96, 0, 0, 65, 52, 0, 0]], dtype=np.uint8
+    )
+    assert (finnpy_to_packed_bytearray(G, DataType["FLOAT32"]) == eG).all()
 
 
 def test_finnpy_to_packed_bytearray_fastmode_binary():
@@ -158,3 +163,7 @@ def test_packed_bytearray_to_finnpy():
     eG = np.asarray(eG, dtype=np.float32)
     shapeG = eG.shape
     assert (packed_bytearray_to_finnpy(G, DataType["FIXED<9,6>"], shapeG) == eG).all()
+    H = np.asarray(
+        [[65, 137, 0, 0, 192, 0, 0, 0], [192, 96, 0, 0, 65, 52, 0, 0]], dtype=np.uint8
+    )
+    assert (packed_bytearray_to_finnpy(H, DataType["FLOAT32"], shapeG) == eG).all()

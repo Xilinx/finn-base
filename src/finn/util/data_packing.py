@@ -205,7 +205,12 @@ def unpack_innermost_dim_from_hex_string(
             elem = ar_elem_bin[lower_limit:upper_limit]
             elem.reverse()
             elem_str = "".join(map(str, elem))
-            ar_list.append(int(elem_str, 2))
+            if conv_dtype == DataType["FLOAT32"]:
+                ar_list.append(BitArray(bin=elem_str).float)
+            elif conv_dtype.is_integer():
+                ar_list.append(int(elem_str, 2))
+            else:
+                raise Exception("Not implemented for conv_dtype " + conv_dtype.name)
         # reverse inner dimension back to "normal" positions
         if reverse_inner is False:
             ar_list.reverse()
