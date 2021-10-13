@@ -1637,16 +1637,6 @@ def test_im2col_infer_shapes():
         name="shape_graph",
         inputs=[inp],
         outputs=[outp],
-        value_info=[
-            helper.make_tensor_value_info(
-                "abs", TensorProto.FLOAT, [1, ifm_dim_h, ifm_dim_w, ifm_ch]
-            ),
-            helper.make_tensor_value_info(
-                "im2col",
-                TensorProto.FLOAT,
-                [1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch],
-            ),
-        ],
     )
 
     model = helper.make_model(graph, producer_name="shape-model")
@@ -1655,7 +1645,15 @@ def test_im2col_infer_shapes():
     model.set_tensor_datatype("inp", idt)
 
     # test shape inference
-    model.transform(InferShapes())
+    assert model.get_tensor_shape("abs") is None
+    assert model.get_tensor_shape("im2col") is None
+    model = model.transform(InferShapes())
+    assert model.get_tensor_shape("abs") == [
+        1,
+        ifm_dim_h,
+        ifm_dim_w,
+        ifm_ch,
+    ]
     assert model.get_tensor_shape("im2col") == [
         1,
         ofm_dim_h,
