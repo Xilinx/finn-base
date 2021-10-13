@@ -28,9 +28,11 @@
 
 
 import numpy as np
+import warnings
 
 from finn.transformation.base import Transformation
 from finn.transformation.infer_shapes import InferShapes
+from finn.util.basic import get_by_name
 
 
 def _remove_node_and_rewire(model, node):
@@ -94,3 +96,27 @@ class RemoveIdentityOps(Transformation):
                     break
         model = model.transform(InferShapes())
         return (model, graph_modified)
+
+
+class RemoveEmptyPadding(Transformation):
+    """Removes padding nodes, which don't pad."""
+
+    def apply(self, model):
+        pad_nodes = model.get_nodes_by_op_type("Pad")
+        for n in pad_nodes:
+            pads = get_by_name(n.attribute, "pads")
+            pads = np.asarray(pads.ints)
+            if (pads == 0).all():
+                predecessors = model.find_direct_predecessors(n)
+                successors = model.find_direct_successors(n)
+                # Check if we reached the top or bottom of the graph
+                if predecessors is None and successors is not None:
+                    warnings.warn(
+                        f"Can't remove empty padding node {n}, due to no available "
+                        f"successors or predecessors."
+                    )
+                else:
+                    _remove_node_and_rewire(model, n)
+                    return model, True
+
+        return model, False
