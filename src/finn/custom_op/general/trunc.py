@@ -32,6 +32,7 @@ import onnx.helper as helper
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
 from finn.custom_op.general.quant import resolve_rounding_mode
+from finn.custom_op.registry import getCustomOp
 
 
 def trunc(inp_tensor, scale, zeropt, input_bit_width, output_bit_width, rounding_mode):
@@ -109,6 +110,12 @@ class Trunc(CustomOp):
                 if out_dt is not None and out_dt is not DataType["FLOAT32"]:
                     signed = out_dt.signed()
                     break
+                if next_node.op_type == "MultiThreshold":
+                    mt_inst = getCustomOp(next_node)
+                    out_dt = DataType[mt_inst.get_nodeattr("out_dtype")]
+                    if out_dt is not None and out_dt is not DataType["FLOAT32"]:
+                        signed = out_dt.signed()
+                        break
                 # Check if we are allowed to move on to the next op
                 sign_preserving_ops = ["Mul", "AveragePool", "Pad"]
                 if next_node.op_type not in sign_preserving_ops:
