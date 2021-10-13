@@ -76,6 +76,8 @@ class RemoveIdentityOps(Transformation):
                     and np.isclose(A, np.zeros_like(A), atol=self.atol).all()
                 ):
                     _remove_node_and_rewire(model, n)
+                    graph_modified = True
+                    break
 
             elif (
                 n.op_type in ["Mul", "Div"]
@@ -88,5 +90,7 @@ class RemoveIdentityOps(Transformation):
                     and np.isclose(A, np.ones_like(A), atol=self.atol).all()
                 ):
                     _remove_node_and_rewire(model, n)
+                    graph_modified = True
+                    break
         model = model.transform(InferShapes())
         return (model, graph_modified)
