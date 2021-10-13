@@ -71,12 +71,7 @@ class QuantAvgPool2d(CustomOp):
             ho = compute_pool_output_dim(hi, k, s)
             wo = compute_pool_output_dim(wi, k, s)
             oshape = (n, ho, wo, c)
-            return helper.make_node(
-                "RandomNormal",
-                inputs=[],
-                outputs=[node.output[0]],
-                shape=list(oshape),
-            )
+            return super().make_const_shape_op(oshape)
 
         else:
             raise Exception(

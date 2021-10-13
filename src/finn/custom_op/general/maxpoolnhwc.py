@@ -63,12 +63,7 @@ class MaxPoolNHWC(CustomOp):
         ho = compute_pool_output_dim(hi, kernel_shape[0], strides[0], pads[0])
         wo = compute_pool_output_dim(wi, kernel_shape[1], strides[1], pads[2])
         oshape = (n, ho, wo, c)
-        return helper.make_node(
-            "RandomNormal",
-            inputs=[],
-            outputs=[self.onnx_node.output[0]],
-            shape=list(oshape),
-        )
+        return super().make_const_shape_op(oshape)
 
     def infer_node_datatype(self, model):
         node = self.onnx_node
