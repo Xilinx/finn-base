@@ -2,7 +2,8 @@
 
 Calculates the quantized values of one input data (Tensor<T>) and produces one output data (Tensor<T>).
 Additionally, takes three floats as input, which define the scale, zero-point and bit-width of the quantization.
-The attributes narrow and signed define how the bits of the quantization are interpreted.
+The attributes narrow and signed define how the bits of the quantization are interpreted, while the attribute
+rounding_mode defines how quantized values are rounded.
 
 #### Version
 
@@ -42,7 +43,6 @@ This version of the operator is new.
 
 
 #### Examples
-Not quite sure if this example is okay? It runs fine with finn-base alone.
 <details>
 <summary>Quant</summary>
 
