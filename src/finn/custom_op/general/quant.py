@@ -160,9 +160,23 @@ class Quant(CustomOp):
         node = self.onnx_node
         return helper.make_node("Identity", [node.input[0]], [node.output[0]])
 
-    def get_quant_config(self, model):
-        node = self.onnx_node
+    def get_internal_dtype(self, model):
         signed = self.get_nodeattr("signed")
+        bit_width = model.get_initializer(self.onnx_node.input[3])
+        if bit_width == 1.0:
+            if signed:
+                finn_dt = DataType["BIPOLAR"]
+            else:
+                finn_dt = DataType["BINARY"]
+        else:
+            if signed:
+                finn_dt = DataType["INT" + str(bit_width)]
+            else:
+                finn_dt = DataType["UINT" + str(bit_width)]
+        return finn_dt
+
+    def get_output_dtype(self, model):
+        node = self.onnx_node
         # scale, zero-point and bitwidth must be read from initializers
         scale = model.get_initializer(node.input[1])
         zeropt = model.get_initializer(node.input[2])
@@ -188,27 +202,15 @@ class Quant(CustomOp):
         zero_zeropt = np.all(zeropt == 0.0)
         assert zero_zeropt, "Only zero_point=0 Quant nodes supported for now"
         if unit_scale and zero_zeropt:
-            if bitwidth == 1:
-                if signed:
-                    finn_dt = DataType["BIPOLAR"]
-                else:
-                    finn_dt = DataType["BINARY"]
-            else:
-                if signed:
-                    finn_dt = DataType["INT" + str(bitwidth)]
-                else:
-                    finn_dt = DataType["UINT" + str(bitwidth)]
+            finn_dt = self.get_internal_dtype(model)
         else:
-            if signed:
-                finn_dt = DataType["SCALEDINT" + str(bitwidth)]
-            else:
-                finn_dt = DataType["SCALEDUINT" + str(bitwidth)]
+            finn_dt = DataType["FLOAT32"]
 
-        return (scale, zeropt, bitwidth, finn_dt)
+        return finn_dt
 
     def infer_node_datatype(self, model):
         try:
-            (scale, zeropt, bitwidth, finn_dt) = self.get_quant_config(model)
+            finn_dt = self.get_output_dtype(model)
         except AssertionError:
             finn_dt = DataType["FLOAT32"]
         node = self.onnx_node

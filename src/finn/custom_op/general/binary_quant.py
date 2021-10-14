@@ -63,22 +63,25 @@ class BinaryQuant(CustomOp):
         node = self.onnx_node
         return helper.make_node("Identity", [node.input[0]], [node.output[0]])
 
-    def get_quant_config(self, model):
+    def get_internal_dtype(self, model):
+        return DataType["BIPOLAR"]
+
+    def get_output_dtype(self, model):
         node = self.onnx_node
         # scale must be read from initializers
         scale = model.get_initializer(node.input[1])
         # determine the FINN DataType
         unit_scale = np.all(scale == 1.0)
         if unit_scale:
-            finn_dt = DataType["BIPOLAR"]
+            finn_dt = self.get_internal_dtype(model)
         else:
             finn_dt = DataType["FLOAT32"]
 
-        return (scale, finn_dt)
+        return finn_dt
 
     def infer_node_datatype(self, model):
         try:
-            (scale, finn_dt) = self.get_quant_config(model)
+            finn_dt = self.get_output_dtype(model)
         except AssertionError:
             finn_dt = DataType["FLOAT32"]
         node = self.onnx_node
