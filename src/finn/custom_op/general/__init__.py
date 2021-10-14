@@ -26,6 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from finn.custom_op.general.binary_quant import BinaryQuant
 from finn.custom_op.general.debugmarker import DebugMarker
 from finn.custom_op.general.genericpartition import GenericPartition
 from finn.custom_op.general.im2col import Im2Col
@@ -47,3 +48,4 @@ custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
 custom_op["Im2Col"] = Im2Col
 custom_op["Quant"] = Quant
 custom_op["Trunc"] = Trunc
+custom_op["BinaryQuant"] = BinaryQuant
