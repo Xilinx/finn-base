@@ -6,7 +6,7 @@ The attributes narrow and signed define how the bits of the quantization are int
 
 #### Version
 
-This version of the operator is new. (?)
+This version of the operator is new.
 
 #### Attributes
 
@@ -15,6 +15,8 @@ This version of the operator is new. (?)
 <dd>Defines if the quantization includes a signed bit. E.g. at 8b unsigned=[0, 255] vs signed=[-128, 127].</dd>
 <dt><tt>narrow</tt> : int (default is 0)</dt>
 <dd>Defines if the value range should be interpreted as narrow, when signed=1. E.g. at 8b regular=[-128, 127] vs narrow=[-127, 127].</dd>
+<dt><tt>rounding_mode</tt> : string (default is "ROUND")</dt>
+<dd>Defines how rounding should be applied during quantization. Currently available modes are: "ROUND", "CEIL" and "FLOOR".</dd>
 </dl>
 
 #### Inputs
@@ -55,6 +57,7 @@ zeropt = np.array(0.)
 bitwidth = np.array(4)
 signed = 1
 narrow = 0
+rounding_mode = "ROUND"
 
 # Create node
 node = helper.make_node(
@@ -64,15 +67,15 @@ node = helper.make_node(
     outputs=['y'],
     narrow=narrow,
     signed=signed,
+    rounding_mode=rounding_mode,
 )
 
 # Execute the same settings with the reference implementation (quant)
 # See the sample implementation for more details on quant.
-output_ref = quant(x, scale, zeropt, bitwidth, signed, narrow)
+output_ref = quant(x, scale, zeropt, bitwidth, signed, narrow, rounding_mode)
 
 # Execute node and compare
-expect(node, inputs=[x, scale, zeropt, bitwidth], outputs=[output_ref],
-       name='test_quant')
+expect(node, inputs=[x, scale, zeropt, bitwidth], outputs=[output_ref], name='test_quant')
 
 ```
 
@@ -94,7 +97,7 @@ from __future__ import unicode_literals
 
 import numpy as np
 
-def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow):
+def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow, rounding_mode):
     # Port of IntQuant class from Brevitas: https://bit.ly/2S6qvZJ
     # Scaling
     y_int = inp_tensor / scale
@@ -105,7 +108,8 @@ def quant(inp_tensor, scale, zeropt, bitwidth, signed, narrow):
     y_int = np.where(y_int > max_int_val, max_int_val.astype(y_int.dtype), y_int)
     y_int = np.where(y_int < min_int_val, min_int_val.astype(y_int.dtype), y_int)
     # Rounding
-    y_int = np.round(y_int)
+    rounding_fx = resolve_rounding_mode(rounding_mode)
+    y_int = rounding_fx(y_int)
 
     # Re-scaling
     out_tensor = y_int - zeropt
@@ -169,6 +173,18 @@ def max_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
     else:
         value = (2 ** (bit_width - 1)) - 1
     return value
+
+def resolve_rounding_mode(mode_string):
+    """Resolve the rounding mode string of Quant and Trunc ops
+    to the corresponding numpy functions."""
+    if mode_string == "ROUND":
+        return np.round
+    elif mode_string == "CEIL":
+        return np.ceil
+    elif mode_string == "FLOOR":
+        return np.floor
+    else:
+        raise ValueError(f"Could not resolve rounding mode called: {mode_string}")
 
 ```
 
