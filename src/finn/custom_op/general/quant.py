@@ -163,7 +163,8 @@ class Quant(CustomOp):
     def get_internal_dtype(self, model):
         signed = self.get_nodeattr("signed")
         bit_width = model.get_initializer(self.onnx_node.input[3])
-        if bit_width == 1.0:
+        bit_width = int(bit_width)
+        if bit_width == 1:
             if signed:
                 finn_dt = DataType["BIPOLAR"]
             else:
