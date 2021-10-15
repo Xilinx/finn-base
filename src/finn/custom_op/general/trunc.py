@@ -117,7 +117,7 @@ class Trunc(CustomOp):
                         signed = out_dt.signed()
                         break
                 # Check if we are allowed to move on to the next op
-                sign_preserving_ops = ["Mul", "AveragePool", "Pad"]
+                sign_preserving_ops = ["Add", "Mul", "AveragePool", "Pad"]
                 if next_node.op_type not in sign_preserving_ops:
                     raise RuntimeError(
                         f"Could not infere the Datatype for the Trunc node, "
