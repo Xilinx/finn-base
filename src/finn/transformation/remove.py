@@ -43,11 +43,13 @@ def _remove_node_and_rewire(model, node):
         producer.output[0] = node.output[0]
     else:
         # node is first in graph
-        consumer = model.find_consumer(node.output[0])
-        assert consumer is not None, "Whole graph is identity"
-        assert consumer.input[0] == node.output[0]
-        # rewire consumer's input directly to graph input
-        consumer.input[0] = node.input[0]
+        successors = model.find_direct_successors(node)
+        assert successors is not None, "Whole graph is identity"
+        for succ in successors:
+            for i, s_inp in enumerate(succ.input):
+                if s_inp == node.output[0]:
+                    # rewire successor's input directly to graph input
+                    succ.input[i] = node.input[0]
     # remove node
     model.graph.node.remove(node)
 
