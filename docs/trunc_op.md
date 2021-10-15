@@ -41,7 +41,7 @@ This version of the operator is new.
 
 #### Examples
 <details>
-<summary>Quant</summary>
+<summary>Trunc</summary>
 
 ```python
 from onnx import helper
@@ -69,7 +69,7 @@ node = helper.make_node(
 output_ref = trunc(inp_tensor, scale, zeropt, in_bitwidth, out_bitwidth, rounding_mode)
 
 # Execute node and compare
-expect(node, inputs=[x, scale, zeropt, bitwidth], outputs=[output_ref], name='test_quant')
+expect(node, inputs=[x, scale, zeropt, bitwidth], outputs=[output_ref], name='test_trunc')
 
 ```
 
