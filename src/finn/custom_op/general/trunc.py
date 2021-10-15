@@ -110,12 +110,23 @@ class Trunc(CustomOp):
                 if out_dt is not None and out_dt is not DataType["FLOAT32"]:
                     signed = out_dt.signed()
                     break
+                # Special cases where the node has an internal or intrinsic datatype.
                 if next_node.op_type == "MultiThreshold":
                     mt_inst = getCustomOp(next_node)
                     out_dt = DataType[mt_inst.get_nodeattr("out_dtype")]
                     if out_dt is not None and out_dt is not DataType["FLOAT32"]:
                         signed = out_dt.signed()
                         break
+                if next_node.op_type == "BinaryQuant":
+                    signed = True
+                    break
+                if next_node.op_type == "Quant":
+                    q_inst = getCustomOp(next_node)
+                    out_dt = q_inst.get_internal_dtype(model)
+                    if out_dt is not None and out_dt is not DataType["FLOAT32"]:
+                        signed = out_dt.signed()
+                        break
+
                 # Check if we are allowed to move on to the next op
                 sign_preserving_ops = ["Add", "Mul", "AveragePool", "Pad"]
                 if next_node.op_type not in sign_preserving_ops:
