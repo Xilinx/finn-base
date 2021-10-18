@@ -1,4 +1,4 @@
-### <a name="BinaryQuant"></a><a name="abs">**BinaryQuant**</a>
+### <a name="BipolarQuant"></a><a name="abs">**BipolarQuant**</a>
 
 Calculates the binary quantized values of one input data (Tensor<T>) and produces one output data (Tensor<T>).
 Additionally, takes one float as input, which define the scaling.
@@ -32,7 +32,7 @@ This version of the operator is new.
 
 #### Examples
 <details>
-<summary>BinaryQuant</summary>
+<summary>BipolarQuant</summary>
 
 ```python
 from onnx import helper
@@ -44,7 +44,7 @@ scale = np.array(1.)
 
 # Create node
 node = helper.make_node(
-    'BinaryQuant',
+    'BipolarQuant',
     domain='finn.custom_op.general',
     inputs=['x', 'scale'],
     outputs=['y'],
