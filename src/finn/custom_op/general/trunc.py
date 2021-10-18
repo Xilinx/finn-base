@@ -117,7 +117,7 @@ class Trunc(CustomOp):
                     if out_dt is not None and out_dt is not DataType["FLOAT32"]:
                         signed = out_dt.signed()
                         break
-                if next_node.op_type == "BinaryQuant":
+                if next_node.op_type == "BipolarQuant":
                     signed = True
                     break
                 if next_node.op_type == "Quant":
