@@ -47,8 +47,8 @@ def binary_quant(inp_tensor, scale):
     return out_tensor
 
 
-class BinaryQuant(CustomOp):
-    """Binary quantization operation for QONNX. Takes four inputs:
+class BipolarQuant(CustomOp):
+    """Bipolar quantization operation for QONNX. Takes four inputs:
     - input tensor to quantize
     - the scale
 
