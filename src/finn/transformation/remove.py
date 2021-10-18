@@ -35,7 +35,7 @@ from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
 
 
-def _remove_node_and_rewire(model, node):
+def remove_node_and_rewire(model, node):
     producer = model.find_producer(node.input[0])
     if producer is not None:
         # wire output tensor to
@@ -79,7 +79,7 @@ class RemoveIdentityOps(Transformation):
                     A is not None
                     and np.isclose(A, np.zeros_like(A), atol=self.atol).all()
                 ):
-                    _remove_node_and_rewire(model, n)
+                    remove_node_and_rewire(model, n)
                     graph_modified = True
                     break
 
@@ -93,7 +93,7 @@ class RemoveIdentityOps(Transformation):
                     A is not None
                     and np.isclose(A, np.ones_like(A), atol=self.atol).all()
                 ):
-                    _remove_node_and_rewire(model, n)
+                    remove_node_and_rewire(model, n)
                     graph_modified = True
                     break
         model = model.transform(InferShapes())
@@ -118,7 +118,7 @@ class RemoveEmptyPadding(Transformation):
                         f"successors or predecessors."
                     )
                 else:
-                    _remove_node_and_rewire(model, n)
+                    remove_node_and_rewire(model, n)
                     return model, True
 
         return model, False
