@@ -28,7 +28,6 @@
 
 
 import numpy as np
-import warnings
 
 from finn.transformation.base import Transformation
 from finn.transformation.infer_shapes import InferShapes
@@ -44,7 +43,7 @@ def remove_node_and_rewire(model, node):
     else:
         # node is first in graph
         successors = model.find_direct_successors(node)
-        assert successors is not None, "Whole graph is identity"
+        assert successors is not None, "Whole graph is one node."
         for succ in successors:
             for i, s_inp in enumerate(succ.input):
                 if s_inp == node.output[0]:
@@ -109,16 +108,7 @@ class RemoveEmptyPadding(Transformation):
             pads = get_by_name(n.attribute, "pads")
             pads = np.asarray(pads.ints)
             if (pads == 0).all():
-                predecessors = model.find_direct_predecessors(n)
-                successors = model.find_direct_successors(n)
-                # Check if we reached the top or bottom of the graph
-                if predecessors is None and successors is not None:
-                    warnings.warn(
-                        f"Can't remove empty padding node {n}, due to no available "
-                        f"successors or predecessors."
-                    )
-                else:
-                    remove_node_and_rewire(model, n)
-                    return model, True
+                remove_node_and_rewire(model, n)
+                return model, True
 
         return model, False
