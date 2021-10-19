@@ -270,7 +270,7 @@ def create_model():
     )
     for i in range(0, 4):
         model.set_initializer("in2_conv" + str(i), conv_weights[i])
-        model.set_tensor_datatype("in2_conv" + str(i), DataType.INT4)
+        model.set_tensor_datatype("in2_conv" + str(i), DataType["INT4"])
 
     return model
 
@@ -319,4 +319,4 @@ def test_extend_partition(p, extend_id):
     # Check if FINN data_types are retained
     for n in model_extended.graph.node:
         if n.op_type == "Conv":
-            assert model_extended.get_tensor_datatype(n.input[1]) == DataType.INT4
+            assert model_extended.get_tensor_datatype(n.input[1]) == DataType["INT4"]

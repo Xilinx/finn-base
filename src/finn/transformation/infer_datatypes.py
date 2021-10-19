@@ -70,19 +70,19 @@ def _infer_node_datatype(model, node):
     else:
         if node.op_type == "Sign":
             # always produces bipolar outputs
-            model.set_tensor_datatype(node.output[0], DataType.BIPOLAR)
+            model.set_tensor_datatype(node.output[0], DataType["BIPOLAR"])
         elif node.op_type in ["MatMul", "Conv"]:
-            if len(list(filter(lambda x: not x.is_integer(), idtypes))) != 0:
-                # node has at least one non-integer input, output is also float
-                model.set_tensor_datatype(node.output[0], DataType.FLOAT32)
+            if len(list(filter(lambda x: x == DataType["FLOAT32"], idtypes))) != 0:
+                # node has at least one float input, output is also float
+                model.set_tensor_datatype(node.output[0], DataType["FLOAT32"])
             else:
                 # TODO compute minimum / maximum result to minimize bitwidth
                 # use (u)int32 accumulators for now
                 has_signed_inp = len(list(filter(lambda x: x.signed(), idtypes))) != 0
                 if has_signed_inp:
-                    odtype = DataType.INT32
+                    odtype = DataType["INT32"]
                 else:
-                    odtype = DataType.UINT32
+                    odtype = DataType["UINT32"]
                 model.set_tensor_datatype(node.output[0], odtype)
         elif node.op_type in ["Resize", "Upsample"]:
             mode = get_by_name(node.attribute, "mode").s
@@ -103,11 +103,11 @@ def _infer_node_datatype(model, node):
             for o in node.output:
                 # check if output datatype is already set to a value != FLOAT32
                 odtype = model.get_tensor_datatype(o)
-                if odtype is not None and odtype != DataType.FLOAT32:
+                if odtype is not None and odtype != DataType["FLOAT32"]:
                     # don't change data type
                     model.set_tensor_datatype(o, odtype)
                 else:
-                    model.set_tensor_datatype(o, DataType.FLOAT32)
+                    model.set_tensor_datatype(o, DataType["FLOAT32"])
     # compare old and new output dtypes to see if anything changed
     new_odtypes = list(map(lambda x: model.get_tensor_datatype(x), node.output))
     graph_modified = new_odtypes != odtypes

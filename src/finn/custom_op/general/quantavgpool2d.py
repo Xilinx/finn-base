@@ -71,19 +71,7 @@ class QuantAvgPool2d(CustomOp):
             ho = compute_pool_output_dim(hi, k, s)
             wo = compute_pool_output_dim(wi, k, s)
             oshape = (n, ho, wo, c)
-            # implement tensor with correct shape
-            values = np.random.randn(*oshape).astype(np.float32)
-            return helper.make_node(
-                "Constant",
-                inputs=[],
-                outputs=[node.output[0]],
-                value=helper.make_tensor(
-                    name="const_tensor",
-                    data_type=TensorProto.FLOAT,
-                    dims=values.shape,
-                    vals=values.flatten().astype(float),
-                ),
-            )
+            return super().make_const_shape_op(oshape)
 
         else:
             raise Exception(
