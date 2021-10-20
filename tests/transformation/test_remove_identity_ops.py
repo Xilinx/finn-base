@@ -8,7 +8,7 @@ from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
-from finn.transformation.streamline.remove import RemoveIdentityOps
+from finn.transformation.remove import RemoveIdentityOps
 from finn.util.basic import gen_finn_dt_tensor
 
 
