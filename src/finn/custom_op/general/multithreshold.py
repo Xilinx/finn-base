@@ -102,7 +102,17 @@ class MultiThreshold(CustomOp):
     def infer_node_datatype(self, model):
         node = self.onnx_node
         odt = self.get_nodeattr("out_dtype")
-        model.set_tensor_datatype(node.output[0], DataType[odt])
+        is_float = False
+        scale = self.get_nodeattr("out_scale")
+        bias = self.get_nodeattr("out_bias")
+        if scale is not None and (scale % 1 != 0.0):
+            is_float = True
+        if bias is not None and (bias % 1 != 0.0):
+            is_float = True
+        if is_float:
+            model.set_tensor_datatype(node.output[0], DataType["FLOAT32"])
+        else:
+            model.set_tensor_datatype(node.output[0], DataType[odt])
 
     def execute_node(self, context, graph):
         node = self.onnx_node
