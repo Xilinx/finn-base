@@ -65,7 +65,7 @@ expect(node, inputs=[x, scale], outputs=[output_ref], name='test_binary_quant')
 #### Sample Implementation
 
 <details>
-<summary>Quant</summary>
+<summary>BipolarQuant</summary>
 
 ```python
 # SPDX-License-Identifier: Apache-2.0
@@ -78,9 +78,6 @@ from __future__ import unicode_literals
 import numpy as np
 
 def binary_quant(inp_tensor, scale):
-    # ToDo: Update this link, when the PR gets merged
-    # Port of IntQuant class from Brevitas: https://bit.ly/2S6qvZJ
-
     # Quantizing
     y_int = inp_tensor
     y_ones = np.ones(y_int.shape, dtype=y_int.dtype)

@@ -11,7 +11,7 @@ This version of the operator is new.
 #### Attributes
 
 <dl>
-<dt><tt>rounding_mode</tt> : string (default is "ROUND")</dt>
+<dt><tt>rounding_mode</tt> : string (default is "FLOOR")</dt>
 <dd>Defines how rounding should be applied during truncation. Currently available modes are: "ROUND", "CEIL" and "FLOOR".</dd>
 </dl>
 
@@ -79,7 +79,7 @@ expect(node, inputs=[x, scale, zeropt, bitwidth], outputs=[output_ref], name='te
 #### Sample Implementation
 
 <details>
-<summary>Quant</summary>
+<summary>Trunc</summary>
 
 ```python
 # SPDX-License-Identifier: Apache-2.0

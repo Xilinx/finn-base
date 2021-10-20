@@ -5,6 +5,8 @@ Additionally, takes three floats as input, which define the scale, zero-point an
 The attributes narrow and signed define how the bits of the quantization are interpreted, while the attribute
 rounding_mode defines how quantized values are rounded.
 
+Note: This operator does not work for binary or bipolar quantization, for this purpose the simpler BipolarQuant node exists.
+
 #### Version
 
 This version of the operator is new.
