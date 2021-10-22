@@ -12,7 +12,7 @@ This version of the operator is new.
 
 <dl>
 <dt><tt>rounding_mode</tt> : string (default is "FLOOR")</dt>
-<dd>Defines how rounding should be applied during truncation. Currently available modes are: "ROUND", "CEIL" and "FLOOR".</dd>
+<dd>Defines how rounding should be applied during truncation. Currently available modes are: "ROUND", "CEIL" and "FLOOR". Here "ROUND" implies a round-to-even operation.</dd>
 </dl>
 
 #### Inputs
