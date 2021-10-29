@@ -95,20 +95,16 @@ class RemoveIdentityOps(Transformation):
                     remove_node_and_rewire(model, n)
                     graph_modified = True
                     break
+            elif (
+                n.op_type == "Pad"
+                and not model.is_fork_node(n)
+                and not model.is_join_node(n)
+            ):
+                pads = get_by_name(n.attribute, "pads")
+                pads = np.asarray(pads.ints)
+                if (pads == 0).all():
+                    remove_node_and_rewire(model, n)
+                    graph_modified = True
+                    break
         model = model.transform(InferShapes())
         return (model, graph_modified)
-
-
-class RemoveEmptyPadding(Transformation):
-    """Removes padding nodes, which don't pad."""
-
-    def apply(self, model):
-        pad_nodes = model.get_nodes_by_op_type("Pad")
-        for n in pad_nodes:
-            pads = get_by_name(n.attribute, "pads")
-            pads = np.asarray(pads.ints)
-            if (pads == 0).all():
-                remove_node_and_rewire(model, n)
-                return model, True
-
-        return model, False
