@@ -122,7 +122,7 @@ class Trunc(CustomOp):
                     break
                 if next_node.op_type == "Quant":
                     q_inst = getCustomOp(next_node)
-                    out_dt = q_inst.get_internal_dtype(model)
+                    out_dt = q_inst.get_integer_datatype(model)
                     if out_dt is not None and out_dt is not DataType["FLOAT32"]:
                         signed = out_dt.signed()
                         break

@@ -160,7 +160,7 @@ class Quant(CustomOp):
         node = self.onnx_node
         return helper.make_node("Identity", [node.input[0]], [node.output[0]])
 
-    def get_internal_dtype(self, model):
+    def get_integer_datatype(self, model):
         signed = self.get_nodeattr("signed")
         bit_width = model.get_initializer(self.onnx_node.input[3])
         bit_width = int(bit_width)
@@ -203,7 +203,7 @@ class Quant(CustomOp):
         zero_zeropt = np.all(zeropt == 0.0)
         assert zero_zeropt, "Only zero_point=0 Quant nodes supported for now"
         if unit_scale and zero_zeropt:
-            finn_dt = self.get_internal_dtype(model)
+            finn_dt = self.get_integer_datatype(model)
         else:
             finn_dt = DataType["FLOAT32"]
 

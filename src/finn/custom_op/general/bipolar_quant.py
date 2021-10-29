@@ -63,7 +63,7 @@ class BipolarQuant(CustomOp):
         node = self.onnx_node
         return helper.make_node("Identity", [node.input[0]], [node.output[0]])
 
-    def get_internal_dtype(self, model):
+    def get_integer_datatype(self, model):
         return DataType["BIPOLAR"]
 
     def get_output_dtype(self, model):
@@ -73,7 +73,7 @@ class BipolarQuant(CustomOp):
         # determine the FINN DataType
         unit_scale = np.all(scale == 1.0)
         if unit_scale:
-            finn_dt = self.get_internal_dtype(model)
+            finn_dt = self.get_integer_datatype(model)
         else:
             finn_dt = DataType["FLOAT32"]
 
