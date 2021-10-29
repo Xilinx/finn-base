@@ -105,9 +105,9 @@ class MultiThreshold(CustomOp):
         is_float = False
         scale = self.get_nodeattr("out_scale")
         bias = self.get_nodeattr("out_bias")
-        if scale is not None and (scale % 1 != 0.0):
+        if scale is not None and (int(scale) != scale):
             is_float = True
-        if bias is not None and (bias % 1 != 0.0):
+        if bias is not None and (int(bias) != bias):
             is_float = True
         if is_float:
             model.set_tensor_datatype(node.output[0], DataType["FLOAT32"])
