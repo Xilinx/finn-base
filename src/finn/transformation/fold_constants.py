@@ -35,7 +35,7 @@ class FoldConstants(Transformation):
     """Replace the output of a node with const-only inputs with a precomputed
     result. Skip any op types given in exclude_op_types."""
 
-    def __init__(self, exclude_op_types=[]):
+    def __init__(self, exclude_op_types=["Quant", "BipolarQuant"]):
         super().__init__()
         self.exclude_op_types = exclude_op_types
 
