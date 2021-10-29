@@ -25,8 +25,8 @@
 # CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 import numpy as np
+import warnings
 from onnx import TensorProto, helper
 
 from finn.core.datatype import DataType
@@ -51,8 +51,17 @@ class GemmToMatMul(Transformation):
         for n in graph.node:
             node_ind += 1
             if n.op_type == "Gemm":
+                # Check for correct ONNX version
+                model_onnx_version = model.model.opset_import[0].version
+                if model_onnx_version != 9:
+                    warnings.warn(
+                        f"The GemmToMatMul transformation only offers explicit support "
+                        f"for version 9 of the Gemm node, but the ONNX version of the "
+                        f"supplied model is {model_onnx_version}. "
+                        f"Thus the transformation may fail or "
+                        f"return incomplete results."
+                    )
                 running_node_index = node_ind
-
                 # Transpose A?
                 transA = get_by_name(n.attribute, "transA")
                 if transA is not None and transA.i:
