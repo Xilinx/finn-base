@@ -5,7 +5,7 @@ Additionally, takes one float as input, which define the scaling.
 
 #### Version
 
-This version of the operator is new.
+This operator is not part of the ONNX standard and is not currently versioned.
 
 #### Attributes
 

@@ -9,7 +9,7 @@ Note: This operator does not work for binary or bipolar quantization, for this p
 
 #### Version
 
-This version of the operator is new.
+This operator is not part of the ONNX standard and is not currently versioned.
 
 #### Attributes
 
