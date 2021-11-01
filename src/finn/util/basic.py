@@ -71,7 +71,7 @@ alveo_default_platform["U280"] = "xilinx_u280_xdma_201920_3"
 
 def is_finn_op(op_type):
     "Return whether given op_type string is a FINN custom op"
-    return op_type.startswith("finn")
+    return op_type.startswith("finn") or op_type.startswith("qonnx.custom_op")
 
 
 def get_rtlsim_trace_depth():

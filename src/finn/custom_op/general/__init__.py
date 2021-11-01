@@ -26,12 +26,15 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from finn.custom_op.general.bipolar_quant import BipolarQuant
 from finn.custom_op.general.debugmarker import DebugMarker
 from finn.custom_op.general.genericpartition import GenericPartition
 from finn.custom_op.general.im2col import Im2Col
 from finn.custom_op.general.maxpoolnhwc import MaxPoolNHWC
 from finn.custom_op.general.multithreshold import MultiThreshold
+from finn.custom_op.general.quant import Quant
 from finn.custom_op.general.quantavgpool2d import QuantAvgPool2d
+from finn.custom_op.general.trunc import Trunc
 from finn.custom_op.general.xnorpopcount import XnorPopcountMatMul
 
 custom_op = dict()
@@ -43,3 +46,6 @@ custom_op["GenericPartition"] = GenericPartition
 custom_op["MultiThreshold"] = MultiThreshold
 custom_op["XnorPopcountMatMul"] = XnorPopcountMatMul
 custom_op["Im2Col"] = Im2Col
+custom_op["Quant"] = Quant
+custom_op["Trunc"] = Trunc
+custom_op["BipolarQuant"] = BipolarQuant

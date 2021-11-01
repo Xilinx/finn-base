@@ -33,7 +33,11 @@ from finn.transformation.infer_shapes import InferShapes
 
 class FoldConstants(Transformation):
     """Replace the output of a node with const-only inputs with a precomputed
-    result."""
+    result. Skip any op types given in exclude_op_types."""
+
+    def __init__(self, exclude_op_types=["Quant", "BipolarQuant"]):
+        super().__init__()
+        self.exclude_op_types = exclude_op_types
 
     def apply(self, model):
         graph = model.graph
@@ -48,7 +52,8 @@ class FoldConstants(Transformation):
             is_all_constant_inputs = len(node_inp_dyn) == 0
             ishape = model.get_tensor_shape(n.input[0])
             is_const_shape = (n.op_type == "Shape") and (ishape is not None)
-            if is_all_constant_inputs or is_const_shape:
+            exclude = n.op_type in self.exclude_op_types
+            if (is_all_constant_inputs or is_const_shape) and not exclude:
                 # this node has no dynamic inputs, only constant ones -- so we can
                 # do constant folding.
                 oxe.execute_node(n, execution_context, graph)
