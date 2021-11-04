@@ -131,6 +131,19 @@ class CustomOp(ABC):
         except KeyError:
             raise AttributeError("Op has no such attribute: " + name)
 
+    def make_const_shape_op(self, shape):
+        """Return an ONNX node that generates the desired output shape for
+        shape inference."""
+        return helper.make_node(
+            "RandomNormal",
+            inputs=[],
+            outputs=[self.onnx_node.output[0]],
+            mean=0.0,
+            scale=1.0,
+            dtype=1,
+            shape=list(shape),
+        )
+
     @abstractmethod
     def get_nodeattr_types(self):
         """Returns a dict of permitted attributes for node, where:

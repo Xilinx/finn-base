@@ -53,17 +53,17 @@ def test_xnorpopcountmatmul():
         helper.make_graph([node_def], "test_model", [x], [out], value_info=[W])
     )
     model = ModelWrapper(modelproto)
-    model.set_tensor_datatype("x", DataType.BINARY)
-    model.set_tensor_datatype("W", DataType.BINARY)
+    model.set_tensor_datatype("x", DataType["BINARY"])
+    model.set_tensor_datatype("W", DataType["BINARY"])
     W_data = np.asarray([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
     model.set_initializer("W", W_data)
     # test shape inference
     model = model.transform(InferShapes())
     assert model.get_tensor_shape("out") == [M, N]
     # test datatype inference
-    assert model.get_tensor_datatype("out") is DataType.FLOAT32
+    assert model.get_tensor_datatype("out") == DataType["FLOAT32"]
     model = model.transform(InferDataTypes())
-    assert model.get_tensor_datatype("out") is DataType.UINT32
+    assert model.get_tensor_datatype("out") == DataType["UINT32"]
     # test execution
     x_data = np.asarray([[1, 0, 0]], dtype=np.float32)
     inp_dict = {"x": x_data}

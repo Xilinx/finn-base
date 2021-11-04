@@ -56,7 +56,7 @@ def test_batchnorm_to_affine_shufflenet():
     iname = model.graph.input[0].name
     oname = model.graph.output[0].name
     ishape = model.get_tensor_shape(iname)
-    rand_inp = gen_finn_dt_tensor(DataType.INT8, ishape)
+    rand_inp = gen_finn_dt_tensor(DataType["INT8"], ishape)
     input_dict = {iname: rand_inp}
     expected = oxe.execute_onnx(model, input_dict)[oname]
     new_model = model.transform(BatchNormToAffine())
@@ -64,7 +64,7 @@ def test_batchnorm_to_affine_shufflenet():
     op_types = list(map(lambda x: x.op_type, new_model.graph.node))
     assert "BatchNormalization" not in op_types
     produced = oxe.execute_onnx(new_model, input_dict)[oname]
-    assert np.isclose(expected, produced).all()
+    assert np.isclose(expected, produced, atol=1e-05).all()
     os.remove(export_onnx_path)
 
 

@@ -73,7 +73,7 @@ RUN python -mpip install --upgrade pip && \
     rm requirements.txt
 
 # Install custom fork of pyverilator
-RUN pip install git+https://github.com/maltanar/pyverilator.git#egg=pyverilator
+RUN pip install git+https://github.com/maltanar/pyverilator.git@0c3eb9343500fc1352a02c020a736c8c2db47e8e
 
 # Install pytest-xdist (not in requirements, only for faster testing in Docker)
 RUN pip install pytest-xdist==2.0.0

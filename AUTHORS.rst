@@ -11,3 +11,4 @@ Contributors
 * Mirza Mrahorovic (@mmrahorovic)
 * Felix Paul Jentzsch (@felixpj)
 * Jon Ander Lezeta (@jalezeta)
+* Radoslav Pitoňák (@rpitonak)

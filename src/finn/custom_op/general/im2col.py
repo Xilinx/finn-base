@@ -1,5 +1,4 @@
 import numpy as np
-from onnx import TensorProto, helper
 
 import finn.util.basic as util
 from finn.core.datatype import DataType
@@ -184,20 +183,8 @@ class Im2Col(CustomOp):
         ofm_dim_h = compute_conv_output_dim(ifm_dim_h, k_h, stride_h, pad_h, dilation_h)
         ofm_dim_w = compute_conv_output_dim(ifm_dim_w, k_w, stride_w, pad_w, dilation_w)
 
-        # implement tensor with correct shape
-        values = np.random.randn(1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch).astype(
-            np.float32
-        )
-        return helper.make_node(
-            "Constant",
-            inputs=[],
-            outputs=[self.onnx_node.output[0]],
-            value=helper.make_tensor(
-                name="const_tensor",
-                data_type=TensorProto.FLOAT,
-                dims=values.shape,
-                vals=values.flatten().astype(float),
-            ),
+        return super().make_const_shape_op(
+            [1, ofm_dim_h, ofm_dim_w, k_h * k_w * ifm_ch]
         )
 
     def infer_node_datatype(self, model):

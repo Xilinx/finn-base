@@ -18,6 +18,7 @@ from finn.transformation.insert_topk import InsertTopK
 def test_topk_insert(k):
     raw_m = get_data("finn.data", "onnx/mnist-conv/model.onnx")
     model = ModelWrapper(raw_m)
+    model.model.opset_import[0].version = 11
 
     # do transformations (no topk)
     model = model.transform(InferShapes())
