@@ -197,13 +197,16 @@ class ModelWrapper:
                 ret.quant_parameter_tensor_names, "finn_datatype", "key"
             )
             if ret_dt is not None:
-                ret_dt.value = datatype.name
-            else:
+                if datatype is None:
+                    ret_dt.Clear()
+                else:
+                    ret_dt.value = datatype.name
+            elif datatype is not None:
                 dt = onnx.StringStringEntryProto()
                 dt.key = "finn_datatype"
                 dt.value = datatype.name
                 ret.quant_parameter_tensor_names.append(dt)
-        else:
+        elif datatype is not None:
             qa = onnx.TensorAnnotation()
             dt = onnx.StringStringEntryProto()
             dt.key = "finn_datatype"
