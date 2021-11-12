@@ -74,10 +74,18 @@ def rtlsim_exec(model, execution_context, pre_hook=None, post_hook=None):
         i_name = i_vi.name
         i_tensor = execution_context[i_name]
         i_dt = model.get_tensor_datatype(i_name)
-        first_node = getCustomOp(model.find_consumer(i_name))
-        i_stream_w = first_node.get_instream_width()
-        # convert input into time multiplexed shape
-        i_folded_shape = first_node.get_folded_input_shape()
+        first_node_onnx = model.find_consumer(i_name)
+        first_node = getCustomOp(first_node_onnx)
+        node_inp_ind = list(first_node_onnx.input).index(i_name)
+        if node_inp_ind == 0:
+            # default node input (input 0)
+            i_stream_w = first_node.get_instream_width()
+            i_folded_shape = first_node.get_folded_input_shape()
+        else:
+            # not input 0; node must support specifying inp index
+            # for these functions
+            i_stream_w = first_node.get_instream_width(node_inp_ind)
+            i_folded_shape = first_node.get_folded_input_shape(node_inp_ind)
         batchsize = i_tensor.shape[0]
         # override batch size for input
         i_folded_shape = list(i_folded_shape)
