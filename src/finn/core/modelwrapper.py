@@ -355,11 +355,18 @@ class ModelWrapper:
 
     def find_consumer(self, tensor_name):
         """Finds and returns the node that consumes the tensor with given name.
-        Currently only works for linear graphs."""
-        for node in self.graph.node:
-            if len(node.input) > 0 and node.input[0] == tensor_name:
-                return node
-        return None
+        If there are multiple consumers, only the first one is returned.
+        If there are no consumers, returns None."""
+        ret = self.find_consumers(tensor_name)
+        if ret is None:
+            return None
+        elif len(ret) == 1:
+            return ret[0]
+        else:
+            warnings.warn(
+                "find_consumer: found multiple consumers, returning first one"
+            )
+            return ret[0]
 
     def find_consumers(self, tensor_name):
         """Finds and returns a list of the nodes that consume tensor with
