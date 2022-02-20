@@ -80,7 +80,7 @@ def test_renaming():
 
 def test_rename_multi_io_tinyyolov3():
     download_url = (
-        "https://github.com/onnx/models/raw/master/vision/object_detection_segmentation"
+        "https://github.com/onnx/models/tree/main/vision/object_detection_segmentation"
     )
     download_url += "/tiny-yolov3/model/tiny-yolov3-11.onnx"
     export_onnx_path = download_url.split("/")[-1]
