@@ -97,5 +97,4 @@ def test_rename_multi_io_tinyyolov3():
     assert model.graph.output[0].name == "global_out"
     assert model.graph.output[1].name == "global_out_1"
     assert model.graph.output[2].name == "global_out_2"
-    model.save("dbg.onnx")
     os.remove(export_onnx_path)
