@@ -44,7 +44,7 @@ def trunc(inp_tensor, scale, zeropt, input_bit_width, output_bit_width, rounding
     y = np.round(y)
     # Truncate
     trunc_bit_width = input_bit_width - output_bit_width
-    trunc_scale = 2.0 ** trunc_bit_width
+    trunc_scale = 2.0**trunc_bit_width
     y = y / trunc_scale
 
     # To int

@@ -337,8 +337,8 @@ def calculate_signed_dot_prod_range(dt_a, dt_b, len):
         dt_a.signed() and dt_b.signed()
     ), """The input values are not both
     signed vectors."""
-    min_prod = 2 ** 30
-    max_prod = -(2 ** 30)
+    min_prod = 2**30
+    max_prod = -(2**30)
     for a_val in [dt_a.min(), dt_a.max()]:
         for b_val in [dt_b.min(), dt_b.max()]:
             prod = a_val * b_val * len

@@ -83,9 +83,9 @@ def max_int(signed: bool, narrow_range: bool, bit_width: int) -> int:
         int(255)
     """
     if not signed and not narrow_range:
-        value = (2 ** bit_width) - 1
+        value = (2**bit_width) - 1
     elif not signed and narrow_range:
-        value = (2 ** bit_width) - 2
+        value = (2**bit_width) - 2
     else:
         value = (2 ** (bit_width - 1)) - 1
     return value

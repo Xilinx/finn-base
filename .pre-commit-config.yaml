@@ -5,7 +5,7 @@ default_language_version:
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v3.2.0
+  rev: v4.1.0
   hooks:
   - id: trailing-whitespace
   - id: check-added-large-files
@@ -21,7 +21,7 @@ repos:
     args: ['--fix=no']
 
 - repo: https://github.com/PyCQA/isort
-  rev: 5.5.3
+  rev: 5.10.1
   hooks:
   - id: isort
 
@@ -32,7 +32,7 @@ repos:
     language_version: python3
 
 - repo: https://gitlab.com/pycqa/flake8
-  rev: 3.8.3
+  rev: 3.9.2
   hooks:
   - id: flake8
     # black-compatible flake-8 config
