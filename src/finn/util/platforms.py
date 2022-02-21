@@ -194,10 +194,10 @@ class Platform:
         for i in range(self.ndevices - 1):
             eth[i * self.nslr + self.eth_slr][
                 (i + 1) * self.nslr + self.eth_slr
-            ] = self.eth_gbps * (10 ** 9)
+            ] = self.eth_gbps * (10**9)
             eth[(i + 1) * self.nslr + self.eth_slr][
                 i * self.nslr + self.eth_slr
-            ] = self.eth_gbps * (10 ** 9)
+            ] = self.eth_gbps * (10**9)
         # pack sll and eth info in one list-of-list-of-tuple structure
         constraints = []
         for i in range(self.ndevices * self.nslr):

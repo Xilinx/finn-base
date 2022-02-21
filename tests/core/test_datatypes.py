@@ -50,7 +50,7 @@ def test_datatypes():
     assert DataType["UINT16"].allowed(14500)
     assert DataType["UINT16"].to_numpy_dt() == np.uint16
     assert DataType["UINT16"].allowed(-1) is False
-    assert DataType["UINT32"].allowed(2 ** 10)
+    assert DataType["UINT32"].allowed(2**10)
     assert DataType["UINT32"].allowed(-1) is False
     assert DataType["UINT32"].to_numpy_dt() == np.uint32
     assert DataType["INT2"].allowed(-1)

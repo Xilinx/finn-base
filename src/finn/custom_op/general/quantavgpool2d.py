@@ -94,7 +94,7 @@ class QuantAvgPool2d(CustomOp):
     def get_accum_size(self):
         ibits = self.get_nodeattr("ibits")
         k = self.get_nodeattr("kernel")
-        max_value = 2 ** ibits - 1
+        max_value = 2**ibits - 1
         max_value = max_value * k * k
         max_bit_width = int(max_value).bit_length()
         return max_bit_width
