@@ -46,6 +46,8 @@ class MaxPoolNHWC(CustomOp):
 
     def get_nodeattr_types(self):
         # no specific attributes for MaxPoolNHWC
+        # attributes below are identical to the standard ONNX MaxPool op:
+        # https://github.com/onnx/onnx/blob/main/docs/Operators.md#MaxPool
         return {
             "kernel_shape": ("ints", True, []),
             "pads": ("ints", True, []),
