@@ -32,6 +32,74 @@ from pyverilator import PyVerilator
 
 from finn.util.pyverilator import axilite_read, axilite_write, reset_rtlsim
 
+axilite_expected_signals = [
+    "AWVALID",
+    "AWREADY",
+    "AWADDR",
+    "WVALID",
+    "WREADY",
+    "WDATA",
+    "WSTRB",
+    "ARVALID",
+    "ARREADY",
+    "ARADDR",
+    "RVALID",
+    "RREADY",
+    "RDATA",
+    "RRESP",
+    "BVALID",
+    "BREADY",
+    "BRESP",
+]
+
+aximm_expected_signals = [
+    "AWVALID",
+    "AWREADY",
+    "AWADDR",
+    "AWID",
+    "AWLEN",
+    "AWSIZE",
+    "AWBURST",
+    "AWLOCK",
+    "AWCACHE",
+    "AWPROT",
+    "AWQOS",
+    "AWREGION",
+    "AWUSER",
+    "WVALID",
+    "WREADY",
+    "WDATA",
+    "WSTRB",
+    "WLAST",
+    "WID",
+    "WUSER",
+    "ARVALID",
+    "ARREADY",
+    "ARADDR",
+    "ARID",
+    "ARLEN",
+    "ARSIZE",
+    "ARBURST",
+    "ARLOCK",
+    "ARCACHE",
+    "ARPROT",
+    "ARQOS",
+    "ARREGION",
+    "ARUSER",
+    "RVALID",
+    "RREADY",
+    "RDATA",
+    "RLAST",
+    "RID",
+    "RUSER",
+    "RRESP",
+    "BVALID",
+    "BREADY",
+    "BRESP",
+    "BID",
+    "BUSER",
+]
+
 
 def test_pyverilator_axilite():
     example_root = pk.resource_filename("finn.data", "verilog/myadd")
@@ -43,26 +111,7 @@ def test_pyverilator_axilite():
         top_module_name="myadd_myadd",
     )
     ifname = "s_axi_control_"
-    expected_signals = [
-        "AWVALID",
-        "AWREADY",
-        "AWADDR",
-        "WVALID",
-        "WREADY",
-        "WDATA",
-        "WSTRB",
-        "ARVALID",
-        "ARREADY",
-        "ARADDR",
-        "RVALID",
-        "RREADY",
-        "RDATA",
-        "RRESP",
-        "BVALID",
-        "BREADY",
-        "BRESP",
-    ]
-    for signal_name in expected_signals:
+    for signal_name in axilite_expected_signals:
         assert ifname + signal_name in sim.io
     reset_rtlsim(sim)
     # initial values
@@ -98,3 +147,29 @@ def test_pyverilator_axilite():
     addr_return = 0x10
     val_ret = axilite_read(sim, addr_return)
     assert val_ret == val_a + val_b
+
+
+def test_pyverilator_aximm():
+    example_root = pk.resource_filename("finn.data", "verilog/lookup")
+    # load example verilog: takes two 32-bit integers as AXI lite mem mapped
+    # registers, adds them together and return result
+    sim = PyVerilator.build(
+        "Lookup_0.v",
+        verilog_path=[example_root],
+        top_module_name="Lookup_0",
+    )
+    ctrl_ifname = "s_axi_control_"
+    for signal_name in axilite_expected_signals:
+        assert ctrl_ifname + signal_name in sim.io
+    aximm_ifname = "m_axi_gmem_"
+    for signal_name in aximm_expected_signals:
+        assert aximm_ifname + signal_name in sim.io
+    reset_rtlsim(sim)
+    # initial values for AXI lite control interface
+    sim.io[ctrl_ifname + "WVALID"] = 0
+    sim.io[ctrl_ifname + "AWVALID"] = 0
+    sim.io[ctrl_ifname + "ARVALID"] = 0
+    sim.io[ctrl_ifname + "BREADY"] = 0
+    sim.io[ctrl_ifname + "RREADY"] = 0
+    # TODO automate by looking at e.g.
+    # sim.io["s_axi_control_WVALID"].signal.__class__.__name__ == "Input"
