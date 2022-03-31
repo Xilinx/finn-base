@@ -26,6 +26,8 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pkg_resources as pk
+
 import os
 
 from finn.util.basic import get_rtlsim_trace_depth, make_build_dir
@@ -35,6 +37,74 @@ try:
 except ModuleNotFoundError:
     PyVerilator = None
 
+axilite_expected_signals = [
+    "AWVALID",
+    "AWREADY",
+    "AWADDR",
+    "WVALID",
+    "WREADY",
+    "WDATA",
+    "WSTRB",
+    "ARVALID",
+    "ARREADY",
+    "ARADDR",
+    "RVALID",
+    "RREADY",
+    "RDATA",
+    "RRESP",
+    "BVALID",
+    "BREADY",
+    "BRESP",
+]
+
+aximm_expected_signals = [
+    "AWVALID",
+    "AWREADY",
+    "AWADDR",
+    "AWID",
+    "AWLEN",
+    "AWSIZE",
+    "AWBURST",
+    "AWLOCK",
+    "AWCACHE",
+    "AWPROT",
+    "AWQOS",
+    "AWREGION",
+    "AWUSER",
+    "WVALID",
+    "WREADY",
+    "WDATA",
+    "WSTRB",
+    "WLAST",
+    "WID",
+    "WUSER",
+    "ARVALID",
+    "ARREADY",
+    "ARADDR",
+    "ARID",
+    "ARLEN",
+    "ARSIZE",
+    "ARBURST",
+    "ARLOCK",
+    "ARCACHE",
+    "ARPROT",
+    "ARQOS",
+    "ARREGION",
+    "ARUSER",
+    "RVALID",
+    "RREADY",
+    "RDATA",
+    "RLAST",
+    "RID",
+    "RUSER",
+    "RRESP",
+    "BVALID",
+    "BREADY",
+    "BRESP",
+    "BID",
+    "BUSER",
+]
+
 
 def pyverilate_get_liveness_threshold_cycles():
     """Return the number of no-output cycles rtlsim will wait before assuming
@@ -43,7 +113,15 @@ def pyverilate_get_liveness_threshold_cycles():
     return int(os.getenv("LIVENESS_THRESHOLD", 10000))
 
 
-def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
+def rtlsim_multi_io(
+    sim,
+    io_dict,
+    num_out_values,
+    trace_file="",
+    sname="_V_V_",
+    hook_preclk=None,
+    hook_postclk=None,
+):
     """Runs the pyverilator simulation by passing the input values to the simulation,
     toggle the clock and observing the execution time. Function contains also an
     observation loop that can abort the simulation if no output value is produced
@@ -63,6 +141,8 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
       finish the simulation and return.
     * trace_file: vcd dump filename, empty string (no vcd dump) by default
     * sname: signal naming for streams, "_V_V_" by default, vitis_hls uses "_V_"
+    * hook_preclk: hook function to call prior to clock tick
+    * hook_postclk: hook function to call after clock tick
 
     Returns: number of clock cycles elapsed for completion
 
@@ -110,7 +190,11 @@ def rtlsim_multi_io(sim, io_dict, num_out_values, trace_file="", sname="_V_V_"):
                 output_count += 1
             io_dict["outputs"][outp] = outputs
 
+        if hook_preclk:
+            hook_preclk(sim)
         toggle_clk(sim)
+        if hook_postclk:
+            hook_postclk(sim)
 
         total_cycle_count = total_cycle_count + 1
 
@@ -250,15 +334,15 @@ def _write_signal(sim, signal_name, signal_value):
     sim.io[signal_name] = signal_value
 
 
-def reset_rtlsim(sim, rst_name="ap_rst_n", active_low=True):
+def reset_rtlsim(sim, rst_name="ap_rst_n", active_low=True, clk_name="ap_clk"):
     """Sets reset input in pyverilator to zero, toggles the clock and set it
     back to one"""
     _write_signal(sim, rst_name, 0 if active_low else 1)
-    toggle_clk(sim)
-    toggle_clk(sim)
+    toggle_clk(sim, clk_name=clk_name)
+    toggle_clk(sim, clk_name=clk_name)
     _write_signal(sim, rst_name, 1 if active_low else 0)
-    toggle_clk(sim)
-    toggle_clk(sim)
+    toggle_clk(sim, clk_name=clk_name)
+    toggle_clk(sim, clk_name=clk_name)
 
 
 def toggle_clk(sim, clk_name="ap_clk"):
@@ -374,3 +458,75 @@ def axilite_read(sim, addr, basename="s_axi_control_"):
     ret_data = wait_for_handshake(sim, "R", basename=basename)
     _write_signal(sim, basename + "RREADY", 0)
     return ret_data
+
+
+def create_axi_mem_hook(
+    ref_sim, aximm_ifname, mem_depth, mem_init_file="", trace_file=""
+):
+    """Create and return a pair of (pre_hook, post_hook) functions to serve
+    as an AXI slave memory on the AXI MM master interface with given name."""
+    # find the AXI-MM master interface with given name and extract interface widths
+    data_width = ref_sim.io[aximm_ifname + "RDATA"].signal.width
+    id_width = ref_sim.io[aximm_ifname + "RID"].signal.width
+    addr_width = ref_sim.io[aximm_ifname + "ARADDR"].signal.width
+    strb_width = int(data_width / 8)
+    # create pyverilator sim object for AXI memory
+    example_root = pk.resource_filename("finn.data", "verilog/verilog-axi")
+    aximem_sim = PyVerilator.build(
+        "axi_ram.v",
+        verilog_path=[example_root],
+        top_module_name="axi_ram",
+        extra_args=[
+            "-GDATA_WIDTH=%d" % data_width,
+            "-GADDR_WIDTH=%d" % addr_width,
+            "-GID_WIDTH=%d" % id_width,
+            "-GSTRB_WIDTH=%d" % strb_width,
+            "-GMEM_DEPTH=%d" % mem_depth,
+            '-GMEM_INIT_FILE="%s"' % mem_init_file,
+            "-GDO_MEM_INIT=%d" % (1 if mem_init_file != "" else 0),
+        ],
+    )
+    master_to_slave = []
+    slave_to_master = []
+    aximem_ifname = "s_axi_"
+    # build signal lists that will be passed back and forth between the two sims
+    for signal_name in aximm_expected_signals:
+        if ref_sim.io[aximm_ifname + signal_name].signal.__class__.__name__ == "Output":
+            if (aximem_ifname + signal_name).lower() in aximem_sim.io:
+                master_to_slave.append(signal_name)
+        elif (
+            ref_sim.io[aximm_ifname + signal_name].signal.__class__.__name__ == "Input"
+        ):
+            if (aximem_ifname + signal_name).lower() in aximem_sim.io:
+                slave_to_master.append(signal_name)
+        else:
+            raise Exception("Don't know how to handle AXI MM signal " + signal_name)
+    # apply reset
+    reset_rtlsim(aximem_sim, "rst", False, clk_name="clk")
+    if trace_file != "":
+        aximem_sim.start_vcd_trace(trace_file)
+    # define hook functions
+
+    def sim_hook_axi_mem_preclk(sim):
+        # copy AXI master outputs to AXI slave inputs
+        for signal_name in master_to_slave:
+            _write_signal(
+                aximem_sim,
+                aximem_ifname + signal_name,
+                sim.io[aximm_ifname + signal_name],
+            )
+        # sync clock level for aximem_sim
+        _write_signal(aximem_sim, "clk", _read_signal(sim, "ap_clk"))
+        aximem_sim.eval()
+
+    def sim_hook_axi_mem_postclk(sim):
+        toggle_clk(aximem_sim, clk_name="clk")
+        # copy all AXI slave outputs to AXI master inputs
+        for signal_name in slave_to_master:
+            sim.io[aximm_ifname + signal_name] = _read_signal(
+                aximem_sim, aximem_ifname + signal_name
+            )
+        if trace_file != "":
+            aximem_sim.flush_vcd_trace()
+
+    return (sim_hook_axi_mem_preclk, sim_hook_axi_mem_postclk)

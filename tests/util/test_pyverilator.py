@@ -28,77 +28,21 @@
 
 import pkg_resources as pk
 
+import numpy as np
 from pyverilator import PyVerilator
 
-from finn.util.pyverilator import axilite_read, axilite_write, reset_rtlsim
-
-axilite_expected_signals = [
-    "AWVALID",
-    "AWREADY",
-    "AWADDR",
-    "WVALID",
-    "WREADY",
-    "WDATA",
-    "WSTRB",
-    "ARVALID",
-    "ARREADY",
-    "ARADDR",
-    "RVALID",
-    "RREADY",
-    "RDATA",
-    "RRESP",
-    "BVALID",
-    "BREADY",
-    "BRESP",
-]
-
-aximm_expected_signals = [
-    "AWVALID",
-    "AWREADY",
-    "AWADDR",
-    "AWID",
-    "AWLEN",
-    "AWSIZE",
-    "AWBURST",
-    "AWLOCK",
-    "AWCACHE",
-    "AWPROT",
-    "AWQOS",
-    "AWREGION",
-    "AWUSER",
-    "WVALID",
-    "WREADY",
-    "WDATA",
-    "WSTRB",
-    "WLAST",
-    "WID",
-    "WUSER",
-    "ARVALID",
-    "ARREADY",
-    "ARADDR",
-    "ARID",
-    "ARLEN",
-    "ARSIZE",
-    "ARBURST",
-    "ARLOCK",
-    "ARCACHE",
-    "ARPROT",
-    "ARQOS",
-    "ARREGION",
-    "ARUSER",
-    "RVALID",
-    "RREADY",
-    "RDATA",
-    "RLAST",
-    "RID",
-    "RUSER",
-    "RRESP",
-    "BVALID",
-    "BREADY",
-    "BRESP",
-    "BID",
-    "BUSER",
-]
+from finn.core.datatype import DataType
+from finn.util.basic import gen_finn_dt_tensor
+from finn.util.data_packing import pack_innermost_dim_as_hex_string
+from finn.util.pyverilator import (
+    axilite_expected_signals,
+    axilite_read,
+    axilite_write,
+    aximm_expected_signals,
+    create_axi_mem_hook,
+    reset_rtlsim,
+    rtlsim_multi_io,
+)
 
 
 def test_pyverilator_axilite():
@@ -171,5 +115,58 @@ def test_pyverilator_aximm():
     sim.io[ctrl_ifname + "ARVALID"] = 0
     sim.io[ctrl_ifname + "BREADY"] = 0
     sim.io[ctrl_ifname + "RREADY"] = 0
-    # TODO automate by looking at e.g.
-    # sim.io["s_axi_control_WVALID"].signal.__class__.__name__ == "Input"
+    # memory map for s_axi_control:
+    # 0x10 : Data signal of mem
+    #        bit 31~0 - mem[31:0] (Read/Write)
+    # 0x14 : Data signal of mem
+    #        bit 31~0 - mem[63:32] (Read/Write)
+    # 0x18 : reserved
+    # set up the offset for the AXI-MM reads
+    val_offset = 0x0
+    addr_offset = 0x10
+    axilite_write(sim, addr_offset, val_offset)
+    ret_data = axilite_read(sim, addr_offset)
+    assert ret_data == val_offset
+    lookup_depth = 16
+    lookup_width = 300
+    lookup_padded_width = 512
+    memif_width = 4
+    lookup_dt = DataType["INT8"]
+    mem_data = gen_finn_dt_tensor(lookup_dt, (lookup_depth, lookup_width))
+    mem_data = np.pad(mem_data, [(0, 0), (0, lookup_padded_width - lookup_width)])
+    mem_data = mem_data.reshape(
+        lookup_depth, lookup_padded_width // memif_width, memif_width
+    )
+    mem_data_hex = pack_innermost_dim_as_hex_string(
+        mem_data, lookup_dt, 8 * memif_width, prefix="", reverse_inner=True
+    )
+    mem_data_flat = mem_data_hex.flatten()
+    mem_init_file = "/tmp/mem_init.dat"
+    with open(mem_init_file, "w") as f:
+        for mem_data_line in mem_data_flat:
+            f.write(mem_data_line)
+            f.write("\n")
+    aximm_mem_depth = len(mem_data_flat)
+    (sim_hook_axi_mem_preclk, sim_hook_axi_mem_postclk) = create_axi_mem_hook(
+        sim, aximm_ifname, aximm_mem_depth, mem_init_file=mem_init_file
+    )
+    num_in_values = 2
+    inputs = [i for i in range(num_in_values)]
+    io_dict = {"inputs": {"in0": inputs}, "outputs": {"out": []}}
+    num_out_values = num_in_values * (300 / 4)
+    rtlsim_multi_io(
+        sim,
+        io_dict,
+        num_out_values,
+        sname="_V_",
+        hook_preclk=sim_hook_axi_mem_preclk,
+        hook_postclk=sim_hook_axi_mem_postclk,
+    )
+    outputs = np.asarray(io_dict["outputs"]["out"]).reshape(num_in_values, -1)
+    for inp_num in range(num_in_values):
+        inp = inputs[inp_num]
+        golden = [
+            int(x, base=16) for x in mem_data_hex[inp][: lookup_width // memif_width]
+        ]
+        produced = outputs[inp_num]
+        assert all(golden == produced)
