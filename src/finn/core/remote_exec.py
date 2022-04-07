@@ -88,12 +88,12 @@ def remote_exec(model, execution_context):
         remote_cmd = "bash -ic 'bash alveo_run.sh execute %d' \"" % batchsize
     else:
         remote_cmd = (
-            "python3.6 driver.py --exec_mode=execute --batchsize={} "
+            "python3 driver.py --exec_mode=execute --batchsize={} "
             "--bitfile={} --inputfile=input.npy --outputfile=output.npy "
             '--platform={} "'
         ).format(batchsize, bitfile, platform)
     cmd = (
-        local_prefix + 'ssh {}@{} -p {} "cd {}/{}; ' + remote_prefix + remote_cmd
+        local_prefix + 'ssh {}@{} -p {} "source /etc/profile; cd {}/{}; ' + remote_prefix + remote_cmd
     ).format(pynq_username, pynq_ip, pynq_port, pynq_target_dir, deployment_folder)
     bash_command = ["/bin/bash", "-c", cmd]
     process_exec_accel = subprocess.Popen(bash_command, stdout=subprocess.PIPE)
