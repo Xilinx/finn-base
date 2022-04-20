@@ -27,11 +27,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from onnx import TensorProto
-from onnx import helper as oh
 
 from finn.core.datatype import DataType
 from finn.transformation.base import Transformation
+from onnx import TensorProto
+from onnx import helper as oh
 
 
 class InsertTopK(Transformation):

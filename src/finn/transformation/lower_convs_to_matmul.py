@@ -27,10 +27,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from onnx import TensorProto, helper
 
 from finn.transformation.base import Transformation
 from finn.util.basic import get_by_name
+from onnx import TensorProto, helper
 
 
 def _auto_pad_to_explicit_padding(

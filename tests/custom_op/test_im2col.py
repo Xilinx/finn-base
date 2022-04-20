@@ -1,5 +1,4 @@
 import numpy as np
-from onnx import TensorProto, helper
 
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
@@ -7,6 +6,7 @@ from finn.core.modelwrapper import ModelWrapper
 from finn.custom_op.general.im2col import compute_conv_output_dim
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
+from onnx import TensorProto, helper
 
 
 def execution_im2col(

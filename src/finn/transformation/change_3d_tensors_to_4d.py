@@ -130,7 +130,7 @@ class Change3DTo4DTensors(Transformation):
             **{
                 x.name: [x.data_type, x.dims]
                 for x in model.graph.initializer
-                if model.find_consumers(x.name)[0].op_type in nodes_with_initializers
+                if model.find_consumer(x.name).op_type in nodes_with_initializers
             },
         }
         # Extract the outputs

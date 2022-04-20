@@ -1,7 +1,6 @@
 import pytest
 
 import numpy as np
-from onnx import TensorProto, helper
 
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
@@ -10,6 +9,7 @@ from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.remove import RemoveIdentityOps
 from finn.util.basic import gen_finn_dt_tensor
+from onnx import TensorProto, helper
 
 
 def insert_identity_op(model, op, as_first_node, approx):

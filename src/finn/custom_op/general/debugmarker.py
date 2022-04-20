@@ -26,9 +26,8 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from onnx import helper
-
 from finn.custom_op.base import CustomOp
+from onnx import helper
 
 
 class DebugMarker(CustomOp):

@@ -27,10 +27,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from onnx import TensorProto, helper
 
 from finn.core.modelwrapper import ModelWrapper
 from finn.custom_op.base import CustomOp
+from onnx import TensorProto, helper
 
 
 def compute_pool_output_dim(ifm_dim, k, stride, pad=0, ceil_mode=0):
