@@ -29,11 +29,11 @@
 import pytest
 
 import numpy as np
-import onnx
 import os
 import urllib.request as ureq
 
 import finn.core.onnx_exec as oxe
+import onnx
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.batchnorm_to_affine import BatchNormToAffine

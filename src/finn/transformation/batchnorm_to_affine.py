@@ -27,12 +27,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-from onnx import TensorProto
-from onnx import helper as oh
 
 from finn.transformation.base import Transformation
 from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
+from onnx import TensorProto
+from onnx import helper as oh
 
 
 class BatchNormToAffine(Transformation):

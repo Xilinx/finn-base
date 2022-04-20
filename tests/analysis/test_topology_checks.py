@@ -27,12 +27,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import onnx.helper as oh
-from onnx import TensorProto
 from pkgutil import get_data
 
 import finn.analysis.topology as ta
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.infer_shapes import InferShapes
+from onnx import TensorProto
 
 
 def test_all_tensors_f32():
