@@ -29,8 +29,6 @@
 import pytest
 
 import numpy as np
-from onnx import TensorProto
-from onnx import helper as oh
 
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
@@ -38,6 +36,8 @@ from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.create_generic_partitions import PartitionFromDict
 from finn.transformation.extend_partition import ExtendPartition
 from finn.util.basic import gen_finn_dt_tensor
+from onnx import TensorProto
+from onnx import helper as oh
 
 
 def create_model():

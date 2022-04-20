@@ -1,12 +1,12 @@
 import pytest
 
 import numpy as np
-from onnx import TensorProto, helper
 
 import finn.analysis.topology as ta
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.general import SortGraph
 from finn.transformation.infer_shapes import InferShapes
+from onnx import TensorProto, helper
 
 
 def make_randomly_sorted_linear_model(num_of_nodes, seed=None):

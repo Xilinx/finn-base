@@ -27,11 +27,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import onnx.helper as oh
-from onnx import TensorProto
 
 import finn.analysis.topology as ta
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.infer_shapes import InferShapes
+from onnx import TensorProto
 
 
 def test_is_linear_linear():

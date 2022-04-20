@@ -28,10 +28,10 @@
 
 import copy
 import pathlib
-from onnx import helper
 
 from finn.transformation.base import Transformation
 from finn.util.basic import make_build_dir
+from onnx import helper
 
 
 class PartitionFromLambda(Transformation):

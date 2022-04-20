@@ -29,13 +29,12 @@
 import pytest
 
 import numpy as np
-import onnx
 import onnx.helper as oh
 import onnx.numpy_helper as np_helper
-from onnx import TensorProto
 from pkgutil import get_data
 
 import finn.core.onnx_exec as oxe
+import onnx
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 from finn.custom_op.general.im2col import compute_conv_output_dim
@@ -43,6 +42,7 @@ from finn.custom_op.registry import getCustomOp
 from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.lower_convs_to_matmul import LowerConvsToMatMul
 from finn.util.basic import gen_finn_dt_tensor
+from onnx import TensorProto
 
 
 def test_conv_lowering_convmnist():

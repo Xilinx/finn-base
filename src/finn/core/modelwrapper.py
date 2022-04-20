@@ -27,15 +27,14 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import copy
-import onnx
 import onnx.helper as oh
 import onnx.numpy_helper as np_helper
 import os
 import warnings
-from onnx import TensorProto
 
 import finn.util.basic as util
 import finn.util.onnx as onnxutil
+import onnx
 from finn.core.datatype import DataType
 from finn.transformation.double_to_single_float import DoubleToSingleFloat
 from finn.transformation.general import (
@@ -43,6 +42,7 @@ from finn.transformation.general import (
     RemoveUnusedTensors,
     SortGraph,
 )
+from onnx import TensorProto
 
 
 class ModelWrapper:
@@ -358,7 +358,7 @@ class ModelWrapper:
         If there are multiple consumers, only the first one is returned.
         If there are no consumers, returns None."""
         ret = self.find_consumers(tensor_name)
-        if ret is None:
+        if (ret is None) or (ret == []):
             return None
         elif len(ret) == 1:
             return ret[0]
@@ -376,10 +376,7 @@ class ModelWrapper:
             for inp_tensor in n.input:
                 if inp_tensor == tensor_name:
                     consumers.append(n)
-        if consumers != []:
-            return consumers
-        else:
-            return None
+        return consumers
 
     def find_direct_successors(self, node):
         """Finds and returns a list of the nodes that are successors of

@@ -1,9 +1,9 @@
 import pytest
 
 import numpy as np
-import onnx
 
 import finn.core.onnx_exec as oxe
+import onnx
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.change_3d_tensors_to_4d import Change3DTo4DTensors

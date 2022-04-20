@@ -27,10 +27,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
-import onnx
 from pkgutil import get_data
 
 import finn.core.data_layout as DataLayout
+import onnx
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 
@@ -109,7 +109,7 @@ def test_modelwrapper_graph_order():
     assert model.find_consumers("neg1") == [Round_node, Ceil_node]
     assert model.find_consumers("round1") == [Add_node]
     assert model.find_consumers("ceil1") == [Add_node]
-    assert model.find_consumers("out1") is None
+    assert model.find_consumers("out1") == []
 
     assert model.find_direct_successors(Neg_node) == [Round_node, Ceil_node]
     assert model.find_direct_successors(Round_node) == [Add_node]
