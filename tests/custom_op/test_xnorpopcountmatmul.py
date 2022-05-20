@@ -28,13 +28,13 @@
 
 import numpy as np
 import onnx.helper as helper
+from onnx import TensorProto
 
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
-from onnx import TensorProto
 
 export_onnx_path = "test_xnorpopcountmatmul.onnx"
 

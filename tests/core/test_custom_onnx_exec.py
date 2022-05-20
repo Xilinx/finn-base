@@ -27,10 +27,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+from onnx import TensorProto, helper
 
 import finn.core.execute_custom_node as ex_cu_node
 from finn.custom_op.registry import getCustomOp
-from onnx import TensorProto, helper
 
 
 def test_execute_custom_node_multithreshold():

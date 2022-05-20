@@ -27,14 +27,15 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import copy
+import onnx
 import onnx.helper as oh
 import onnx.numpy_helper as np_helper
 import os
 import warnings
+from onnx import TensorProto
 
 import finn.util.basic as util
 import finn.util.onnx as onnxutil
-import onnx
 from finn.core.datatype import DataType
 from finn.transformation.double_to_single_float import DoubleToSingleFloat
 from finn.transformation.general import (
@@ -42,21 +43,21 @@ from finn.transformation.general import (
     RemoveUnusedTensors,
     SortGraph,
 )
-from onnx import TensorProto
 
 
 class ModelWrapper:
     """A wrapper around ONNX ModelProto that exposes some useful utility
     functions for graph manipulation and exploration."""
 
-    def __init__(self, onnx_model_proto, make_deepcopy=False):
+    def __init__(self, onnx_model_proto, make_deepcopy=False, fix_float64=False):
         """Creates a ModelWrapper instance.
         onnx_model_proto can be either a ModelProto instance, or a string
         with the path to a stored .onnx file on disk, or serialized bytes.
 
         make_deepcopy: controls whether a deep copy of the ModelProto
         is made internally.
-        """
+        fix_float64 : DoubleToSingleFloat correction before applying any
+        transformations on this model."""
         if isinstance(onnx_model_proto, str):
             assert os.path.isfile(
                 onnx_model_proto
@@ -70,6 +71,7 @@ class ModelWrapper:
             else:
                 self._model_proto = onnx_model_proto
         self.temporary_fix_oldstyle_domain()
+        self.fix_float64 = fix_float64
 
     def temporary_fix_oldstyle_domain(self):
         found_oldstyle = False
@@ -119,20 +121,17 @@ class ModelWrapper:
         """Runs given anaylsis_fxn on this model and return resulting dict."""
         return analysis_fxn(self)
 
-    def transform(
-        self, transformation, make_deepcopy=True, cleanup=True, fix_float64=True
-    ):
+    def transform(self, transformation, make_deepcopy=True, cleanup=True):
         """Applies given Transformation repeatedly until no more changes can be made
         and returns a transformed ModelWrapper instance.
 
         - make_deepcopy : operates on a new (deep)copy of model.
-        - fix_float64 : DoubleToSingleFloat correction before starting
         - cleanup : execute cleanup transformations before returning
         """
         transformed_model = self
         if make_deepcopy:
             transformed_model = copy.deepcopy(self)
-        if fix_float64:
+        if self.fix_float64:
             (transformed_model, model_was_changed) = DoubleToSingleFloat().apply(
                 transformed_model
             )

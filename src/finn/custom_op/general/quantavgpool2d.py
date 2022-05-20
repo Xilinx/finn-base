@@ -28,11 +28,11 @@
 
 import numpy as np
 import onnxruntime as rt
+from onnx import TensorProto, helper
 
 from finn.core.datatype import DataType
 from finn.custom_op.base import CustomOp
 from finn.custom_op.general.maxpoolnhwc import compute_pool_output_dim
-from onnx import TensorProto, helper
 
 
 class QuantAvgPool2d(CustomOp):

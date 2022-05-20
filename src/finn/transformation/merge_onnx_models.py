@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import copy
 import warnings
+from onnx import helper
 
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.base import Transformation
@@ -39,7 +40,6 @@ from finn.transformation.general import (
 from finn.transformation.infer_data_layouts import InferDataLayouts
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
-from onnx import helper
 
 
 class MergeONNXModels(Transformation):

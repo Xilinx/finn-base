@@ -28,11 +28,11 @@
 
 import json
 import numpy as np
+import onnx
 import os
 from pkgutil import get_data
 
 import finn.core.onnx_exec as oxe
-import onnx
 from finn.core.modelwrapper import ModelWrapper
 from finn.custom_op.registry import getCustomOp
 from finn.transformation.general import (

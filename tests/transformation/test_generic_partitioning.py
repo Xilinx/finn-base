@@ -29,6 +29,7 @@
 import pytest
 
 import numpy as np
+from onnx import TensorProto, helper
 
 import finn.core.onnx_exec as oxe
 from finn.core.modelwrapper import ModelWrapper
@@ -36,7 +37,6 @@ from finn.custom_op.registry import getCustomOp
 from finn.transformation.create_generic_partitions import PartitionFromDict
 from finn.transformation.general import GiveReadableTensorNames, GiveUniqueNodeNames
 from finn.transformation.infer_shapes import InferShapes
-from onnx import TensorProto, helper
 
 
 # select example partitioning

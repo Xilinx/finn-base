@@ -28,6 +28,8 @@
 
 import numpy as np
 import warnings
+from onnx import TensorProto
+from onnx import helper as oh
 
 from finn.core.datatype import DataType
 from finn.custom_op.registry import getCustomOp
@@ -35,8 +37,6 @@ from finn.transformation.base import Transformation
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
-from onnx import TensorProto
-from onnx import helper as oh
 
 
 class ConvertBipolarMatMulToXnorPopcount(Transformation):

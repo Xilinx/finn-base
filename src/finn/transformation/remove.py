@@ -101,7 +101,7 @@ class RemoveIdentityOps(Transformation):
                 and not model.is_join_node(n)
             ):
                 pads = get_by_name(n.attribute, "pads")
-                pads = np.asarray(pads.ints)
+                pads = np.asarray(pads.ints, dtype=np.int64)
                 if (pads == 0).all():
                     remove_node_and_rewire(model, n)
                     graph_modified = True
