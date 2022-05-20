@@ -27,12 +27,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+from onnx import TensorProto, helper
 from pkgutil import get_data
 
 import finn.util.basic as util
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.infer_shapes import InferShapes
-from onnx import TensorProto, helper
 
 
 def test_infer_shapes():

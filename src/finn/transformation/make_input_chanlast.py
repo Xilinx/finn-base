@@ -26,9 +26,10 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from onnx import helper as oh
+
 import finn.core.data_layout as data_layout
 from finn.transformation.base import Transformation
-from onnx import helper as oh
 
 
 class MakeInputChannelsLast(Transformation):

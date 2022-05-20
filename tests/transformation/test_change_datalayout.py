@@ -27,6 +27,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import pytest
 
+from onnx import TensorProto, helper
+
 import finn.core.data_layout as DataLayout
 import finn.core.onnx_exec as oxe
 from finn.core.datatype import DataType
@@ -38,7 +40,6 @@ from finn.transformation.infer_data_layouts import InferDataLayouts
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import gen_finn_dt_tensor, get_by_name
-from onnx import TensorProto, helper
 
 
 # stride

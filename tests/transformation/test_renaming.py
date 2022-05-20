@@ -29,13 +29,13 @@
 import pytest
 
 import numpy as np
+import onnx
 import onnx.numpy_helper as np_helper
 import os
 import urllib.request as ureq
 from pkgutil import get_data
 
 import finn.core.onnx_exec as oxe
-import onnx
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.general import GiveReadableTensorNames, GiveUniqueNodeNames
 from finn.transformation.infer_shapes import InferShapes

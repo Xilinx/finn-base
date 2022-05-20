@@ -27,9 +27,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import warnings
+from onnx import TensorProto, helper
 
 from finn.transformation.base import Transformation
-from onnx import TensorProto, helper
 
 
 class ExtractBiasFromConv(Transformation):

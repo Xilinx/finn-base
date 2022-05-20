@@ -27,11 +27,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+import onnx
 import onnx.numpy_helper as np_helper
+from onnx import TensorProto, helper
 from pkgutil import get_data
 
 import finn.core.onnx_exec as oxe
-import onnx
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 from finn.transformation.general import GiveReadableTensorNames, GiveUniqueNodeNames
@@ -39,7 +40,6 @@ from finn.transformation.infer_data_layouts import InferDataLayouts
 from finn.transformation.infer_datatypes import InferDataTypes
 from finn.transformation.infer_shapes import InferShapes
 from finn.transformation.merge_onnx_models import MergeONNXModels
-from onnx import TensorProto, helper
 
 
 def test_merge_onnx_models():

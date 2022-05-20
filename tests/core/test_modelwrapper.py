@@ -27,10 +27,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+import onnx
 from pkgutil import get_data
 
 import finn.core.data_layout as DataLayout
-import onnx
 from finn.core.datatype import DataType
 from finn.core.modelwrapper import ModelWrapper
 

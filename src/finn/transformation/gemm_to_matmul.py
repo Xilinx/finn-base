@@ -27,12 +27,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import numpy as np
 import warnings
+from onnx import TensorProto, helper
 
 from finn.core.datatype import DataType
 from finn.transformation.base import Transformation
 from finn.transformation.remove import RemoveIdentityOps
 from finn.util.basic import get_by_name
-from onnx import TensorProto, helper
 
 
 class GemmToMatMul(Transformation):

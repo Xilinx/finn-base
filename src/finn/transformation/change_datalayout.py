@@ -26,10 +26,11 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from onnx import TensorProto, helper
+
 from finn.transformation.base import Transformation
 from finn.transformation.infer_shapes import InferShapes
 from finn.util.basic import get_by_name
-from onnx import TensorProto, helper
 
 
 class ChangeDataLayoutQuantAvgPool2d(Transformation):

@@ -27,9 +27,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+import onnx
 
 import finn.core.data_layout as DataLayout
-import onnx
 
 
 def valueinfo_to_tensor(vi):
