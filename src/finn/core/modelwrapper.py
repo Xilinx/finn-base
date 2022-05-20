@@ -54,11 +54,10 @@ class ModelWrapper:
         onnx_model_proto can be either a ModelProto instance, or a string
         with the path to a stored .onnx file on disk, or serialized bytes.
 
-        - make_deepcopy: controls whether a deep copy of the ModelProto
+        make_deepcopy: controls whether a deep copy of the ModelProto
         is made internally.
-        - fix_float64 : DoubleToSingleFloat correction before applying any
-        transformations on this model.
-        """
+        fix_float64 : DoubleToSingleFloat correction before applying any
+        transformations on this model."""
         if isinstance(onnx_model_proto, str):
             assert os.path.isfile(
                 onnx_model_proto
