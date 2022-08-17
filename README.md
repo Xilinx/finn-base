@@ -1,7 +1,7 @@
-## <img src=https://raw.githubusercontent.com/Xilinx/finn/github-pages/docs/img/finn-logo.png width=128/> Core Components for Quantized Neural Network Inference
+# Deprecation notice
+This repo (`finn-base`) is scheduled to be deprecated soon, and should be replaced in any dependent projects with the new QONNX (https://github.com/fastmachinelearning/qonnx) repo. QONNX is nearly a drop-in replacement for `finn-base`, only a namespace change is needed (e.g. `import finn.core.modelwrapper` becomes `import qonnx.core.modelwrapper`).
 
-[![Gitter](https://badges.gitter.im/xilinx-finn/community.svg)](https://gitter.im/xilinx-finn/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
-[![ReadTheDocs](https://readthedocs.org/projects/finn-base/badge/?version=latest&style=plastic)](http://finn-base.readthedocs.io/)
+## <img src=https://raw.githubusercontent.com/Xilinx/finn/github-pages/docs/img/finn-logo.png width=128/> Core Components for Quantized Neural Network Inference
 
 `finn-base` is part of the [FINN project](https://xilinx.github.io/finn/) and provides the core infrastructure for the [FINN compiler](https://github.com/Xilinx/finn/), including:
 
