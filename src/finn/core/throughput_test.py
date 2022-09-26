@@ -75,12 +75,12 @@ def throughput_test_remote(model, batchsize=1000, timeout=None):
         remote_cmd = "bash -ic 'bash alveo_run.sh throughput_test %d' \"" % batchsize
     else:
         remote_cmd = (
-            "python3.6 driver.py --exec_mode=throughput_test --batchsize={} "
+            "python3 driver.py --exec_mode=throughput_test --batchsize={} "
             "--bitfile={} --inputfile=input.npy --outputfile=output.npy "
             '--platform={} "'
         ).format(batchsize, bitfile, platform)
     cmd = (
-        local_prefix + 'ssh {}@{} -p {} "cd {}/{}; ' + remote_prefix + remote_cmd
+        local_prefix + 'ssh {}@{} -p {} "source /etc/profile; cd {}/{}; ' + remote_prefix + remote_cmd
     ).format(pynq_username, pynq_ip, pynq_port, pynq_target_dir, deployment_folder)
     bash_command = ["/bin/bash", "-c", cmd]
     process_throughput_test = subprocess.Popen(bash_command, stdout=subprocess.PIPE)
