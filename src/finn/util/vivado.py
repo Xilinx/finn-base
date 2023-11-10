@@ -27,8 +27,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
+from shutil import which
 
-from finn.util.basic import launch_process_helper, which
+from finn.util.basic import launch_process_helper
 
 
 def out_of_context_synth(
